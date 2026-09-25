@@ -1,0 +1,14 @@
+vendor/*
+!vendor/README.md
+/mwccarm/
+/dsd-windows-x86_64.exe
+.claude/settings.local.json
+node_modules/
+.dsdude/
+/dist/
+/build/
+*.nds
+*.elf
+!/fixtures/**/*.nds
+!/fixtures/**/*.elf
+!/runtime/dist/*.elf
