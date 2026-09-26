@@ -1,6 +1,6 @@
 # C8: Runtime artifact
 
-Version: 0.2.0 · Owner: WS3 · Changes: see the tiers in contracts/README.md
+Version: 0.3.0 · Owner: WS3 · Changes: see the tiers in contracts/README.md
 
 What `runtime/dist/` holds, how it is built, and what a ROM packed around it expects. Written by WS3 with the first
 `runtime/dist` build (2026-09-26). The protocol half of C8 is `contracts/log-protocol.md` (WS2). Sources: PLAN.md
@@ -51,7 +51,7 @@ UTF-8 `key=value` lines, LF, in this order. Readers ignore unknown keys.
 |---|---|
 | `runtime` | The runtime semver: `runtime/package.json` `version`, compiled in as `DSD_RUNTIME_VERSION` and printed in `DSD\|READY`. |
 | `abi` | The ABI hash the runtime accepts, 8 lowercase hex digits (`DSD_ABI_HASH` in `runtime/gen/builtins_table.h`; C2). |
-| `tree` | The git tree hash of `runtime/` **without `runtime/dist/`** (below). |
+| `tree` | The git tree hash of `runtime/` **without `runtime/dist/`** (below). Informational since 0.3.0: `build_tree` is the staleness check. |
 | `blocksds` | The BlocksDS version that built it (`wf-config`, via `detectToolchain()`). |
 | `arm7` | `$BLOCKSDS/sys/arm7/main_core/arm7_maxmod.elf`. |
 | `arm9_sha256` | SHA-256 of `arm9.elf`, lowercase hex. |
@@ -61,6 +61,7 @@ UTF-8 `key=value` lines, LF, in this order. Readers ignore unknown keys.
 | `cstack` | The C stack in bytes: `__sp_usr - __dtcm_start`. It is the total in `DSD\|MEM`'s `cstack=used/total` (KB there). |
 | `image` | Everything static in main RAM, loaded sections plus `.bss` (the core's static pools: the DSDB buffer, instance pool, string arena): `__end__ - 0x02000000`. Information only; PLAN.md 3.3 budgets those pools separately. |
 | `loaded` | The ARM9 binary itself, code and data (ITCM/DTCM copies included): `arm-none-eabi-size` text + data. Budget 0.7 MB (716,800 bytes, PLAN.md 3.3 "ARM9 image"). |
+| `build_tree` | The git tree hash of **the DS build's inputs only**: `runtime/core/`, `gen/`, `platform/ds/src/`, `data/`, `Makefile`, `package.json` (`BUILD_INPUTS` in `runtime/src/artifact.ts`; what `runtime/Makefile` reads without `DSD_SELFTEST`), taken the same way as `tree`. It changes only when the ELF can, so it is the staleness check for `dist/` (below). Since 0.3.0. |
 
 **Which tree `tree` covers.** `runtime/dist/` sits inside `runtime/`, and a commit cannot contain its own hash, so
 `tree` is the hash `git write-tree --prefix=runtime/` gives for `runtime/` **with `runtime/dist/` removed**: the core,
@@ -69,6 +70,12 @@ are in the working tree (tracked and untracked files, minus `.gitignore`d ones).
 throwaway index and never touches the real one. When `dist/` is committed together with the sources it was built
 from, `tree` equals `git rev-parse <commit>:runtime` computed with `dist/` left out, so a stale `dist/` shows as a
 `tree` mismatch.
+
+**Staleness (since 0.3.0).** `dist/` is current when `build_tree` equals the build inputs' tree now and
+`arm9_sha256` is `dist/arm9.elf`'s. `npm run check:dist -w runtime` checks both with git and Node only (exit 0
+current, 1 stale), so the cloud and CI can run it; `npm run build:runtime` prints whether `build_tree` changed. An
+edit to WS2's `tests/` or `host/`, the briefs or `selftest/` leaves `build_tree`, and so `dist/`, unchanged; only
+`tree` moves, and it is refreshed whenever `dist/` is rebuilt anyway.
 
 ## What a ROM gives the runtime
 

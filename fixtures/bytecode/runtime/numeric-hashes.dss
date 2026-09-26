@@ -1,0 +1,85 @@
+// numeric-hashes: spike 12's harness (PLAN.md 7.1; docs/research/verification.md claim 11). Each category folds
+// the raw results of the number builtins into an Adler-style pair (mod 65521, so no step ever overflows) and logs
+// it. The host builds (-O0, -O2, UBSan trap) and the DS must print the same lines.
+function mix(v) {
+    var m = v mod 65521;
+    if (m < 0) m += 65521;
+    global.a = (global.a + m) mod 65521;
+    global.b = (global.b + global.a) mod 65521;
+}
+// A REAL's raw Q20.12 value as an int, built from the whole part and the fraction so that no REAL leaves the
+// Q20.12 range (x * 4096 would, for x past 128).
+function raw(x) {
+    var whole = floor(x);
+    return whole * 4096 + floor((x - whole) * 4096);
+}
+function report(name) {
+    show_debug_message(name + " " + string(global.a) + " " + string(global.b));
+    global.a = 1;
+    global.b = 0;
+}
+global.a = 1;
+global.b = 0;
+
+// Trigonometry in degrees, fractional steps across several turns (libnds LUTs).
+for (var d = -720; d <= 720; d += 7.3) {
+    mix(raw(dsin(d)));
+    mix(raw(dcos(d)));
+}
+report("trig");
+
+// point_direction over a grid (the octant-LUT atan2).
+for (var y = -20; y <= 20; y += 3) {
+    for (var x = -20; x <= 20; x += 3) {
+        mix(raw(point_direction(0, 0, x, y)));
+    }
+}
+report("atan2");
+
+// Square roots of ints and fractions.
+for (var k = 0; k <= 300; k += 1) {
+    mix(raw(sqrt(k * k * 37 + k)));
+    mix(raw(sqrt(k / 7)));
+}
+report("sqrt");
+
+// Division: /, div and mod on ints, then fixed-point quotients (the DIV_64_32 path).
+for (var n = -50; n <= 50; n += 7) {
+    for (var q = -9; q <= 9; q += 2) {
+        mix(raw(n / q));
+        mix(n div q);
+        mix(n mod q);
+        mix(raw((n + 0.37) / (q * 0.5)));
+    }
+}
+report("div");
+
+// Fixed-point products (truncation toward zero).
+for (var i = 1; i <= 200; i += 1) {
+    mix(raw((i * 0.123) * (i * -0.77)));
+    mix(raw((i / 3) * (i / -9)));
+}
+report("mul");
+
+// lengthdir_x/y (sin/cos times a length).
+for (var len = 10; len <= 100; len += 10) {
+    for (var dir = 0; dir < 360; dir += 25) {
+        mix(raw(lengthdir_x(len, dir)));
+        mix(raw(lengthdir_y(len, dir)));
+    }
+}
+report("lengthdir");
+
+// string(): the two-decimal printing rule (half away from zero, no -0).
+for (var s = 0; s <= 100; s += 1) {
+    var t = string(s / 8 - 3.0625);
+    mix(string_length(t));
+    mix(ord(string_char_at(t, string_length(t))));
+}
+report("string");
+
+// The seeded RNG (xorshift32; --seed 1).
+for (var r = 0; r < 200; r += 1) {
+    mix(irandom(100000));
+}
+report("random");
