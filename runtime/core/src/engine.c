@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+#include "collision.h"
 #include "drawlist.h"
 #include "dsd_log.h"
 #include "errors.h"
@@ -331,6 +332,7 @@ static void stage_motion(void) {
         }
         in->x += in->hspeed;
         in->y += in->vspeed;
+        dsd_geom_epoch++;
     }
 }
 
@@ -338,24 +340,32 @@ static void stage_motion(void) {
 // each target object in index order, each overlapping instance of it on the same screen in creation order.
 static bool stage_collisions(void) {
     const DsdWorld *w = dsd_engine.world;
+    static uint16_t cand[POOL];
     uint32_t n = snapshot();
+    dsd_coll_build(w, g_snap, n);
     for (uint32_t i = 0; i < n && running(); i++) {
         uint32_t a = g_snap[i];
         if (!dsd_inst_live(a)) continue;
         uint32_t obj = dsd_inst_at(a)->object;
         for (uint32_t k = 0; k < g_coll_count[obj] && dsd_inst_live(a); k++) {
             uint32_t target = g_coll_targets[g_coll_start[obj] + k];
-            for (uint32_t j = 0; j < n && dsd_inst_live(a) && running(); j++) {
+            // Candidates in creation order from the grid. An event may move, resize or destroy anything: dead
+            // instances are skipped by the checks below, and moved or resized ones make the grid stale.
+            uint32_t m = dsd_coll_candidates(i, 0, cand);
+            uint32_t c = 0;
+            while (c < m && dsd_inst_live(a) && running()) {
+                uint32_t j = cand[c++];
                 uint32_t b = g_snap[j];
-                if (b == a || !dsd_inst_live(b)) continue;
-                const DsdInstance *ia = dsd_inst_at(a);
-                const DsdInstance *ib = dsd_inst_at(b);
                 DsdBox ba;
                 DsdBox bb;
-                if (ib->screen != ia->screen || !dsd_world_is_a(w, ib->object, target)) continue;
-                if (!dsd_geom_bbox(w, ia, false, 0, 0, &ba) || !dsd_geom_bbox(w, ib, false, 0, 0, &bb)) continue;
-                if (dsd_box_overlap(&ba, &bb) && !dsd_engine_event(a, DSD_EVENT_ID(DSD_EV_COLLISION, target), b)) {
-                    return false;
+                if (!dsd_inst_live(b) || !dsd_world_is_a(w, dsd_inst_at(b)->object, target)) continue;
+                if (!dsd_coll_box(i, &ba) || !dsd_coll_box(j, &bb) || !dsd_box_overlap(&ba, &bb)) continue;
+                if (!dsd_engine_event(a, DSD_EVENT_ID(DSD_EV_COLLISION, target), b)) return false;
+                // Unchanged geometry keeps the list valid; otherwise rebuild and resume after b.
+                if (dsd_coll_stale()) {
+                    dsd_coll_build(w, g_snap, n);
+                    m = dsd_coll_candidates(i, j + 1, cand);
+                    c = 0;
                 }
             }
         }

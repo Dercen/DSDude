@@ -6,8 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "collision.h"
 #include "drawlist.h"
 #include "engine.h"
+#include "fixed.h"
 #include "font8x8.h"
 #include "game.h"
 #include "host.h"
@@ -20,6 +22,7 @@
 #define LOG_PREFIX "DSD|LOG|"
 #define RUN_SEED 1u // every run passes a seed (CLAUDE.md: always --seed N)
 #define DRAW_FRAMES 60 // tier v4 runs: one DSD|STAT period
+#define STRESS_FRAMES 180 // v4-03-stress: three DSD|STAT periods
 #define FNV_OFFSET 0x811C9DC5u // FNV-1a 32 offset basis
 #define FNV_PRIME 0x01000193u  // FNV-1a 32 prime
 
@@ -145,6 +148,9 @@ static const ProgramCase CASES[] = {
     // Tier v4 (draw): 60 frames, so the golden pins one DSD|STAT line with the sprite counts.
     {"fixtures/bytecode/v4-01-draw.dsdb", "fixtures/bytecode/v4-01-draw.out", false, DSD_GAME_RUNNING, DRAW_FRAMES, NULL},
     {"fixtures/bytecode/v4-02-caps.dsdb", "fixtures/bytecode/v4-02-caps.out", false, DSD_GAME_RUNNING, DRAW_FRAMES, NULL},
+    // 320 instances with collisions that move and destroy: the golden matches the pre-broadphase direct checks.
+    {"fixtures/bytecode/v4-03-stress.dsdb", "fixtures/bytecode/v4-03-stress.out", false, DSD_GAME_RUNNING,
+     STRESS_FRAMES, NULL},
     {"fixtures/bytecode/bench.dsdb", "fixtures/bytecode/bench.out", false, DSD_GAME_RUNNING, 2, NULL},
     {"fixtures/bytecode/runtime/err-unset-slot.dsdb", "fixtures/bytecode/runtime/err-unset-slot.out", false,
      DSD_GAME_FAILED, 2, NULL},
@@ -410,11 +416,60 @@ static void test_screens(void) {
     CHECK_EQ(g_screen[43][17], 0);
 }
 
+// ---- The collision broadphase (collision.c) -----------------------------------------------------------------------
+
+#define HUGE_SCALE (64 * DSD_FX_ONE) // 16x16 balls grown to 1024 pixels: every box covers every bucket
+
+// Checks the broadphase's promise on the live instances: every same-screen pair with overlapping boxes is among
+// the candidates, and candidate lists are ascending. Returns the number of overlapping pairs seen.
+static uint32_t check_candidates(void) {
+    static uint16_t snap[DSD_C13_INSTANCES_MAX];
+    static uint16_t cand[DSD_C13_INSTANCES_MAX];
+    static bool listed[DSD_C13_INSTANCES_MAX];
+    const DsdWorld *w = dsd_engine.world;
+    uint32_t n = dsd_instances.count;
+    memcpy(snap, dsd_instances.order, n * sizeof snap[0]);
+    dsd_coll_build(w, snap, n);
+    uint32_t pairs = 0;
+    bool ok = true;
+    for (uint32_t i = 0; i < n; i++) {
+        uint32_t m = dsd_coll_candidates(i, 0, cand);
+        memset(listed, 0, sizeof listed);
+        for (uint32_t c = 0; c < m; c++) {
+            listed[cand[c]] = true;
+            ok = ok && (c == 0 || cand[c - 1] < cand[c]);
+        }
+        DsdBox a;
+        DsdBox b;
+        if (!dsd_coll_box(i, &a)) continue;
+        for (uint32_t j = 0; j < n; j++) {
+            if (j == i || !dsd_coll_box(j, &b) || dsd_inst_at(snap[j])->screen != dsd_inst_at(snap[i])->screen) continue;
+            if (!dsd_box_overlap(&a, &b)) continue;
+            pairs++;
+            ok = ok && listed[j];
+        }
+    }
+    CHECK(ok);
+    return pairs;
+}
+
+static void test_broadphase(void) {
+    CHECK_EQ(run_frames("fixtures/bytecode/v4-03-stress.dsdb", DRAW_FRAMES, NULL), DSD_GAME_RUNNING);
+    CHECK(check_candidates() > 0);
+    // Huge boxes overflow the grid's entries: every instance becomes a candidate, still exact.
+    for (uint32_t i = 0; i < dsd_instances.count; i++) {
+        DsdInstance *in = dsd_inst_at(dsd_instances.order[i]);
+        in->image_xscale = in->image_yscale = HUGE_SCALE;
+    }
+    CHECK(check_candidates() > 0);
+}
+
 void suite_programs(void) {
     test_cases();
     test_collector_ran();
     test_draw_oam();
     test_screens();
+    test_broadphase();
     test_flappy_deterministic();
     test_missing_file();
     test_core_main();

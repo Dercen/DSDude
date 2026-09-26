@@ -3,6 +3,8 @@
 
 #include "fixed.h"
 
+uint32_t dsd_geom_epoch;
+
 #define OBJ_SIZES 12 // hardware OBJ shapes x sizes (3 x 4)
 
 // The 12 OBJ sizes, smallest area first; C3 guarantees the smallest containing size is unique, so the first match

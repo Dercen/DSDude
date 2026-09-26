@@ -66,6 +66,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 - **Opcode promotion plan (ADR-0005 accepted, 2026-09-26; for WS4 and WS0).** The VM and the load-time verifier implement **every** provisional opcode: CALL (29), ADDI/SUBI/MULI (30-32), CMPJ (33, WS2's proposed encoding below), GETSLOT/SETSLOT/GETSLOTO/SETSLOTO (34-37), GETDYN/SETDYN (38-39), GETBI/SETBI (40-41), WITHBEGIN/WITHNEXT/WITHEND (42-44), NEWARR/GETIDX/SETIDX/LEN (45-48), TOINT/TOFIXED (49-50), GETBIX/SETBIX/GETBIO/SETBIO (55-58), each covered by the `fixtures/bytecode` programs (v0-v4, `runtime/cmpj`, `bench`). WS4's status (line 121) still says ADDI/SUBI/MULI and CMPJ are not implemented: they are, since task 5, so WS4 may emit them now. Plan: WS4 (owner of `contracts/opcodes.json`) makes the one T1 that marks 29-50 and 55-58 stable (opcodes minor bump, `contracts/dsdb.md` if it lists statuses, regenerated `runtime/gen/opcodes.h` and `packages/*/src/gen`, one CHANGELOG line), after confirming CMPJ's encoding; WS2 co-signs in this file the same day and re-runs every fixture. Reserved 51-54 stay reserved. No `ADR-pending ADR-0005` markers exist in WS2's paths.
 
+- **Collision grid broadphase, 2026-09-26.** `runtime/core/src/collision.c` + `include/collision.h`: a 16x16-bucket spatial hash per screen over 64-pixel cells, filled by counting sort from the stage snapshot with cached boxes (8,192 entries; beyond that every instance is a candidate). The Collisions stage takes each instance's candidates in creation order and rebuilds the grid only when an event changed a box input (`dsd_geom_epoch`, bumped by `dsd_bivar_set` for x/y/sprite_index/image_xscale/image_yscale/screen, `move_wrap` and the motion stage). Fixture `v4-03-stress` (320 instances, ~14k collision events in 180 frames, with moves and destroys): output and trace byte-identical to the previous direct checks, ~1.8x faster on the host (3,000 frames: 1.6 s vs 2.9 s). `test_broadphase` checks that every overlapping same-screen pair is a candidate, also in the overflow fallback. `place_meeting` and friends still check directly (one instance per call).
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -108,7 +110,7 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 
 ## Next
 - CP-A (2026-09-28): C11 (now 0.2.0) freezes; fold in anything WS3 still needs from ADR-0004 first.
-- Task 6, part 2c: the collision grid broadphase and a 300-instance stress fixture; then the rest of tier v4 (room changes with backgrounds, views) with PNG hashes.
+- The rest of tier v4: room changes with backgrounds and views, pinned with PNG hashes.
 - WS4's conformance programs 6-10 (v1): run them and write `fixtures/conformance/expected/v1/*.log` when they land; ADR draft if they are not on `main` by D+5 (2026-09-30).
 - With WS4: promote the provisional opcodes the VM now implements (CALL, ADDI/SUBI/MULI, CMPJ, slots, GETDYN/SETDYN, GETBI*, WITH*, arrays, TOINT/TOFIXED) to stable in one T1, once WS4 has co-signed the CMPJ proposal and WS2's notes on ADR-0005.
 
