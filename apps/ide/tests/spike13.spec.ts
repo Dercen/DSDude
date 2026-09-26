@@ -1,7 +1,7 @@
 // Spike 13 (PLAN.md 7.1): Monaco 0.57 through its 0.56+ entry points under sandbox: true + CSP, dockview-react,
 // in the built app launched with `_electron.launch`. Results go to docs/status/ws6.md.
 import { expect, test } from "@playwright/test";
-import { buildApp, type LaunchedApp, launchApp, skipElectron } from "./electron.ts";
+import { buildApp, copyFlappy, type LaunchedApp, launchApp, openProject, skipElectron } from "./electron.ts";
 
 test.skip(skipElectron, "DSDUDE_SKIP_ELECTRON=1: no Electron binary");
 
@@ -15,6 +15,10 @@ for (const mode of ["app", "file"] as const) {
       expect(page.url()).toMatch(mode === "app" ? /^app:\/\/ide\/index\.html$/ : /^file:\/\/.*index\.html$/);
 
       await expect(page.locator(".dv-dockview")).toBeVisible();
+      // Monaco appears once a document is open: samples/flappy, obj_bird's Step event.
+      await openProject(launched.app, page, copyFlappy(launched.home));
+      await page.getByTestId("tree:object:obj_bird").click();
+      await page.getByTestId("tree:objects/obj_bird/step.dss").click();
       await expect(page.locator(".monaco-editor")).toBeVisible();
 
       // The renderer has no Node: only the preload's bridge.

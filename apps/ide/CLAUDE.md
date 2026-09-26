@@ -27,7 +27,8 @@ npm test -w apps/ide
 ```
 
 ## Layout and commands
-- `src/main` (CJS, app:// protocol, window security), `src/preload` (sandboxed CJS bridge), `src/renderer` (React, dockview, Monaco).
+- `src/main` (CJS: app:// protocol, window security, C5 handlers, `build/` = worker host + PlayController + mode switch), `src/worker` (utilityProcess build worker, 2nd main entry), `src/preload` (sandboxed CJS bridge), `src/renderer` (React, zustand store in `store/`, dockview `workbench.ts`, panels, Monaco), `src/shared` (pure, both sides).
+- Build service: MockBuildService by default; `DSDUDE_FAKE_TOOLCHAIN=1` = createFakeToolchain; `DSDUDE_BUILD_SERVICE=real` = LocalBuildService.
 - `npm run build -w apps/ide` = `electron-vite build` to `out/`; `npm run dev -w apps/ide` = dev server on `DSDUDE_PORT_BASE` (start in the background, stop with `taskkill /T /F /PID`, then check `Get-Process electron`).
 - `npm run test:e2e -w apps/ide`: Playwright `_electron` suite in `tests/` (builds first; skips with `DSDUDE_SKIP_ELECTRON=1`). `tests/package.json` is ESM for the specs only.
 - Renderer console lines reach main's stdout as `renderer|<level>|<text>`.

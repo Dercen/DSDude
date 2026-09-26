@@ -53,12 +53,53 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
     - `samples/flappy` opening through the real preload;
     - bad requests, unknown channels and unimplemented channels being refused with their codes.
   - The preload bundle still `require`s only `electron`.
-- **Lockfile:** `packages/ipc-contract/package.json` now depends on `@dsdude/asset-pipeline` (for the type-only C12 link). WS0: please regenerate `package-lock.json` at the next integration. Nothing breaks without it, because the workspace link already exists.
+- **Lockfile:** `packages/ipc-contract/package.json` depends on `@dsdude/asset-pipeline` (the type-only C12 link); WS0 regenerated the lockfile at checkpoint-1 (`b23a325`).
+- **2026-09-26: merged `main` (checkpoint-1; fast-forward, both earlier WS6 commits were already on main). No `IF-` entries for WS6.**
+- **C5 0.3.0 (T1):** `BuildRequestSchema` gains optional `debug` (follows C4 0.3.0). The compile-time C1/C4/C12 links missed it, because mutual assignability ignores an optional key on one side only. They now also compare key sets, and I verified that dropping `debug` fails `tsc -b`.
+- **Task 3: store, layout, Play/Stop against the mock: done (2026-09-26).**
+  - Main (PLAN 3.2):
+    - A `utilityProcess` build worker, `out/main/build-worker.js` (a second main entry), runs `BuildService.build`/`compileOnly` for steps 3-6.
+    - `BuildWorkerHost` forks it lazily (one per app), times each request out after 12 min (killing the worker) and forks a fresh one after a crash.
+    - `PlayController` runs step 7 in main through the EmulatorManager. It turns BuildEvents into `build.progress`, `build.log` (30 ms batches) and `build.diagnostics` (sent only when they change), and emulator lines into `emulator.log` (30 ms batches, `DSD|PAD|` dropped) and `emulator.exit`.
+    - The Controls line is the first Output line of every launch.
+    - `reconcile()` runs at startup, and a graceful stop plus `reconcile()` run before quit (C4 0.3.0).
+  - Build-service switch (`src/main/build/modes.ts`):
+    - `mock` (default until CP-B): MockBuildService plus fake emulators.
+    - `fake` (`DSDUDE_FAKE_TOOLCHAIN=1`): createFakeToolchain, i.e. the real LocalBuildService with fake tools.
+    - `real` (`DSDUDE_BUILD_SERVICE=real`): LocalBuildService plus LocalEmulatorManager, with `deps` still null (task 5).
+    - `DSDUDE_MOCK_DIAGNOSTICS` (JSON) makes the mock fail, for tests.
+  - Bundling: `import.meta.url` in bundled `packages/*` sources is pinned to the source file's URL (an electron-vite transform). Otherwise the toolchain's fixture and screenshot paths would resolve relative to `out/main`. This matters for development and test builds only; WS8's packaged app uses resources.
+  - Renderer:
+    - A zustand store (`src/renderer/store/ide.ts`) over the C1 Project. Document ids are project-relative paths, the same strings as C9 `file`.
+    - The store tracks dirty documents, saves through `project.save`, and saves dirty documents before Play.
+    - Output keeps the newest 5000 lines. Problems deduplicates load, build and runtime (`DSD|ERR`) diagnostics.
+    - A failed Play shows 'Fix N problem(s) to play' and focuses Problems.
+    - A C8 parser (`log.ts`) drops PAD and unknown line types; STAT and MEM figures are kept for the meters.
+    - dockview layout (`workbench.ts`): project tree | document tabs (Monaco, one model per document, plain text) | Output + Problems.
+    - Problems entries become Monaco markers, and a Problems click opens the file at its line.
+    - Toolbar with Open, Save, and Play/Stop; a status bar with the phase and fps; toast.
+    - Keys: Ctrl+S saves, F5 plays, Shift+F5 stops. Output never activates itself.
+    - The last project reopens at startup (`recentProjects`).
+    - Resource JSON opens read-only until the forms and editors exist.
+  - Tests (all green):
+    - 49 node tests, including the store end to end through `createLocalBridge`, the real main handlers, PlayController and MockBuildService.
+    - 6 Playwright `_electron` tests:
+      - open flappy (folder dialog stubbed in main), edit, Ctrl+S, file on disk;
+      - Play: Controls line, fake log, no PAD, status 'Game running'; Stop: 'Game ended';
+      - failing build: toast, a Problems row, a click opens the file with a squiggle;
+      - fake mode: LocalBuildService in the worker reports E641;
+      - the spike 13 checks, updated to open a document first.
+    - Screenshots checked. `electron-vite dev` starts cleanly with the worker entry. No `electron` process was left after any run.
 
 ## Next
-- Task 3: zustand store over project-format, dockview layout (project tree, editor tabs, Output, Problems), build worker + EmulatorManager host, Play/Stop against `MockBuildService`.
+- Task 4 (before CP-A): C12 `apps/ide/src/renderer/panels/api.ts` (EditorPanel + host services), `fixtures/ide/mock-host` (headless Chromium, no Electron), and the Learn panel host (markdown renderer + sanitiser).
 
 ## Leftovers / ADR-pending
-- None.
+- None open.
+- Deferred:
+  - chokidar `project.changed` watcher (with the object editor).
+  - `assets.*`, `toolchain.*` and `doctor.run` handlers (tasks 5-6).
+  - dockview layout persistence.
+  - Unsaved-changes prompt on close.
 
 ## Integration feedback
