@@ -60,6 +60,11 @@ test("import a sprite and a sound through the dialogs", async () => {
       kind: "effect",
       file: "blip.wav",
     });
+    // It opens in the sound panel, ahead of the property form.
+    await page.getByTestId("tree:sound:snd_blip").click();
+    await expect(page.getByTestId("sound-panel:snd_blip")).toBeVisible();
+    await expect(page.getByTestId("sound-play")).toBeEnabled();
+    await expect(page.getByTestId("loop-on")).not.toBeChecked();
     expect(launched.stdout.filter((l) => /renderer\|error\|/.test(l))).toEqual([]);
   } finally {
     await launched.close();
