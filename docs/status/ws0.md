@@ -154,6 +154,15 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 
 - ADR-0004 platform seam: **resolved** (user, 2026-09-26) by WS2's C11 0.2.0/0.3.0, adopted by WS3; no markers left.
 
+## Decisions (2026-09-26, user)
+
+- **WS6b will not launch.** WS6 builds the visual editors (task 7) now; it already holds WS6b's paths
+  (`apps/ide/src/renderer/editors/**`, `packages/editor-core/**`, `fixtures/editors/**`) and keeps them, since
+  `start-ws6b` is never tagged.
+- **Open question 4 (hardware):** an original Nintendo 3DS that runs `.nds` files through TWiLight Menu++. Hardware
+  checks (spike 15, the scanline limits, the M1 hardware figure) run there in DS mode; results come back as on-screen
+  output that the user reports.
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
