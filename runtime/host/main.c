@@ -5,7 +5,8 @@
 //                 [--seed N]
 //
 // Prints the C8 DSD| lines on stdout (no pads). Exit status: 0 the game ended normally (DSD|EXIT) or ran its N
-// frames, 1 a runtime error (DSD|ERR), 2 a usage or file error (message on stderr).
+// frames, 1 a runtime error (DSD|ERR), 2 a usage or file error (message on stderr). The environment variable
+// DSD_PLAIN_DISPATCH=1 forces the plain dispatch (vm.h dsd_vm_predecode_limit).
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,12 +18,14 @@
 
 #include "game.h"
 #include "host.h"
+#include "vm.h"
 
 #define EXIT_OK 0
 #define EXIT_RUNTIME_ERROR 1
 #define EXIT_USAGE 2
 #define KEY_FILE_MAX (1024 * 1024) // largest --input file read
 #define DECIMAL_BASE 10
+#define PLAIN_DISPATCH_ENV "DSD_PLAIN_DISPATCH" // "1": run on the plain dispatch, not the pre-decoded cells
 
 static const char USAGE[] =
     "usage: dsdude-host <nitrofs-dir | game.dsdb> [--frames N] [--input keys.txt] [--trace out.jsonl]\n"
@@ -129,6 +132,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "dsdude-host: can't write %s\n", o.trace);
         return EXIT_USAGE;
     }
+    // DSD_PLAIN_DISPATCH=1 runs the module on the plain dispatch instead of the pre-decoded cells (vm.h), to compare
+    // the two paths; the output is identical except DSD|MEM's predecode key (0).
+    const char *plain = getenv(PLAIN_DISPATCH_ENV);
+    if (plain != NULL && strcmp(plain, "1") == 0) dsd_vm_predecode_limit(0);
     HostConfig cfg = {o.root, o.seed, o.input != NULL ? &g_keys : NULL, NULL, NULL};
     host_configure(&cfg);
     int32_t st = dsd_game_boot();

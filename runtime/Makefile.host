@@ -36,7 +36,8 @@ CORE_SRC := $(wildcard runtime/core/src/*.c runtime/core/src/*/*.c)
 HOST_MAIN := runtime/host/main.c
 HOST_SRC := $(filter-out $(HOST_MAIN),$(wildcard runtime/host/*.c))
 TEST_SRC := $(wildcard runtime/tests/*.c)
-HEADERS := $(wildcard runtime/core/include/*.h runtime/core/include/*/*.h runtime/core/src/*/*.h runtime/gen/*.h \
+HEADERS := $(wildcard runtime/core/include/*.h runtime/core/include/*/*.h runtime/core/src/*.h runtime/core/src/*/*.h \
+                      runtime/gen/*.h \
                       runtime/host/*.h runtime/tests/*.h)
 
 # ---- Outputs ------------------------------------------------------------------------------------------------

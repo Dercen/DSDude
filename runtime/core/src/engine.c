@@ -18,6 +18,7 @@
 #define PX(v) ((int32_t)(v) * DSD_FX_ONE) // whole pixels to Q20.12
 #define KB 1024u
 #define ROOM_ARENA_KB (DSD_C13_ROOM_ARENA_BYTES / KB)
+#define PREDECODE_KB (DSD_C13_PREDECODE_BYTES / KB)
 #define MS_PER_SECOND 1000u
 
 DsdEngine dsd_engine;
@@ -556,6 +557,12 @@ static void log_mem(void) {
     dsd_text_uint(&t, m.cstack_used_kb);
     dsd_text_char(&t, '/');
     dsd_text_uint(&t, m.cstack_total_kb);
+    // Which dispatch path runs (C8 0.3.0): the pre-decoded code's KB, rounded up so any threaded module reads at
+    // least 1; 0 means the plain dispatch (module over the budget, allocation failed, or forced).
+    dsd_text_str(&t, ",predecode=");
+    dsd_text_uint(&t, (dsd_vm_predecode_bytes(dsd_engine.vm) + KB - 1u) / KB);
+    dsd_text_char(&t, '/');
+    dsd_text_uint(&t, PREDECODE_KB);
     dsd_log_line("DSD|MEM|", t.buf, t.len);
 }
 

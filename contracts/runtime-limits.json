@@ -1,6 +1,6 @@
 {
   "contract": "C13",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "howToChange": "Owner WS2 (seeded by WS0 in Phase 0). Values and new keys change by T1: minor version bump plus a contracts/CHANGELOG.md entry in the same commit; WS0 reviews within 24 hours. Removing or renaming a key is T2 (ADR co-signed by WS3, WS4, WS5, WS6, WS6b and WS7). This file is the single source for meters, checker limits and docs.",
   "limits": {
     "spritesPerScreen": 128,
@@ -24,6 +24,7 @@
     "heapReserveBytes": 524288,
     "alarms": 8,
     "scanlineObjCycles": 2048,
-    "registersPerFrame": 64
+    "registersPerFrame": 64,
+    "predecodeBytes": 262144
   }
 }

@@ -39,7 +39,8 @@ void suite_host(void);
 void suite_loader(void);
 void suite_number(void);
 void suite_numfmt(void);
-void suite_programs(void);
+void suite_programs(void);       // on the pre-decoded cells (the default dispatch)
+void suite_programs_plain(void); // the same tests on the plain dispatch (vm.h dsd_vm_predecode_limit(0))
 void suite_trig(void);
 
 #endif // DSD_TEST_H

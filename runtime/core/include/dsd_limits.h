@@ -17,6 +17,7 @@
 #define DSD_C13_REGISTERS_PER_FRAME 64      // registersPerFrame
 #define DSD_C13_SPRITES_PER_SCREEN 128      // spritesPerScreen
 #define DSD_C13_AFFINE_PER_SCREEN 32        // affinePerScreen
+#define DSD_C13_PREDECODE_BYTES 262144      // predecodeBytes: heap for the pre-decoded code (vm.h), 8-byte cells
 
 // ---- Runtime-internal sizes -------------------------------------------------------------------------------------
 #define DSD_RT_REG_STACK_CELLS 512          // 4 KB register stack (PLAN.md 3.3): 8-byte cells

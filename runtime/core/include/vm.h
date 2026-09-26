@@ -32,9 +32,23 @@ typedef struct DsdCallFrame {
     uint32_t base;   // the caller's frame base in the register stack
 } DsdCallFrame;
 
+// Pre-decoded code (M1 lever 1, direct threading): one cell per CODE word, holding the address of the handler that
+// runs it next to the word itself, so dispatch jumps straight to the handler instead of looking its opcode up in a
+// table. On the DS a cell is 8 bytes (a 4-byte pointer and the word); C13 predecodeBytes budgets the heap they use.
+typedef struct DsdCell {
+    const void *handler; // the running interpreter's label for this word's opcode
+    uint32_t ins;        // the instruction word, as in CODE
+} DsdCell;
+
+// The contract's cell size (C13 predecodeBytes counts 8-byte cells: the DS size, whatever the host's pointer width).
+#define DSD_PREDECODE_CELL_BYTES 8u
+// Cells the budget holds: 32,768 at 256 KB, one per instruction.
+#define DSD_PREDECODE_CELLS_MAX (DSD_C13_PREDECODE_BYTES / DSD_PREDECODE_CELL_BYTES)
+
 typedef struct DsdVm DsdVm;
 struct DsdVm {
     const DsdProgram *prog;
+    const DsdCell *cells;     // the pre-decoded code (DsdCell), or NULL: the plain word-by-word dispatch runs
     DsdValue *regs;           // the register stack: DSD_RT_REG_STACK_CELLS cells (DTCM on the DS)
     uint32_t top;             // first register above the running frame; nested entries start here
 
@@ -64,8 +78,17 @@ struct DsdVm {
     void (*mark_extra)(DsdVm *vm); // the engine's extra collector roots (instance variables); NULL in program form
 };
 
-// Resets the VM for a loaded program: empty stack, all globals unset, the heap emptied.
+// Resets the VM for a loaded program: empty stack, all globals unset, the heap emptied. It also pre-decodes the
+// program's CODE onto the heap when it fits the C13 predecodeBytes budget (dsd_vm_predecode_limit) and the
+// allocation succeeds; otherwise the whole module runs on the plain dispatch. Both paths behave identically.
+// Only one VM runs at a time: the cells are shared, so a later dsd_vm_init replaces an earlier VM's.
 void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack);
+// Caps the cells dsd_vm_init may pre-decode into (from the next init on): DSD_PREDECODE_CELLS_MAX by default, 0
+// forces the plain dispatch (dsdude-host's DSD_PLAIN_DISPATCH=1; the tests run every golden on both paths).
+void dsd_vm_predecode_limit(uint32_t cells);
+// The pre-decoded code's size in contract bytes (cells x DSD_PREDECODE_CELL_BYTES), 0 on the plain path: the
+// DSD|MEM `predecode` key reports it in KB.
+uint32_t dsd_vm_predecode_bytes(const DsdVm *vm);
 // Refills the per-frame watchdog budget (the engine calls it once per frame; program form once at start).
 void dsd_vm_frame_reset(DsdVm *vm);
 // Runs FUNC `func` to completion (its parameters are args[0..params-1], copied in; argc must equal its param
