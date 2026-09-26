@@ -32,7 +32,7 @@ import {
   spriteDocFromPreview,
 } from "@dsdude/editor-core";
 import type { Project } from "@dsdude/project-format";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { EditorPanel, EditorPanelFactory, PanelHost, ResourceRef } from "../../panels/api.ts";
 
@@ -75,17 +75,31 @@ function drawFrame(canvas: HTMLCanvasElement | null, doc: SpriteDoc, index: numb
   ctx.drawImage(tmp, 0, 0, w * zoom, h * zoom);
 }
 
-function SpriteEditor({
+/**
+ * The pixel editor view. `variant: "background"` (the background editor) edits one 8bpp image: no animation strip
+ * or onion skin, 8x8 tile lines from 2x zoom, `aside` (the tile meters) under the palette and, with
+ * `highlightTiles`, a "one-off tiles" overlay.
+ */
+export function SpriteEditor({
   host,
   name,
   initial,
   onChange,
+  variant = "sprite",
+  colorLimit,
+  aside,
+  highlightTiles,
 }: {
   host: PanelHost;
   name: string;
   initial: SpriteDoc;
   onChange: (doc: SpriteDoc) => void;
+  variant?: "sprite" | "background";
+  colorLimit?: number;
+  aside?: (doc: SpriteDoc) => ReactNode;
+  highlightTiles?: (doc: SpriteDoc) => Rect[];
 }) {
+  const isSprite = variant === "sprite";
   const [doc, setDocState] = useState(initial);
   const docRef = useRef(initial);
   const [frameIndex, setFrameIndex] = useState(0);
@@ -102,9 +116,13 @@ function SpriteEditor({
     colorRef.current = c;
     setColorState(c);
   };
-  const [zoom, setZoom] = useState(
-    Math.max(2, Math.min(24, Math.floor(384 / Math.max(initial.frameWidth, initial.frameHeight)))),
-  );
+  const [zoom, setZoom] = useState(() => {
+    const side = Math.max(initial.frameWidth, initial.frameHeight);
+    return isSprite
+      ? Math.max(2, Math.min(24, Math.floor(384 / side)))
+      : Math.max(1, Math.min(8, Math.floor(512 / side)));
+  });
+  const [showTiles, setShowTiles] = useState(false);
   const [grid, setGrid] = useState(true);
   const [onion, setOnion] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -122,7 +140,7 @@ function SpriteEditor({
   const animCanvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; start: SpriteDoc; last: [number, number]; moved?: Rect } | null>(null);
   const json = useMemo(() => host.project.get()?.sprites.find((s) => s.name === name), [host, name]);
-  const limit = maxColors(json?.colorMode ?? "auto");
+  const limit = colorLimit ?? maxColors(json?.colorMode ?? "auto");
   const frameCount = doc.frames.length;
   const shown = Math.min(frameIndex, frameCount - 1);
 
@@ -165,6 +183,10 @@ function SpriteEditor({
     const ctx = o.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, o.width, o.height);
+    if (showTiles && highlightTiles) {
+      ctx.fillStyle = "rgba(255,80,80,0.3)";
+      for (const t of highlightTiles(doc)) ctx.fillRect(t.x * zoom, t.y * zoom, t.width * zoom, t.height * zoom);
+    }
     if (grid && zoom >= 6) {
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
       ctx.beginPath();
@@ -177,7 +199,9 @@ function SpriteEditor({
         ctx.lineTo(o.width, y * zoom + 0.5);
       }
       ctx.stroke();
-      // 8x8 tile lines, as the DS stores sprites.
+    }
+    if (grid && zoom >= 2) {
+      // 8x8 tile lines, as the DS stores sprites and backgrounds.
       ctx.strokeStyle = "rgba(255,255,255,0.22)";
       ctx.beginPath();
       for (let x = 8; x < doc.frameWidth; x += 8) {
@@ -200,7 +224,7 @@ function SpriteEditor({
         selection.height * zoom - 1,
       );
     }
-  }, [doc, shown, zoom, grid, onion, selection, preview]);
+  }, [doc, shown, zoom, grid, onion, selection, preview, showTiles, highlightTiles]);
 
   // Animation preview.
   useEffect(() => {
@@ -307,7 +331,12 @@ function SpriteEditor({
     if (ds === null) return;
     const r = paletteIndex(docRef.current, ds, limit);
     if (r.index < 0) {
-      host.toast(`This sprite already has ${limit} colours (the most its colour mode allows).`, "error");
+      host.toast(
+        isSprite
+          ? `This sprite already has ${limit} colours (the most its colour mode allows).`
+          : `This background already has ${limit - 1} colours (the most the DS allows).`,
+        "error",
+      );
       return;
     }
     commit("Add Colour", docRef.current, r.doc);
@@ -348,9 +377,9 @@ function SpriteEditor({
       ref={root}
       className="sprite-editor"
       role="application"
-      aria-label={`Sprite editor: ${name}`}
+      aria-label={`${isSprite ? "Sprite" : "Background"} editor: ${name}`}
       tabIndex={-1}
-      data-testid={`sprite-editor:${name}`}
+      data-testid={`${variant}-editor:${name}`}
       onKeyDown={onKey}
     >
       <div className="se-toolbar" role="toolbar" aria-label="Drawing tools">
@@ -396,10 +425,23 @@ function SpriteEditor({
         >
           Mirror {"↕"}
         </button>
-        <label>
-          <input type="checkbox" checked={onion} onChange={(e) => setOnion(e.target.checked)} data-testid="onion" />{" "}
-          Onion skin
-        </label>
+        {isSprite ? (
+          <label>
+            <input type="checkbox" checked={onion} onChange={(e) => setOnion(e.target.checked)} data-testid="onion" />{" "}
+            Onion skin
+          </label>
+        ) : null}
+        {highlightTiles ? (
+          <label title="Tiles used only once: each costs a tile of its own. Repeat or simplify them to use fewer.">
+            <input
+              type="checkbox"
+              checked={showTiles}
+              onChange={(e) => setShowTiles(e.target.checked)}
+              data-testid="show-tiles"
+            />{" "}
+            One-off tiles
+          </label>
+        ) : null}
         <label>
           <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} /> Grid
         </label>
@@ -437,8 +479,9 @@ function SpriteEditor({
             title="Index 0 is transparent and does not count"
           >
             {used} colour{used === 1 ? "" : "s"}
-            {used <= 15 ? " (fits 16-colour mode)" : " (needs 256-colour mode)"}
+            {isSprite ? (used <= 15 ? " (fits 16-colour mode)" : " (needs 256-colour mode)") : ` of ${limit - 1}`}
           </p>
+          {aside?.(doc)}
         </div>
         <div className="se-canvas-wrap">
           <div className="se-canvas" style={{ width: doc.frameWidth * zoom, height: doc.frameHeight * zoom }}>
@@ -446,7 +489,7 @@ function SpriteEditor({
             <canvas
               ref={overlay}
               className="se-overlay"
-              data-testid="sprite-canvas"
+              data-testid={`${variant}-canvas`}
               onPointerDown={onDown}
               onPointerMove={onMove}
               onPointerUp={onUp}
@@ -455,68 +498,70 @@ function SpriteEditor({
           </div>
         </div>
       </div>
-      <div className="se-strip" data-testid="frame-strip">
-        {doc.frames.map((f, i) => (
-          <FrameThumb
-            // biome-ignore lint/suspicious/noArrayIndexKey: frames are positional in the strip.
-            key={i}
-            doc={doc}
-            index={i}
-            frame={f}
-            active={i === shown}
-            onClick={() => {
-              setFrameIndex(i);
-              setSelection(null);
-            }}
-          />
-        ))}
-        <div className="se-strip-buttons">
-          <button
-            type="button"
-            data-testid="frame-add"
-            onClick={() => frameOp("Add Frame", addFrame(docRef.current, shown, false), shown + 1)}
-          >
-            + Frame
-          </button>
-          <button
-            type="button"
-            data-testid="frame-copy"
-            onClick={() => frameOp("Copy Frame", addFrame(docRef.current, shown, true), shown + 1)}
-          >
-            Copy
-          </button>
-          <button
-            type="button"
-            data-testid="frame-delete"
-            disabled={frameCount <= 1}
-            onClick={() => frameOp("Delete Frame", deleteFrame(docRef.current, shown), shown - 1)}
-          >
-            Delete
-          </button>
-          <button
-            type="button"
-            disabled={shown === 0}
-            onClick={() => frameOp("Move Frame", moveFrame(docRef.current, shown, shown - 1), shown - 1)}
-            aria-label="Move frame left"
-          >
-            {"←"}
-          </button>
-          <button
-            type="button"
-            disabled={shown === frameCount - 1}
-            onClick={() => frameOp("Move Frame", moveFrame(docRef.current, shown, shown + 1), shown + 1)}
-            aria-label="Move frame right"
-          >
-            {"→"}
-          </button>
+      {isSprite ? (
+        <div className="se-strip" data-testid="frame-strip">
+          {doc.frames.map((f, i) => (
+            <FrameThumb
+              // biome-ignore lint/suspicious/noArrayIndexKey: frames are positional in the strip.
+              key={i}
+              doc={doc}
+              index={i}
+              frame={f}
+              active={i === shown}
+              onClick={() => {
+                setFrameIndex(i);
+                setSelection(null);
+              }}
+            />
+          ))}
+          <div className="se-strip-buttons">
+            <button
+              type="button"
+              data-testid="frame-add"
+              onClick={() => frameOp("Add Frame", addFrame(docRef.current, shown, false), shown + 1)}
+            >
+              + Frame
+            </button>
+            <button
+              type="button"
+              data-testid="frame-copy"
+              onClick={() => frameOp("Copy Frame", addFrame(docRef.current, shown, true), shown + 1)}
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              data-testid="frame-delete"
+              disabled={frameCount <= 1}
+              onClick={() => frameOp("Delete Frame", deleteFrame(docRef.current, shown), shown - 1)}
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              disabled={shown === 0}
+              onClick={() => frameOp("Move Frame", moveFrame(docRef.current, shown, shown - 1), shown - 1)}
+              aria-label="Move frame left"
+            >
+              {"←"}
+            </button>
+            <button
+              type="button"
+              disabled={shown === frameCount - 1}
+              onClick={() => frameOp("Move Frame", moveFrame(docRef.current, shown, shown + 1), shown + 1)}
+              aria-label="Move frame right"
+            >
+              {"→"}
+            </button>
+          </div>
+          <div className="se-anim">
+            <canvas ref={animCanvas} className="pixelated" data-testid="anim-preview" />
+            <button type="button" data-testid="anim-play" onClick={() => setPlaying(!playing)}>
+              {playing ? "Stop" : "▶ Animate"}
+            </button>
+          </div>
         </div>
-        <div className="se-anim">
-          <canvas ref={animCanvas} className="pixelated" data-testid="anim-preview" />
-          <button type="button" data-testid="anim-play" onClick={() => setPlaying(!playing)}>
-            {playing ? "Stop" : "▶ Animate"}
-          </button>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }
