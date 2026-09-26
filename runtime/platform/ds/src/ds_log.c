@@ -22,6 +22,7 @@ static char ds_raw_line[DSD_LOG_LINE_MAX + 1];
 static char ds_emulator_id[17];
 static ds_log_protocol ds_protocol = DSD_LOG_LEGACY;
 static bool ds_muted = false;
+static ds_log_tap_fn ds_tap = NULL;
 
 ds_log_protocol ds_log_init(void)
 {
@@ -53,6 +54,11 @@ const char *ds_log_emulator_id(void)
     return ds_emulator_id;
 }
 
+void ds_log_set_tap(ds_log_tap_fn tap)
+{
+    ds_tap = tap;
+}
+
 void ds_log_set_muted(bool muted)
 {
     ds_muted = muted;
@@ -73,6 +79,8 @@ static void ds_emit(char *buf, size_t len)
 {
     if (ds_muted)
         return;
+    if (ds_tap != NULL && strncmp(buf, "DSD|PAD|", 8) != 0)
+        ds_tap(buf, len);
     buf[len] = '\n';
     buf[len + 1] = '\0';
 

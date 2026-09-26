@@ -16,8 +16,35 @@
 #include "ds_log.h"
 #include "ds_mem.h"
 #include "ds_platform.h"
+#include "ds_snd.h"
 #include "ds_ui.h"
 #include "ds_video.h"
+
+#ifdef DSD_SCRIPTED_INPUT
+// Test builds only (runtime/Makefile DSD_SCRIPTED=1): input replays nitro:/input.keys per core frame, in the C8 key
+// format, through WS2's own parser (runtime/host/keys.c, linked unchanged), so a host key script lines up with the
+// DS frame for frame. The shipped runtime never contains this.
+#include "host.h"
+static HostKeyScript g_keys;
+static bool g_keys_loaded;
+static uint32_t g_core_frame; // frames completed since dsd_plat_init, the host's frame number
+static char g_keys_text[64 * 1024];
+static char g_keys_err[HOST_KEY_ERR_MAX];
+
+static void load_key_script(void)
+{
+    g_keys_loaded = false;
+    g_core_frame = 0;
+    FILE *f = fopen("nitro:/input.keys", "rb");
+    if (f == NULL)
+        return;
+    size_t n = fread(g_keys_text, 1, sizeof(g_keys_text) - 1, f);
+    fclose(f);
+    g_keys_loaded = host_keys_parse(&g_keys, g_keys_text, (uint32_t)n, g_keys_err, sizeof(g_keys_err));
+    if (!g_keys_loaded)
+        ds_log_linef("DSD|LOG|input.keys: %s", g_keys_err);
+}
+#endif
 
 #define DS_MAX_SPRITES 128  // sprite handles per room (both screens)
 #define DS_MAX_SOUNDS 64    // effects/modules loaded per room
@@ -50,6 +77,8 @@ static uint32_t g_sfx_next;
 static mm_byte g_sfx_volume = 255;
 
 bool ds_frame_nowait = false;
+const char *ds_game_file = NULL;
+bool ds_screen_log = false;
 
 static volatile uint32_t g_vblanks;
 static uint32_t g_vblanks_at_init;
@@ -83,7 +112,12 @@ int32_t dsd_plat_init(void)
     irqEnable(IRQ_VBLANK);
     g_vblanks_at_init = g_vblanks;
     // NitroFS and maxmod start once; later calls return the first result.
-    return ds_platform_init();
+    int32_t rc = ds_platform_init();
+#ifdef DSD_SCRIPTED_INPUT
+    if (rc == DSD_PLAT_OK)
+        load_key_script();
+#endif
+    return rc;
 }
 
 void dsd_plat_frame_begin(void)
@@ -115,6 +149,9 @@ static void build_oam(int s)
 
 void dsd_plat_frame_end(void)
 {
+#ifdef DSD_SCRIPTED_INPUT
+    g_core_frame++;
+#endif
     for (int s = 0; s < DS_SCREENS; s++)
     {
         build_oam(s);
@@ -122,6 +159,8 @@ void dsd_plat_frame_end(void)
     }
     if (ds_frame_nowait)
         return;
+    if (ds_screen_log)
+        ds_ui_console_draw_titled(DS_BOTTOM, "DSDude log (hardware build)");
     swiWaitForVBlank();
     oamUpdate(&oamMain);
     oamUpdate(&oamSub);
@@ -134,6 +173,13 @@ void dsd_plat_read_input(dsd_input *out)
     static const uint32_t keys[DSD_BTN_COUNT] = {
         KEY_A, KEY_B, KEY_X, KEY_Y, KEY_L, KEY_R, KEY_START, KEY_SELECT, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
     };
+#ifdef DSD_SCRIPTED_INPUT
+    if (g_keys_loaded)
+    {
+        host_keys_state(&g_keys, g_core_frame, out);
+        return;
+    }
+#endif
     scanKeys();
     uint32_t held = keysHeld();
     memset(out, 0, sizeof(*out));
@@ -154,6 +200,8 @@ void dsd_plat_read_input(dsd_input *out)
 
 int32_t dsd_plat_read_file(const char *path, void *buf, uint32_t cap)
 {
+    if (ds_game_file != NULL && strcmp(path, "game.dsdb") == 0)
+        path = ds_game_file;
     FILE *f = fopen(nitro_path(path), "rb");
     if (f == NULL)
         return DSD_PLAT_ENOENT;
@@ -213,7 +261,8 @@ void dsd_plat_mem_report(dsd_mem_report *out)
         out->pal16_used[s] = g_pal16[s];
         out->pal256_used[s] = g_pal256[s];
     }
-    // TODO(WS3): snd_used_kb needs the sample sizes from soundbank.bin (maxmod does not report them).
+    // Resident sound data from soundbank.bin's own sizes (ds_snd.c): maxmod does not report it.
+    out->snd_used_kb = (ds_snd_resident(g_sfx_loaded, g_sfx_loaded_n, g_mod_loaded, g_mod_loaded_n) + 1023u) / 1024u;
 }
 
 // ---- Graphics ---------------------------------------------------------------------------------------------------

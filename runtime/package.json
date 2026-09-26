@@ -12,6 +12,7 @@
     "build:runtime": "node src/build-runtime.ts",
     "check:dist": "node src/check-dist.ts",
     "conformance:ds": "node src/ds-conformance.ts",
+    "hardware": "node src/hardware.ts",
     "selftest": "node src/selftest.ts",
     "test": "vitest run --pool=threads --maxWorkers=2"
   },

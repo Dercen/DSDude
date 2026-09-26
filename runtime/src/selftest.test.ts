@@ -136,7 +136,7 @@ describe("selftest cases", () => {
       "DSD|LOG|percent: 100% done %d %s %%",
       "DSD|LOG|split: first",
       "DSD|LOG|split: second",
-      "DSD|MEM|heapfree=3909,objvram_top=5/128,objvram_bot=1/128,cstack=4/10",
+      "DSD|MEM|heapfree=3909,snd=15/768,objvram_top=5/128,objvram_bot=1/128,cstack=4/10",
       "DSD|LOG|mm: after 60 frames active=1 position=0 row=11",
       "DSD|STAT|fps=60,inst=0,spr_top=128,spr_bot=128,oam_drop=0,aff_drop=0,sfx_drop=0,ops=0",
     ];

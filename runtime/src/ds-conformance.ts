@@ -2,8 +2,9 @@
  * `npm run conformance:ds -w runtime [-- --case <substring>] [-- --frames N]`: every case of WS2's
  * runtime/tests/test_programs.c on the DS. Each DSDB is packed alone (with header seed 1, as the host runs it) around
  * runtime/dist/arm9.elf, run headless by `dsdude screenshot` (py-desmume) for N frames, and its DSD| log is compared
- * with the host's expected output (conformance.ts). Cases with a key script are skipped: the core's first frame
- * starts at an emulated frame that boot time decides, so host frame numbers cannot be replayed. Local machine only.
+ * with the host's expected output (conformance.ts). Cases with a key script run on a test build of the runtime
+ * (runtime/Makefile DSD_SCRIPTED=1) that replays the script from nitro:/input.keys per core frame, as the host
+ * does, since emulator input cannot line up with the core's frame numbers (boot time varies). Local machine only.
  * Exit 0 all pass, 1 a case failed, 2 tool/environment failure.
  */
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -14,6 +15,7 @@ import {
   dsdudeHome,
   formatDiagnostic,
   packRom,
+  runMake,
   takeScreenshot,
   toolEnv,
   withDsdbSeed,
@@ -39,6 +41,7 @@ async function main(): Promise<number> {
     return 2;
   }
   const elf = path.join(runtimeDir, "dist", "arm9.elf");
+  let scriptedElf: string | null = null; // built on the first key-script case
   const abi = readAbiHash(readFileSync(path.join(runtimeDir, "gen", "builtins_table.h"), "utf8"));
   const cases = parseProgramCases(readFileSync(path.join(runtimeDir, "tests", "test_programs.c"), "utf8"));
   const work = path.join(dsdudeHome(), "conformance-ds");
@@ -50,11 +53,6 @@ async function main(): Promise<number> {
     if (only && !c.dsdb.includes(only)) continue;
     const name = path.basename(c.dsdb, ".dsdb");
     const label = path.relative("fixtures", c.dsdb).replaceAll("\\", "/");
-    if (c.keys) {
-      console.log(`SKIP ${label} (key script: host frame numbers cannot be replayed on the DS)`);
-      skipped++;
-      continue;
-    }
     if (!existsSync(path.join(repoRoot, c.dsdb))) {
       console.log(`SKIP ${label} (not on this branch)`);
       skipped++;
@@ -74,11 +72,27 @@ async function main(): Promise<number> {
       mkdirSync(path.dirname(path.join(dir, "nitrofs", s.path)), { recursive: true });
       writeFileSync(path.join(dir, "nitrofs", s.path), placeholderGrf(box[0], box[1], s.frames));
     }
+    if (c.keys) {
+      if (scriptedElf === null) {
+        const built = await runMake({
+          dir: runtimeDir,
+          elf: path.join("build", "dsdude_runtime_scripted.elf"),
+          paths: status.paths,
+          env: { ...process.env, DSD_SCRIPTED: "1" },
+        });
+        if (!built.ok || !built.arm9Elf) {
+          for (const d of built.diagnostics) console.error(formatDiagnostic(d));
+          return 2;
+        }
+        scriptedElf = built.arm9Elf;
+      }
+      copyFileSync(path.join(repoRoot, c.keys), path.join(dir, "nitrofs", "input.keys"));
+    }
     const rom = path.join(dir, "game.nds");
     try {
       await packRom(
         {
-          arm9Elf: elf,
+          arm9Elf: c.keys && scriptedElf ? scriptedElf : elf,
           nitrofsDir: path.join(dir, "nitrofs"),
           outNds: rom,
           title: name,

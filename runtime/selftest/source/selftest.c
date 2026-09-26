@@ -7,7 +7,8 @@
 // 1 MB NitroFS read, the C-stack high-water mark in DSD|MEM, and a scanline page for the hardware OBJ line budget.
 //
 // Pages (L/R): 1 sprites + backgrounds, 2 scanline (A: normal / affine / affine double-size; UP/DOWN n +-1,
-// LEFT/RIGHT n +-8), 3 the error box (START: back to page 1). SELECT toggles the console. On page 1, A plays the
+// LEFT/RIGHT n +-8), 3 the error box (START: back to page 1), 4 results: the boot figures on screen for hardware,
+// which has no stdout (the emulator ID bytes, log protocol, 1 MB read time, maxmod codes, stack and heap). SELECT toggles the console. On page 1, A plays the
 // blip effect, B starts/stops the BG scrolling and sprite animation, and touch or the D-pad moves the 8x8 sprite.
 // The screen at boot is still (no animation, no timings on screen) so that its screenshot can match a golden PNG:
 // py-desmume is not cycle-exact between runs, so anything that moves could be one frame off.
@@ -26,6 +27,7 @@
 #include "ds_log.h"
 #include "ds_mem.h"
 #include "ds_platform.h"
+#include "ds_snd.h"
 #include "ds_ui.h"
 #include "ds_video.h"
 #include "soundbank.h"
@@ -35,7 +37,7 @@
 #define BIG_SUM 133693440u
 #define READ_CHUNK (32u * 1024u)
 
-enum { PAGE_SPRITES, PAGE_SCANLINE, PAGE_ERROR, PAGES };
+enum { PAGE_SPRITES, PAGE_SCANLINE, PAGE_ERROR, PAGE_RESULTS, PAGES };
 enum { SCAN_NORMAL, SCAN_AFFINE, SCAN_DOUBLE, SCAN_MODES };
 static const char *const scan_mode_names[SCAN_MODES] = {"normal", "affine", "affine2x"};
 
@@ -59,6 +61,10 @@ static int touch_x = -1, touch_y = -1;
 static uint32_t sfx_drop;
 static char read_result[40] = "1MB read: -";
 static char sound_result[40] = "sound: off";
+// Boot figures for the results page (hardware reads them off the screen).
+static uint32_t read_us, read_kbps;
+static bool read_ok;
+static unsigned mm_load = 99, mm_blip = 99, mm_loop = 99, mm_bad = 99, mm_handle;
 
 static void on_vblank(void)
 {
@@ -166,13 +172,18 @@ static void start_sound(void)
         return;
     }
     slog("mm: mmInitDefault(nitro:/soundbank.bin)=ok");
-    slog("mm: mmLoad(MOD_SELFTEST)=%lu", (unsigned long)mmLoad(MOD_SELFTEST));
-    slog("mm: mmLoadEffect(SFX_BLIP)=%lu", (unsigned long)mmLoadEffect(SFX_BLIP));
-    slog("mm: mmLoadEffect(SFX_LOOP)=%lu", (unsigned long)mmLoadEffect(SFX_LOOP));
-    slog("mm: mmLoadEffect(%d)=%lu (bad id)", MSL_NSAMPS + 5, (unsigned long)mmLoadEffect(MSL_NSAMPS + 5));
+    mm_load = (unsigned)mmLoad(MOD_SELFTEST);
+    slog("mm: mmLoad(MOD_SELFTEST)=%u", mm_load);
+    mm_blip = (unsigned)mmLoadEffect(SFX_BLIP);
+    slog("mm: mmLoadEffect(SFX_BLIP)=%u", mm_blip);
+    mm_loop = (unsigned)mmLoadEffect(SFX_LOOP);
+    slog("mm: mmLoadEffect(SFX_LOOP)=%u", mm_loop);
+    mm_bad = (unsigned)mmLoadEffect(MSL_NSAMPS + 5);
+    slog("mm: mmLoadEffect(%d)=%u (bad id)", MSL_NSAMPS + 5, mm_bad);
     mmStart(MOD_SELFTEST, MM_PLAY_LOOP);
     slog("mm: mmStart(MOD_SELFTEST, MM_PLAY_LOOP) active=%d", (int)mmActive());
     mm_sfxhand h = mmEffect(SFX_BLIP);
+    mm_handle = (unsigned)h;
     slog("mm: mmEffect(SFX_BLIP)=%lu", (unsigned long)h);
     if (h == 0)
         sfx_drop++;
@@ -212,6 +223,9 @@ static void timed_read(void)
     uint32_t us = timerTicks2usec(ticks);
     uint32_t kbps = us ? (uint32_t)((uint64_t)total * 1000000u / 1024u / us) : 0;
     bool ok = total == BIG_BYTES && sum == BIG_SUM;
+    read_us = us;
+    read_kbps = kbps;
+    read_ok = ok;
     // Timings last: the console overlay shows the first 32 characters, which must not change between runs.
     slog("nitrofs: read %lu B sum=%lu %s in %lu us (%lu ticks, %lu ARM9 cycles, %lu KB/s)", (unsigned long)total,
          (unsigned long)sum, ok ? "ok" : "BAD", (unsigned long)us, (unsigned long)ticks, (unsigned long)(ticks * 2u),
@@ -235,8 +249,13 @@ static void log_checks(void)
 
 static void log_mem(void)
 {
-    ds_log_linef("DSD|MEM|heapfree=%lu,objvram_top=%lu/128,objvram_bot=%lu/128,cstack=%lu/%lu",
-                 (unsigned long)(ds_heap_free() / 1024u), (unsigned long)((ds_obj_used(DS_TOP) + 1023u) / 1024u),
+    // The selftest loaded SFX_BLIP, SFX_LOOP and MOD_SELFTEST (start_sound).
+    static const uint16_t effects[] = {SFX_BLIP, SFX_LOOP};
+    static const uint16_t modules[] = {MOD_SELFTEST};
+    uint32_t snd = ds_sound_ready ? ds_snd_resident(effects, 2, modules, 1) : 0;
+    ds_log_linef("DSD|MEM|heapfree=%lu,snd=%lu/768,objvram_top=%lu/128,objvram_bot=%lu/128,cstack=%lu/%lu",
+                 (unsigned long)(ds_heap_free() / 1024u), (unsigned long)((snd + 1023u) / 1024u),
+                 (unsigned long)((ds_obj_used(DS_TOP) + 1023u) / 1024u),
                  (unsigned long)((ds_obj_used(DS_BOTTOM) + 1023u) / 1024u),
                  (unsigned long)((ds_cstack_used() + 1023u) / 1024u), (unsigned long)(ds_cstack_total() / 1024u));
 }
@@ -426,6 +445,34 @@ static void draw_ui(void)
         info(DS_BOTTOM, 0, 2, "warning at 1200 (C13)", DS_C_LTGRAY);
         info(DS_BOTTOM, 0, 4, "UP/DOWN n+-1  LEFT/RIGHT n+-8", DS_C_GRAY);
         info(DS_BOTTOM, 0, 5, "A: normal/affine/affine2x", DS_C_GRAY);
+    }
+    else if (page == PAGE_RESULTS)
+    {
+        info(DS_TOP, 0, 3, "results (read out or photograph)", DS_C_AQUA);
+        // The raw 16 bytes at 0x04FFFA00 (the no$gba/melonDS emulator ID; open bus on hardware).
+        char hex[40];
+        for (int i = 0; i < 8; i++)
+            snprintf(hex + 3 * i, sizeof(hex) - (size_t)(3 * i), "%02X ", REG_NOCASH_EMULATOR_ID[i]);
+        info(DS_BOTTOM, 0, 0, "0x04FFFA00 bytes 0-7:", DS_C_LTGRAY);
+        info(DS_BOTTOM, 0, 1, hex, DS_C_WHITE);
+        for (int i = 0; i < 8; i++)
+            snprintf(hex + 3 * i, sizeof(hex) - (size_t)(3 * i), "%02X ", REG_NOCASH_EMULATOR_ID[8 + i]);
+        info(DS_BOTTOM, 0, 2, hex, DS_C_WHITE);
+        snprintf(text, sizeof(text), "log protocol: %s", ds_log_protocol_name());
+        info(DS_BOTTOM, 0, 3, text, DS_C_WHITE);
+        snprintf(text, sizeof(text), "1MB read: %lu ms %lu KB/s %s", (unsigned long)(read_us / 1000u),
+                 (unsigned long)read_kbps, read_ok ? "ok" : "BAD");
+        info(DS_BOTTOM, 0, 5, text, read_ok ? DS_C_LIME : DS_C_RED);
+        snprintf(text, sizeof(text), "mm load=%u blip=%u loop=%u", mm_load, mm_blip, mm_loop);
+        info(DS_BOTTOM, 0, 6, text, DS_C_WHITE);
+        snprintf(text, sizeof(text), "mm bad id=%u handle=%u active=%d", mm_bad, mm_handle, ds_sound_ready && mmActive());
+        info(DS_BOTTOM, 0, 7, text, DS_C_WHITE);
+        snprintf(text, sizeof(text), "cstack %lu/%lu B", (unsigned long)ds_cstack_used(), (unsigned long)ds_cstack_total());
+        info(DS_BOTTOM, 0, 9, text, DS_C_WHITE);
+        snprintf(text, sizeof(text), "heap free %lu KB", (unsigned long)(ds_heap_free() / 1024u));
+        info(DS_BOTTOM, 0, 10, text, DS_C_WHITE);
+        info(DS_BOTTOM, 0, 12, "expected: load=0 blip=0 loop=0", DS_C_GRAY);
+        info(DS_BOTTOM, 0, 13, "bad id=1 handle>0 active=1", DS_C_GRAY);
     }
     else
     {

@@ -42,7 +42,8 @@ const BOOT_LOG: RegExp[] = [
   /^DSD\|LOG\|percent: 100% done %d %s %%$/,
   /^DSD\|LOG\|split: first$/,
   /^DSD\|LOG\|split: second$/,
-  /^DSD\|MEM\|heapfree=\d+,objvram_top=5\/128,objvram_bot=1\/128,cstack=\d+\/10$/,
+  // snd: blip 8,840 + loop 6,016 + the module 420 + its sample 84 = 15,360 B (soundbank.bin's own sizes).
+  /^DSD\|MEM\|heapfree=\d+,snd=15\/768,objvram_top=5\/128,objvram_bot=1\/128,cstack=\d+\/10$/,
   /^DSD\|STAT\|fps=60,inst=0,spr_top=128,spr_bot=128,oam_drop=0,aff_drop=0,sfx_drop=0,ops=0$/,
 ];
 
@@ -88,6 +89,14 @@ export const SELFTEST_CASES: SelftestCase[] = [
     keys: "error-box.txt",
     golden: ["top", "bottom"],
     expect: [/^DSD\|LOG\|input: down=R up=- held=R$/],
+  },
+  {
+    // Page 4: the boot figures on screen for hardware. The bottom screen shows timings, so only the top is golden.
+    name: "results",
+    frames: 90,
+    keys: "results.txt",
+    golden: ["top"],
+    expect: [/^DSD\|LOG\|input: down=L up=- held=L$/],
   },
   {
     name: "console",

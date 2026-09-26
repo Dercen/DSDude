@@ -21,6 +21,13 @@ extern bool ds_restart_armed;
 // waits for VBlank nor commits to the hardware, so a timed run measures computation only.
 extern bool ds_frame_nowait;
 
+// The M1 timer harness sets this to read another NitroFS file whenever the core asks for "game.dsdb", so one ROM
+// can boot several workloads in turn. NULL: no override.
+extern const char *ds_game_file;
+
+// Hardware test builds set this: dsd_plat_frame_end draws the mirrored log (ds_ui console) over the bottom screen.
+extern bool ds_screen_log;
+
 // The first call runs the boot order of PLAN.md 3.3, nitroFSInit -> soundEnable() -> mmInitDefault
 // ("nitro:/soundbank.bin", only when that file exists), and returns DSD_PLAT_OK, DSD_PLAT_ENOENT (NitroFS not
 // mounted; errno is logged as a DSD|LOG line) or DSD_PLAT_ELOAD (the soundbank did not load). Later calls return the

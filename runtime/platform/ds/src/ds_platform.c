@@ -14,6 +14,7 @@
 #include "dsd_platform.h"
 #include "ds_log.h"
 #include "ds_platform.h"
+#include "ds_snd.h"
 #include "ds_ui.h"
 #include "ds_video.h"
 
@@ -94,6 +95,7 @@ int32_t ds_platform_init(void)
             return ds_start_result;
         }
         ds_sound_ready = true;
+        ds_snd_index(DSD_SOUNDBANK_PATH); // sizes for DSD|MEM snd; a malformed table only leaves them 0
     }
     return ds_start_result;
 }

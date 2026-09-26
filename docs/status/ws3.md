@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `7322cec`, checkpoint-13). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `6f5e77e`, checkpoint-14). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -34,6 +34,13 @@ Legend: todo / in progress / done (<sha>).
   the staleness check: `npm run check:dist -w runtime` (git + Node, runs in the cloud/CI) and `build:runtime`'s
   report. WS2 test/host edits no longer make `dist/` stale; `tree` stays, informational. No more VERSION-only
   refresh commits after merges.
+- **Hardware ROM set (spike 15; WS0 relay: an original 3DS with TWiLight Menu++): ready** (f23500a;
+  and "Hardware run" below). `npm run hardware -w runtime` builds five ROMs into `<DSDUDE_HOME>/hardware/` and
+  checks each headless first: the selftest (new page 4 "results" shows the boot figures on screen, incl. the raw
+  `0x04FFFA00` bytes), the M1 bench (now one ROM running the full, baseline and loop workloads and showing the VM
+  figures on the top screen), `hello` and spike 12's numeric hashes on a screen-log runtime (`make DSD_SCREENLOG=1`
+  mirrors every `DSD|` line onto the bottom screen; test builds only), and `samples/flappy` with the shipped
+  runtime. The boot path needed no change (`nitroFSInit(NULL)` uses `argv[0]`, which TWiLight passes).
 - **After checkpoint-8** (`main` `b8ba3e1`): WS2's new `test_programs.c` cases pass on the DS too,
   `conformance:ds` **37 of 37** (v2-05, v3-02 skipped: key scripts); `dist/VERSION` refreshed for the new tree
   (the ELFs are unchanged).
@@ -75,7 +82,17 @@ Legend: todo / in progress / done (<sha>).
     frame count, so `ds_plat.c` infers the frame height (square when it divides the sheet, else the tallest OBJ
     height that does; `ADR-pending ADR-0004`); (2) the UI colour index order (PLAN 5.2 order, c_white 0 .. c_navy
     15) to be stated in `dsd_platform.h`.
-  - `DSD|MEM`'s `snd` is 0 on the DS for now: maxmod does not report resident sample sizes (leftover).
+  - **Key-script cases on the DS: done** (see the next commit). `make DSD_SCRIPTED=1` builds a test runtime
+    (`build/dsdude_runtime_scripted.elf`) whose `dsd_plat_read_input` replays `nitro:/input.keys` per core frame
+    through WS2's own parser (`runtime/host/keys.c`, linked unchanged), so host frame numbers line up exactly;
+    `conformance:ds` uses it for cases with a key script. **41 of 41 pass, none skipped** (v2-05 input, v3-02
+    anim/outside/touch included). The shipped `dist/` ELFs contain none of it (byte-identical; no `host_keys`
+    symbols).
+  - **`DSD|MEM` `snd` on the DS: done** (see the next commit). `ds_snd.c` indexes `soundbank.bin` at start-up
+    (header counts + `*maxmod*`, entry sizes, each module's sample ids from its MAS sample info, msl_id at byte 10)
+    and `dsd_plat_mem_report` counts every distinct resident sample once plus each loaded module. Checked: the
+    selftest's blip + loop + module = 15,360 B, `snd=15/768`; `samples/flappy` on the DS reports `snd=27/768`
+    (its 27,012-byte bank, all loaded), with 3 sprites, 3 standard palettes and `fps=59/60`.
 - Task 2. M1 path: **in progress**.
   - Init, log writer, error box: **done** (ec80829, 237f847). `nitroFSInit` → `soundEnable` → `mmInitDefault`
     when `nitro:/soundbank.bin` exists, every result checked; a failure prints one `DSD|ERR` (R580-R582,
@@ -103,6 +120,20 @@ Legend: todo / in progress / done (<sha>).
     Kept `-mlong-calls` (the BlocksDS default). ITCM 11,056 B of 24 KB.
   - **Per-opcode, melonDS (`--mix`, 1,200 of one op minus the baseline):** LOADI 21.1, MOV 24.0, CMPJ+JMP 37.2,
     SETSLOT 37.9, ADD 37.9, MUL 38.9, GETSLOT 41.9, CALLN 84.7 cycles/op. Every op pays ~20 cycles of dispatch.
+  - **Re-run after WS2's 02fb804 (dispatch table in DTCM, base in a register) + 06f668d (cheaper CALLN), main
+    6f5e77e:** melonDS VM **35.06 cycles/op = 31,957 ops/frame: still FAIL** (gate 44,000; was 39.84 / 28,122);
+    whole frame 49.40 / 22,677; BL 35.16 (no difference). py-desmume 57.46 / 19,497. Per-opcode, melonDS: LOADI
+    18.1, MOV 21.0, CMPJ+JMP 34.2, SETSLOT 34.9, ADD 34.9, MUL 35.9, GETSLOT 38.9, CALLN 64.8. DTCM now 4,332 of
+    4,608 B (the table). Dispatch is 7 instructions (`cmp`/`beq` watchdog, `ldr ins` main RAM, `sub`, `and`,
+    `ldr [fp, op, lsl #2]` DTCM, `mov pc`).
+  - **Spike 14, cache-resident loop vs straight-line** (`loopDsda`: the first 10 units of the mix, 400 bytes,
+    run 12 times through ADDI/CMPJ/JMP; about the same op count as the 4.8 KB block): melonDS **34.81 vs 35.06
+    cycles/op** (equal within 1 %: melonDS does not model the data cache); py-desmume **47.71 vs 57.62** (the loop
+    17 % cheaper there). What the D-cache is worth on hardware needs spike 15 (a flashcart run). `npm run bench`
+    now reports it every run (`LOOP` lines).
+  - **Memory probe** (new, in the bench): 32-bit loads through the same loop cost melonDS **3.56 cycles from main
+    RAM vs 1.80 from DTCM**, so the bytecode fetch adds < 2 cycles/op there; the rest of LOADI's ~18 is
+    instructions and the `mov pc` refill. DeSmuME charges 7.7 for both (it models neither).
   - **Finding for WS2 (the VM is theirs; not changed here):** the dispatch sequence in `run` (ITCM, ARM) is
     `cmp/sub/beq` (watchdog), `ldr ins,[ip],#4` (bytecode, main RAM), `ldr rT,=labels` (literal pool),
     `ldr rT,[rT,op,lsl #2]` and `mov pc,rT`. `labels` is `static const` in `.rodata`, i.e. **main RAM**
@@ -134,7 +165,7 @@ Legend: todo / in progress / done (<sha>).
     painted stack: ~4 KB used by the printf-heavy selftest of 10.9 KB).
 - Task 4. `dsd_platform.h` implementation: **done for C11 0.2.0** (see the reconciliation above). Not yet exercised
   by a room game with sprites and backgrounds (WS2's v2 fixtures load no assets); that comes with samples/flappy.
-- Task 5. Spikes (spike 14's DS side: see "M1 benchmark" above; the cache-resident loop variant is still todo):
+- Task 5. Spikes (spike 14's DS side: see "M1 benchmark" above, loop variant included):
   - **Spike 10 (graphics): PASS.** grit 1.24.0 with the PLAN 2.9 sprite, 4bpp and BG lines; the ROM uses the 3.3
     bank table, 128-byte-aligned frames (strides 256/128/4096 logged) and the UI layer. The screenshot shows the
     source PNGs' colours exactly: 0 of 6,144 background pixels and 0 of 96 opaque sprite pixels differ at RGB555
@@ -146,7 +177,11 @@ Legend: todo / in progress / done (<sha>).
     BlocksDS release as libmm9. ROM side (all three emulators): `mmInitDefault`=ok, `mmLoad`=0, `mmLoadEffect`=0
     and 0, a bad id =1, `mmEffect`=handle 1, after 60 frames `mmActive()`=1 at row 11. WS5's XM fixture is not on
     main yet; `make_assets.py` writes its own minimal XM.
-  - Spike 12 (by CP-C), 14 (M1): todo; need WS2's harness and VM.
+  - **Spike 12 (numeric harness, DS side): PASS** (2026-09-26). WS2's `fixtures/bytecode/runtime/numeric-hashes.dsdb`
+    (trig, atan2, sqrt, div, mul, lengthdir, string, random hashes; seed 20260926) around `runtime/dist/arm9.elf`
+    prints exactly `numeric-hashes.out` (the host's lines at -O2, trap and -O0) on **melonDS 1.1 and DeSmuME
+    0.9.13 windows** and in py-desmume (`conformance:ds`): the ARM9 build's numbers match the host's bit for bit.
+  - Spike 14 (M1): DS side done (see "M1 benchmark"); the gate itself is WS2's to close.
 
 ## Reports to other streams (for WS0 to route)
 
@@ -167,7 +202,65 @@ Legend: todo / in progress / done (<sha>).
 
 ## Leftovers
 
-- `DSD|MEM` `snd` on the DS (resident sample sizes from soundbank.bin).
-- v2-05 (key script) on the DS: needs a way to align host frame 0 with an emulated frame.
+
+## Hardware run (spike 15): steps for the user
+
+Hardware: an original Nintendo 3DS that starts `.nds` files through **TWiLight Menu++** (nds-bootstrap). Nothing
+prints to a PC on hardware, so every ROM shows its result **on screen**: read the numbers out or take a photo.
+
+**Boot path.** Our ROMs mount NitroFS with `nitroFSInit(NULL)`: it opens the `.nds` through `argv[0]`, which
+TWiLight Menu++ passes (the SD path), and falls back to card reads, which nds-bootstrap patches. No code change was
+needed. If a ROM ever shows a red box "Your game stopped" with code **R584**, NitroFS did not mount: note the whole
+message (it names the reason) and which TWiLight Menu++ settings were used.
+
+**1. Copy the files.** Build them with `npm run hardware -w runtime` (already built, 2026-09-26). Copy the five files
+from `C:\Users\zache\OneDrive\Desktop\Projects\DSDude-ws3\.dsdude\hardware\` to the SD card, into any folder
+TWiLight Menu++ shows, e.g. `sd:/dsdude/`:
+`1-selftest.nds`, `2-bench.nds`, `3-hello.nds`, `4-numeric.nds`, `5-flappy.nds`. Start each from TWiLight Menu++;
+to leave one, restart the console or use TWiLight Menu++'s return-to-menu combination.
+
+**2. `1-selftest.nds`** (about 2 minutes). Sound on.
+- It starts on **page 1**: rows of small red, blue, green and cyan balls on both screens over a sky-and-grass
+  background, white/yellow text at the top of each screen, a small orange box top right of the bottom screen.
+  Expect a short blip at start and a looping tune. Check: A plays the blip again; touching the bottom screen moves
+  the small yellow square to the stylus; the D-pad moves it; B makes the background scroll and the balls change.
+  Report anything missing, garbled or flickering.
+- Press **L** once: **page 4, results**. Photograph the bottom screen (1 MB read time, maxmod codes, the
+  `0x04FFFA00` bytes, stack and heap). The "expected" lines at the bottom say what the codes should be.
+- Press **L** again: **page 3**, the red error box. Check that it is readable.
+- Press **L** again: **page 2, the scanline page** (the most important part). The top screen shows N rings side
+  by side on one line; the bottom screen shows N's line cost. **UP/DOWN** change N by 1, **LEFT/RIGHT** by 8,
+  **A** switches between `normal`, `affine` and `affine2x`. For each of the three modes: raise N until the rings on
+  the right start to vanish or flicker, and write down the **largest N at which every ring is complete** and the
+  "OBJ line cycles" number shown for it. Report three pairs (mode, N, cycles).
+- **SELECT** opens the log console (and closes it); a photo of it helps if anything looked wrong.
+
+**3. `2-bench.nds`** (the M1 benchmark; about 5 seconds). Wait until the top screen shows "Photograph this
+screen.", then photograph it. The key figures are "VM cycles/op", "VM ops/frame", "loop cycles/op" and the
+"load main / dtcm" line. (On melonDS the same ROM shows about 35 VM cycles/op, 31,960 ops/frame.)
+
+**4. `3-hello.nds`.** The bottom screen should read `READY|0.1.0|f1d376bb`, `LOG|hello`, `EXIT|0`. A photo is
+enough.
+
+**5. `4-numeric.nds`** (spike 12 on hardware). The bottom screen should read exactly:
+```
+READY|0.1.0|f1d376bb
+LOG|trig 2802 7574
+LOG|atan2 33076 23775
+LOG|sqrt 20444 21605
+LOG|div 51 59715
+LOG|mul 47882 38740
+LOG|lengthdir 29239 47856
+LOG|string 5784 62728
+LOG|random 43187 48735
+EXIT|0
+```
+Photograph it; any different number names the area that differs on hardware.
+
+**6. `5-flappy.nds`** (the sample game, built end to end). Press **A** or tap the bottom screen to flap. Report
+whether it plays smoothly, with sound, and anything that looks wrong.
+
+**Send back:** the photos (or readouts) from steps 2 (page 4 and the three scanline pairs), 3, 4 and 5, and notes
+from 2 and 6. WS0 relays them to WS3 and WS2.
 
 ## Integration feedback
