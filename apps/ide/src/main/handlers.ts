@@ -39,6 +39,7 @@ export interface AppInfo {
   packaged: boolean;
   defaultProjectsDir: string;
   oneDriveDirs: string[];
+  supportedKeys?: string[];
 }
 
 export interface CoreHandlerDeps {

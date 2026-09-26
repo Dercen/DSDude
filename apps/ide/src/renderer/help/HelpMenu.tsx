@@ -67,6 +67,7 @@ export function HelpMenu() {
             () => void openByTitle(actions.openLearn, /differences.*gamemaker/i),
           )}
           {item("Controls", "help-controls", () => actions.showControls())}
+          {item("Settings…", "help-settings", () => actions.showSettings())}
           {item("Tutorial assets", "help-assets", () => void actions.openTutorialAssets())}
           {item("Learn (F1)", "help-learn", () => actions.openLearn(null))}
         </div>

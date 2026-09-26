@@ -4,6 +4,7 @@ import { DockviewReact, type DockviewReadyEvent, themeDark } from "dockview-reac
 import { useEffect, useMemo } from "react";
 import { ControlsCard } from "./help/ControlsCard.tsx";
 import { HelpMenu } from "./help/HelpMenu.tsx";
+import { SettingsDialog } from "./help/SettingsDialog.tsx";
 import { IdeContext, useActions, useIde } from "./ide-context.tsx";
 import { ipc } from "./ipc.ts";
 import { LearnPanel } from "./learn/LearnPanel.tsx";
@@ -17,6 +18,7 @@ import { ProblemsPanel } from "./panels/ProblemsPanel.tsx";
 import { ProjectTree } from "./panels/ProjectTree.tsx";
 import { loadEditorModules, registerEditor, saveDirtyPanels } from "./panels/registry.ts";
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
+import { propertiesEditorFactory } from "./properties/PropertiesEditor.tsx";
 import { createIde } from "./store/ide.ts";
 import { FirstRunWizard } from "./wizards/FirstRunWizard.tsx";
 import { ImportDialog } from "./wizards/ImportDialog.tsx";
@@ -30,6 +32,8 @@ const ide = createIde(ipc, workbench, {
 });
 installLearnLinkOpener((target) => ide.actions.openLearn(target));
 registerEditor(createObjectEditorFactory(ide));
+// The fallback for Game Settings, sprites, backgrounds, sounds and rooms: after the editor modules, so they win.
+registerEditor(propertiesEditorFactory);
 let started = false;
 
 const components = {
@@ -182,6 +186,8 @@ export function App() {
       void ide.actions.boot();
     }
     const onKey = (e: KeyboardEvent) => {
+      // Settings > Controls captures any key for rebinding, so the shortcuts are off while it is open.
+      if (ide.store.getState().settingsDialog) return;
       if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
         void ide.actions.save();
@@ -219,6 +225,7 @@ export function App() {
         <NewProjectDialog />
         <FirstRunWizard />
         <ImportDialog />
+        <SettingsDialog />
       </div>
     </IdeContext.Provider>
   );

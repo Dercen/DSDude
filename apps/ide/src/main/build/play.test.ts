@@ -104,6 +104,43 @@ describe("PlayController", () => {
     await plain.play.stop();
   });
 
+  it("passes the user's keys to the emulator and turns launch warnings (E625) into Problems", async () => {
+    const warning: Diagnostic = {
+      ...error,
+      severity: "warning",
+      code: "E625",
+      message: "The key 'F13' can't be used.",
+      file: null,
+      line: null,
+      col: null,
+      source: "toolchain",
+    };
+    const launched: unknown[] = [];
+    const emulators = new FakeEmulatorManager();
+    const launch = emulators.launch.bind(emulators);
+    emulators.launch = async (rom, opts) => {
+      launched.push(opts);
+      return { ...(await launch(rom, opts)), diagnostics: [warning] };
+    };
+    const sent: Sent[] = [];
+    const service = new MockBuildService();
+    const play = new PlayController({
+      worker: { run: (_m, req) => service.build(req), cancel: () => {} },
+      emulators,
+      send: createEventSender(() => [{ send: (c, p) => void sent.push([c, p] as Sent), isDestroyed: () => false }]),
+      controlsLine: async () => "",
+      defaultEmulator: async () => "melonds",
+      keys: async () => ({ a: "k", start: "F13" }),
+    });
+    service.onEvent(play.onBuildEvent);
+    const res = await play.play({ projectDir: "C:/p" });
+    expect(launched).toEqual([{ kind: "melonds", debug: undefined, keys: { a: "k", start: "F13" } }]);
+    expect(res.ok).toBe(true);
+    expect(res.diagnostics).toEqual([warning]);
+    expect(sent.filter((x) => x[0] === "build.diagnostics").at(-1)?.[1]).toEqual({ diagnostics: [warning] });
+    await play.stop();
+  });
+
   it("does not launch when the build fails, and sends the diagnostics once", async () => {
     const { play, of } = setup({ diagnostics: [error] });
     const res = await play.play({ projectDir: "C:/p" });

@@ -1,6 +1,6 @@
 import { ControlsSchema } from "@dsdude/ipc-contract";
 import { describe, expect, it } from "vitest";
-import { controlsLine, controlsRows, DEFAULT_CONTROLS, effectiveControls, keyLabel } from "./controls.ts";
+import { controlsLine, controlsRows, DEFAULT_CONTROLS, effectiveControls, keyLabel, sharedKeys } from "./controls.ts";
 
 describe("Controls text", () => {
   it("matches the PLAN.md 6 WS6 mapping with the default keys", () => {
@@ -22,9 +22,19 @@ describe("Controls text", () => {
   });
 });
 
-describe("effective controls", () => {
-  it("are the defaults until C4 can apply rebound keys (ADR-0007)", () => {
-    expect(effectiveControls({ controls: ControlsSchema.parse({ a: "k" }) })).toEqual(DEFAULT_CONTROLS);
-    expect(effectiveControls(null).a).toBe("x");
+describe("effective controls (ADR-0007)", () => {
+  it("are the user's keys, letters in either case, with the default for a key the emulator cannot use", () => {
+    const controls = ControlsSchema.parse({ a: "K", b: "/", start: "F13" });
+    const eff = effectiveControls({ controls }, ["k", "/", "Enter", ...Object.values(DEFAULT_CONTROLS)]);
+    expect(eff.a).toBe("k");
+    expect(eff.b).toBe("/");
+    expect(eff.start).toBe("Enter");
+    expect(effectiveControls({ controls }).start).toBe("F13");
+    expect(effectiveControls(null)).toEqual(DEFAULT_CONTROLS);
+  });
+
+  it("finds buttons sharing a key", () => {
+    expect([...sharedKeys(ControlsSchema.parse({ a: "z", b: "Z" }))]).toEqual([["z", ["a", "b"]]]);
+    expect(sharedKeys(DEFAULT_CONTROLS).size).toBe(0);
   });
 });

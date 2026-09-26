@@ -218,13 +218,36 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - The browser Vitest config pre-scans the renderer (`optimizeDeps.entries`) so a dependency found mid-run no longer reloads the page.
   - Tests: node 92, browser 10, ipc-contract 75, Playwright 12 (import.spec: sprite with 3 frames and a moved origin, a WAV effect). Screenshot checked.
 
+- **Property forms (definition of done: every resource type editable and saved through C1): done.**
+  - `apps/ide/src/renderer/properties/` is a fallback C12 editor for Game Settings, sprites, backgrounds, sounds and rooms. It registers after the `editors/<name>` modules and the object editor, so WS6b's visual editors take over when they land (placement agreed with WS0).
+  - The forms:
+    - Game Settings: title, subtitle, author, first room, room order.
+    - Sprite: frames, frame size, origin, collision box, colours, transparency.
+    - Background: its file.
+    - Sound: kind.
+    - Room: size, and each screen's background and view.
+  - Every change is validated against the C1 schema first; problems read in plain words, e.g. 'Use 1 or more.', 'Use 127 characters or fewer.'. Changes are undoable and saved by project.save.
+  - Tests: browser 13 (3 new), node 92, Playwright 12 (the import test opens the new sprite's form). Screenshot checked.
+
+- **Rebinding (ADR-0007, accepted; C4 0.6.0 on main): done. The `ADR-pending ADR-0007` marker is removed.**
+  - Settings (Help > Settings…) offers the emulator (melonDS/DeSmuME) and Controls: Change, then press a key.
+    - Only C4 `SUPPORTED_KEYS` are accepted; the list comes from `app.info.supportedKeys`, C5 0.10.0 (T1).
+    - Two buttons on one key get a warning. Reset to defaults is available.
+    - The shell's shortcuts pause while Settings is open, so any key can be captured.
+  - Every Play passes `settings.controls` to `EmulatorManager.launch` as `LaunchOptions.keys`; the manager writes melonDS.toml and desmume.ini.
+    - Launch warnings (E625) from `EmulatorHandle.diagnostics` join the Play result and Problems.
+    - The Controls card and the first Output line use `effectiveControls`: letters case-insensitive, an unsupported key falling back to the default, as C4 does.
+  - Tests: node 94, browser 13, ipc-contract 75, Playwright 13 (settings.spec: rebind A to K, an unsupported key refused, the shared-key warning, the next Play's Controls line). Screenshot checked.
+
 ## Next
-- Task 6: all parts done except the rebinding page, which waits for WS1's `LaunchOptions.keys` on main (ADR-0007). Then task 7 (visual editors) unless WS6b runs.
+- Task 6: done.
+- CP-A (2026-09-28): the C12 panel API and mock host freeze; WS0 runs the e2e suite locally.
+- Task 7 (visual editors) unless WS6b runs (WS0 decides at CP-B).
 - Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
 ## Leftovers / ADR-pending
-- ADR-0007 (emulator key rebinding through C4): proposed; marker in `apps/ide/src/shared/controls.ts` (`effectiveControls`).
+- No open ADR-pending markers (ADR-0007 is accepted and wired).
 - Deferred:
   - chokidar `project.changed` watcher (with the object editor).
   - `assets.*`, `toolchain.*` and `doctor.run` handlers (tasks 5-6).

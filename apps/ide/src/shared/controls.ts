@@ -52,11 +52,36 @@ export function controlsLine(c: Controls): string {
 /** The PLAN.md mapping (Arrows = D-pad, X = A, Z = B, ...). */
 export const DEFAULT_CONTROLS: Settings["controls"] = ControlsSchema.parse({});
 
+/** Normalises a key as the emulator manager does: a single letter in either case is that letter. */
+export function normalizeKey(key: string): string {
+  return /^[A-Z]$/.test(key) ? key.toLowerCase() : key;
+}
+
 /**
- * The keys the emulators use at launch, which the Controls card and the first Output line show.
- * ADR-pending ADR-0007: C4's EmulatorManager writes the default map on every launch, so the user's
- * settings.controls cannot apply yet; return them here once LaunchOptions.keys exists.
+ * The keys the emulators use at launch (C4 LaunchOptions.keys, ADR-0007), which the Controls card and the first
+ * Output line show: the user's keys, except that a key outside `supported` keeps the button's default (C4 E625).
+ * Without a `supported` list every key is taken as given.
  */
-export function effectiveControls(_settings?: Pick<Settings, "controls"> | null): Settings["controls"] {
-  return DEFAULT_CONTROLS;
+export function effectiveControls(
+  settings?: Pick<Settings, "controls"> | null,
+  supported?: readonly string[] | null,
+): Settings["controls"] {
+  const user = settings?.controls ?? DEFAULT_CONTROLS;
+  const ok = supported ? new Set(supported) : null;
+  const out = { ...DEFAULT_CONTROLS };
+  for (const button of Object.keys(DEFAULT_CONTROLS) as (keyof Settings["controls"])[]) {
+    const key = normalizeKey(user[button]);
+    if (!ok || ok.has(key)) out[button] = key;
+  }
+  return out;
+}
+
+/** Buttons that share a key with another button (the Settings page warns about them). */
+export function sharedKeys(controls: Settings["controls"]): Map<string, string[]> {
+  const byKey = new Map<string, string[]>();
+  for (const [button, key] of Object.entries(controls)) {
+    const k = normalizeKey(key);
+    byKey.set(k, [...(byKey.get(k) ?? []), button]);
+  }
+  return new Map([...byKey].filter(([, buttons]) => buttons.length > 1));
 }
