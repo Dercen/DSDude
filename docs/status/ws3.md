@@ -29,6 +29,11 @@ Legend: todo / in progress / done (<sha>).
     tree of `runtime/` without `dist/`; checked equal to the committed tree.
   - **DS compile of WS2's core** at `829b00d` (`fixed.c`, `number.c`, `numfmt.c`, `vendor/trig.c`): clean with
     `-Wall -Wextra`.
+- **C8 runtime artifact 0.3.0 (T1, agreed with WS0): done** (b3cc336). `VERSION` gains `build_tree`, the git tree
+  of the DS build's inputs only (`core/`, `gen/`, `platform/ds/src/`, `data/`, `Makefile`, `package.json`), and it is
+  the staleness check: `npm run check:dist -w runtime` (git + Node, runs in the cloud/CI) and `build:runtime`'s
+  report. WS2 test/host edits no longer make `dist/` stale; `tree` stays, informational. No more VERSION-only
+  refresh commits after merges.
 - **After checkpoint-8** (`main` `b8ba3e1`): WS2's new `test_programs.c` cases pass on the DS too,
   `conformance:ds` **37 of 37** (v2-05, v3-02 skipped: key scripts); `dist/VERSION` refreshed for the new tree
   (the ELFs are unchanged).
