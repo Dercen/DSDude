@@ -1,6 +1,8 @@
 /** @dsdude/runtime: the C8 runtime artifact helpers (WS3). The C sources are built by runtime/Makefile. */
 export {
   ARM7_ELF,
+  BUILD_INPUTS,
+  distProblems,
   formatReport,
   formatVersion,
   IMAGE_BUDGET_BYTES,
