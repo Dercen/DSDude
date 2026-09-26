@@ -214,7 +214,7 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     a debug build, a wrap to int in a release build). The verifier applies ADD's and CMPJ's operand rules (register
     bounds; C <= 5 and a JMP next for CMPJII). Suggestion, WS2's call: a debug build may assert both tags are int and
     stop with an internal-error R code, to catch a compiler proof bug; a release build never checks.
-  - **Rollout:** as soon as WS2 agrees (in docs/status/ws2.md, relayed by WS0), WS4 makes the one T1: opcodes.json
+  - **Rollout (done, see the 0.4.0 entry below):** as soon as WS2 agrees (in docs/status/ws2.md, relayed by WS0), WS4 makes the one T1: opcodes.json
     0.4.0 (51-54 stable with the formats above), dsdb.md 0.5.0, regenerated `runtime/gen/opcodes.h` and
     `packages/*/src/gen`, and a CHANGELOG line. WS2 then flips `OP_CHECKS[...].impl` (the loader keeps answering R582
     until then, so the T1 alone breaks nothing) and adds its `.dsda` fixtures. Once WS2's VM runs them, WS4 turns
@@ -232,6 +232,17 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     - Emission: `a op b` and `a op= b` use ADDII/SUBII/MULII when both sides are proved int (a small literal still
       takes ADDI/SUBI/MULI, which is one instruction); comparisons in conditions use CMPJII; `repeat`'s counter
       (floored, so always int) uses CMPJII. Tests: `src/intproof.test.ts` (six).
+
+- **Opcodes 0.4.0 / dsdb.md 0.5.0 (T1), 2026-09-26: ADDII/SUBII/MULII/CMPJII (51-54) promoted to stable and
+  switched on.** WS2 implemented the handlers and verifier (docs/status/ws2.md, M1 step 7) with the same encoding
+  WS4 proposed (ADD/SUB/MUL/CMPJ operands, no tag checks, the same overflow rules), which is the co-signature.
+  WS3's melonDS re-bench (relayed by WS0): the II forms take the bench mix from 31.76 to 28.27 cycles/op (35,266 to
+  39,629 ops/frame).
+  - `compileProject` and `dsdude compile` use `GAME_OPTIONS` (`fold` + `intOps`); the conformance goldens use
+    `intOps` without folding, so WS2's VM runs the II forms too (v0/01's check against the hand-assembled fixture
+    keeps them off). Goldens regenerated: v0/01, 03, 04, v1/07, 11, v3/09, Flappy. `make -f runtime/Makefile.host
+    test` green: 120,002 checks in each of -O2, UBSan and -O0.
+  - Flappy gets one II op: nearly all its arithmetic is on instance variables, which the proof does not cover yet.
 
 ## Next
 

@@ -2,7 +2,7 @@
 #ifndef DSD_GEN_OPCODES_H
 #define DSD_GEN_OPCODES_H
 
-#define DSD_OPCODES_VERSION "0.3.0"
+#define DSD_OPCODES_VERSION "0.4.0"
 #define DSD_OPCODE_COUNT 59
 
 /* Instruction word: op = bits 0-7, A = 8-15, B = 16-23, C = 24-31, Bx/sBx = 16-31. */
@@ -64,10 +64,10 @@
 #define DSD_OP_LEN        48 /* stable: A:reg B:reg */
 #define DSD_OP_TOINT      49 /* stable: A:reg B:reg */
 #define DSD_OP_TOFIXED    50 /* stable: A:reg B:reg */
-#define DSD_OP_ADDII      51 /* reserved: - */
-#define DSD_OP_SUBII      52 /* reserved: - */
-#define DSD_OP_MULII      53 /* reserved: - */
-#define DSD_OP_CMPJII     54 /* reserved: - */
+#define DSD_OP_ADDII      51 /* stable: A:reg B:reg C:reg */
+#define DSD_OP_SUBII      52 /* stable: A:reg B:reg C:reg */
+#define DSD_OP_MULII      53 /* stable: A:reg B:reg C:reg */
+#define DSD_OP_CMPJII     54 /* stable: A:reg B:reg C:u8 */
 #define DSD_OP_GETBIX     55 /* stable: A:reg B:bivar C:reg */
 #define DSD_OP_SETBIX     56 /* stable: A:reg B:bivar C:reg */
 #define DSD_OP_GETBIO     57 /* stable: A:reg B:reg C:bivar */
@@ -126,10 +126,10 @@
   X(LEN, 48, 1) \
   X(TOINT, 49, 1) \
   X(TOFIXED, 50, 1) \
-  X(ADDII, 51, 0) \
-  X(SUBII, 52, 0) \
-  X(MULII, 53, 0) \
-  X(CMPJII, 54, 0) \
+  X(ADDII, 51, 1) \
+  X(SUBII, 52, 1) \
+  X(MULII, 53, 1) \
+  X(CMPJII, 54, 1) \
   X(GETBIX, 55, 1) \
   X(SETBIX, 56, 1) \
   X(GETBIO, 57, 1) \

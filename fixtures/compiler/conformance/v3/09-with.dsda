@@ -20,7 +20,7 @@
     CALLN r2, 1, floor
     LOADI r3, 0
   L0:
-    CMPJ r2, r3, 4
+    CMPJII r2, r3, 4
     JMP L1
     .loc "objects/obj_ctrl/create.dss" 4
     MULI r4, r0, 32

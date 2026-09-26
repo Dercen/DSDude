@@ -7,13 +7,13 @@
     .loc "v0/01-arith.dss" 3
     LOADI r1, 3
     .loc "v0/01-arith.dss" 4
-    ADD r2, r0, r1
+    ADDII r2, r0, r1
     CALLN r2, 1, show_debug_message
     .loc "v0/01-arith.dss" 5
-    SUB r2, r0, r1
+    SUBII r2, r0, r1
     CALLN r2, 1, show_debug_message
     .loc "v0/01-arith.dss" 6
-    MUL r2, r0, r1
+    MULII r2, r0, r1
     CALLN r2, 1, show_debug_message
     .loc "v0/01-arith.dss" 7
     IDIV r2, r0, r1

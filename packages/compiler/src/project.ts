@@ -68,7 +68,7 @@ export interface CompileProjectOptions {
   fold?: boolean;
   /**
    * Emit the int-specialised ADDII/SUBII/MULII/CMPJII where both operands are proved int (codegen/intproof.ts).
-   * Default off until contracts/opcodes.json promotes 51-54 from reserved and WS2's VM runs them.
+   * compileProject and `dsdude compile` turn it on (opcodes 0.4.0); default off.
    */
   intOps?: boolean;
 }
@@ -78,11 +78,14 @@ export interface CompileProjectResult extends CompileOutput {
   module: DsdbModule | null;
 }
 
-/** C4 `CompileFn`: compiles a loaded project, as a game (constant folding on). */
+/** C4 `CompileFn`: compiles a loaded project, as a game (constant folding and the int-specialised opcodes on). */
 export function compileProject(project: Project, manifest: AssetManifest): CompileOutput {
-  const { dsdb, roomSets, diagnostics } = compileProjectModule(project, manifest, { fold: true });
+  const { dsdb, roomSets, diagnostics } = compileProjectModule(project, manifest, GAME_OPTIONS);
   return { dsdb, roomSets, diagnostics };
 }
+
+/** The options compileProject and `dsdude compile` use for games. */
+export const GAME_OPTIONS: Readonly<CompileProjectOptions> = { fold: true, intOps: true };
 
 /** compileProject with options, also returning the symbolic module. */
 export function compileProjectModule(
