@@ -10,4 +10,7 @@ its own `docs/status/wsN.md`; WS0 then updates its line here.
 
 ## Streams
 
-(none launched yet: WS2 and WS4 launch at the `phase0` tag, WS5 and WS7 at CP-A, WS6b at CP-B if usage limits allow)
+- WS2: environment `dsdude-ws2`; session (pending: the user sends the URL); push target `ws2-runtime-core`; started 2026-09-25 (`start-ws2` at 57efe6c); last merged -
+- WS4: environment `dsdude-ws4`; session (pending: the user sends the URL); push target `ws4-compiler`; started 2026-09-25 (`start-ws4` at 57efe6c); last merged -
+
+Not yet launched: WS5 and WS7 (CP-A, D+3), WS6b (CP-B, D+7, if usage limits allow).
