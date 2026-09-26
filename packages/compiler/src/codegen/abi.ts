@@ -7,7 +7,7 @@ import { ABI_HASH, BUILTIN_FUNCTIONS, BUILTIN_VARIABLES } from "../gen/builtins.
 
 /** Builtin function names by dense runtime index (CALLN's C operand), from the generated table. */
 const functions = [...BUILTIN_FUNCTIONS].sort((a, b) => a.runtimeIndex - b.runtimeIndex).map((f) => f.name);
-/** Builtin variable names by dense runtime index (the `bivar` operand, ADR-0003). */
+/** Builtin variable names by dense runtime index (the `bivar` operand, ADR-0005). */
 const variables = [...BUILTIN_VARIABLES].sort((a, b) => a.runtimeIndex - b.runtimeIndex).map((v) => v.name);
 
 export const COMPILER_BUILTINS_ENV: BuiltinsEnv = {

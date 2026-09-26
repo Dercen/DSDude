@@ -37,7 +37,7 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     closure, scripts called, `draw_set_screen` = both screens) returned as C4 `roomSets`.
   - FUNC names: events `<obj>__<stem>`, object functions `<obj>__fn_<name>`, creation code `<room>__inst_<i>`,
     scripts by their own name.
-  - ADR-0003 (proposed, needs WS2): operand kinds `sym`/`bivar`, GETBIX/SETBIX (55-56), GETBIO/SETBIO (57-58), the
+  - ADR-0005 (was 0003; co-signed by WS2): operand kinds `sym`/`bivar`, GETBIX/SETBIX (55-56), GETBIO/SETBIO (57-58), the
     `with` loop shape, NEWARR/SETIDX meaning. opcodes.json and dsdb.md 0.2.0 (T1), packages/dsdb supports them.
   - Catalog: E201-E205, E208, E301-E309, E491-E494.
   - ASET paths (`gfx/<name>.grf`, `bg/<name>.grf`, sounds `""`) and `aux` follow the provisional C4 AssetManifest
@@ -56,10 +56,62 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Worker safety is a test (`src/worker-safe.test.ts`): nothing statically reachable from `src/index.ts` imports
     a Node API; the CLI imports Node modules dynamically.
 
+- **Task 4, C7 `LanguageServiceHost`: done, 0.1.0** (2026-09-26; freezes at CP-B).
+  - `packages/lang/src/host.ts`: `createLanguageServiceHost()`; plain data only (UTF-16 offsets into LF text,
+    C9 diagnostics). Methods: `setProject(Project | null)`, `setFile`, `getFile`, `parse(text, file)` (syntax
+    diagnostics + classified tokens), `check(file)` (full compiler diagnostics), `symbolsAt`, `completionsAt`
+    (members after `x.`, globals after `global.`), `hover`, `definitionAt`, `referencesAt`, `signatureAt`,
+    `documentSymbols`, `foldingRanges`, `format`.
+  - Beyond PLAN's six methods, it adds what WS7's kickoff lists (references, signature help, outline, folding,
+    per-file checks). Builtin docs stay WS7's (builtins.json); user functions carry the comment above them as `doc`.
+  - Implementation in the compiler: `src/analysis.ts` (resolution identical to codegen), `src/format.ts`
+    (line-preserving formatter: indentation, spacing, semicolons; keeps aligned columns; leaves code with syntax
+    errors unchanged; idempotent; every sample and conformance file is already formatted),
+    `src/project-index.ts` (passes 1-3 shared by compileProject and the host).
+  - **For WS0:** `contracts/README.md` still lists C7 as owed; it is 0.1.0 now (CHANGELOG line added).
+
+- **Task 5, conformance programs 6-10: done** (2026-09-26): `fixtures/conformance/v1/06-strings.dss`,
+  `v1/07-arrays.dss`, `v2/08-instances/`, `v3/09-with/`, `v4/10-rooms/` (rules 1-7 and the fractional-index rule;
+  rule 8 music and the RNG seed rule not yet). Intended outputs are in each file's comments / README.md for WS2's
+  `expected/`. All compile with zero diagnostics to goldens in `fixtures/compiler/conformance/`.
+
+- **Task 6, the beginner mistakes: done** (2026-09-26). `src/mistakes.test.ts` runs 25 of them, each giving
+  exactly one diagnostic; the reviewed messages are snapshotted in `fixtures/compiler/mistakes.json`. New checks:
+  a small type lattice (`src/codegen/types.ts`; it only proves mistakes, "unknown" is accepted everywhere): E310
+  text + number, E311 wrong kind of value for a builtin, E312 using a call that gives nothing back, E313 Draw-only
+  builtins outside Draw (`allowedEvents`), E314 division by a literal 0, E206 unknown asset names (by closest asset
+  or `spr_`/`snd_`/`obj_`/`rm_`/`bg_` prefix). Lints: W031 (touch events and `touch_in_instance(self)` on top-screen
+  objects), W040 squaring a position, W041 fractional array index, W042 `div` with a fraction, W043 letters the DS
+  font lacks in `draw_text`, W050 empty room, W051 placed object nobody can see (Visible off and Draw exempt), W052
+  unused sprite. A parser error on a line that already has a lexer error is dropped (one mistake, one diagnostic).
+  - Not yet: `alias`/`unsupported` builtins.json entries (the generated table has none yet; E207 is reserved for
+    unsupported GameMaker names once WS0 adds entries and gen-builtins emits them).
+
+- **Checkpoint-3 relay (2026-09-26):** merged `origin/main` (no open IF entries); ADR-0003 references renumbered to
+  **ADR-0005** (markers, `contracts/dsdb.md`, `contracts/opcodes.json`, an appended CHANGELOG line).
+- **WS4 co-signs WS2's ADR-0006 (sprite geometry in the DSDB, option A), 2026-09-26**, and has implemented its side
+  (C2 `dsdb.md` 0.3.0, T1, marked `ADR-pending ADR-0006`):
+  - One clarification: the ADR both bumps the format minor to 2 and promises no byte change for files without SPRG.
+    WS4's writer sets minor 2 **only when the file carries an extension table**; files without one keep minor 1 and
+    their exact bytes (all 34 committed `.dsdb` fixtures without sprites are unchanged). Loaders accept minor >= 1.
+  - `packages/dsdb`: `AssetDef.geometry`, encode/decode of the extension table and `SPRG` (unknown tags skipped),
+    `.dsda` `.asset sprite NAME PATH FRAMES origin=X,Y size=W,H bbox=L,T,R,B` (all three or none; every sprite or
+    none), tests.
+  - Compiler: every project sprite gets its `sprite.json` geometry, so every project DSDB with sprites carries SPRG
+    (Flappy, minimal, v3/09 goldens regenerated). `make -f runtime/Makefile.host test` stays green on WS2's current
+    loader (115,719 checks).
+- push.sh range check fixed by WS0 (`5b09e6c`); the checkpoint-3 batch went out through push.sh after merging main.
+
 ## Next
 
-- Task 4: C7 `LanguageServiceHost` in `packages/lang/src/host.ts` (by CP-B).
-- Task 5: conformance programs 6-10; task 6: the 20 beginner mistakes; task 7: formatter and peephole passes.
+- Task 7 (formatter done): the peephole passes wait on purpose.
+  - ADDI/SUBI/MULI and a fused compare+jump (CMPJ, encoding still open) are provisional opcodes WS2 has not
+    implemented; emitting them now would stop the v0/v1 goldens from running on WS2's first VM (stable opcodes
+    only). They come after WS2 implements them (ADR-0005's operands are co-signed; WS0 accepts it), or at CP-C if the M1 gate
+    needs them.
+  - Constant folding must not apply to the conformance programs, which exist to test the VM's arithmetic (v0/02's
+    `0.25 + 0.25`); it will be an option of `compileProject` (on for games), with folding that matches the runtime's
+    int32/Q20.12 rules exactly.
 - Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
   child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
 
@@ -67,13 +119,18 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 
 - `fixtures/compiler/conformance/v0/*.dsda` + `.dsdb` (all five v0 programs): disassembly snapshots; they execute
   once WS2's VM lands v0 (**WS2: these can replace hand-assembling v0 02-05**).
+- `fixtures/compiler/conformance/v1..v4/*.dsda` + `.dsdb` (programs 06-10): disassembly snapshots until each
+  tier's runtime lands.
 - `fixtures/compiler/samples/{minimal,flappy}.dsda` + `.dsdb` + `.roomsets.json`: disassembly snapshots (tier v2-v4
   features: slots, `with`, alarms, collisions, draw). Flappy compiles in ~6 ms warm (budget 100 ms).
 - Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.
 
 ## Open ADR-pending markers
 
-- `ADR-pending ADR-0003` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): until WS2
-  co-signs ADR-0003.
+- `ADR-pending ADR-0006` in `packages/dsdb/src/encode.ts`, `packages/dsdb/src/model.ts` and
+  `packages/compiler/src/project.ts` (SPRG): until WS0 accepts ADR-0006.
+
+- `ADR-pending ADR-0005` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): WS2
+  co-signed (docs/status/ws2.md); open until WS0 accepts ADR-0005 and both streams promote the opcodes (T1).
 
 ## Integration feedback

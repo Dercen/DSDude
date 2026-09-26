@@ -1,0 +1,129 @@
+.dsda 0.1
+.seed 0
+.global visits
+
+.func obj_runner__create 0 4
+    .loc "objects/obj_runner/create.dss" 1
+    LOADK r0, "create in "
+    GETBI r2, room
+    LOADK r3, @rm_a
+    EQ r2, r2, r3
+    JMPF r2, L0
+    LOADK r1, "a"
+    JMP L1
+  L0:
+    LOADK r1, "b"
+  L1:
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func obj_runner__step 0 2
+    .loc "objects/obj_runner/step.dss" 1
+    GETGLOB r0, visits
+    LOADI r1, 1
+    EQ r0, r0, r1
+    JMPF r0, L0
+    LOADK r0, @rm_b
+    CALLN r0, 1, room_goto
+    JMP L2
+  L0:
+    .loc "objects/obj_runner/step.dss" 2
+    GETGLOB r0, visits
+    LOADI r1, 2
+    EQ r0, r0, r1
+    JMPF r0, L1
+    CALLN r0, 0, room_restart
+    JMP L2
+  L1:
+    .loc "objects/obj_runner/step.dss" 3
+    CALLN r0, 0, game_end
+  L2:
+    RET r0, 0
+.end
+
+.func obj_runner__draw 0 4
+    .loc "objects/obj_runner/draw.dss" 1
+    LOADI r0, 8
+    LOADI r1, 8
+    LOADK r2, "visits "
+    GETGLOB r3, visits
+    CALLN r3, 1, string
+    CONCAT r2, r2, r3
+    CALLN r0, 3, draw_text
+    RET r0, 0
+.end
+
+.func obj_runner__game_start 0 1
+    .loc "objects/obj_runner/game_start.dss" 1
+    LOADI r0, 0
+    SETGLOB r0, visits
+    .loc "objects/obj_runner/game_start.dss" 2
+    LOADK r0, "game start"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func obj_runner__room_start 0 4
+    .loc "objects/obj_runner/room_start.dss" 1
+    GETGLOB r0, visits
+    LOADI r1, 1
+    ADD r0, r0, r1
+    SETGLOB r0, visits
+    .loc "objects/obj_runner/room_start.dss" 2
+    LOADK r0, "room "
+    GETBI r2, room
+    LOADK r3, @rm_a
+    EQ r2, r2, r3
+    JMPF r2, L0
+    LOADK r1, "a"
+    JMP L1
+  L0:
+    LOADK r1, "b"
+  L1:
+    CONCAT r0, r0, r1
+    LOADK r1, " visit "
+    CONCAT r0, r0, r1
+    GETGLOB r1, visits
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func obj_runner__room_end 0 1
+    .loc "objects/obj_runner/room_end.dss" 1
+    LOADK r0, "room end"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_runner sprite=- parent=- visible=1 screen=top depth=0
+    .event create obj_runner__create
+    .event step obj_runner__step
+    .event draw obj_runner__draw
+    .event game_start obj_runner__game_start
+    .event room_start obj_runner__room_start
+    .event room_end obj_runner__room_end
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_runner 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.room rm_b 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_runner 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a

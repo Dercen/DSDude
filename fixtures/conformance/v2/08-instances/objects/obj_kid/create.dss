@@ -1,0 +1,4 @@
+event_inherited();                  // runs obj_base's Create first
+hp += 5;
+show_debug_message("kid create " + string(hp));
+event_user(1);

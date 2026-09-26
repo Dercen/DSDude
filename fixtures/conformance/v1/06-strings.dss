@@ -1,0 +1,23 @@
+// v1/06: strings, string() and printing any value (language.md rule 6)
+// Intended output, one DSD|LOG line each:
+//   Hello, DS / 9 / H / ABC / def / ababab / A66 / n = 2.5 / 13 / a"b\c / 0.33 / true / true / undefined /
+//   [1, two, [3, 4.5], true] / 7 / -0.5
+var s = "Hello";
+var t = s + ", " + "DS";
+show_debug_message(t);
+show_debug_message(string_length(t));
+show_debug_message(string_char_at(t, 1));      // 1-based, as in GameMaker
+show_debug_message(string_upper("abc"));
+show_debug_message(string_lower("DeF"));
+show_debug_message(string_repeat("ab", 3));
+show_debug_message(chr(65) + string(ord("B")));
+show_debug_message("n = " + string(2.5));
+show_debug_message(real("12") + 1);
+show_debug_message("a\"b\\c");
+show_debug_message(string(1 / 3));             // 1365/4096 prints as 0.33
+show_debug_message("x" == "x");
+show_debug_message("abc" < "abd");             // strings order by code point
+show_debug_message(undefined);
+show_debug_message([1, "two", [3, 4.5], true]); // arrays print their elements, strings unquoted
+show_debug_message(string_length(string(1234567)));
+show_debug_message(-1 / 2);

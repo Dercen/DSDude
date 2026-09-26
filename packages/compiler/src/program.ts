@@ -10,8 +10,10 @@ import type { CodegenEnv, UserFunction } from "./codegen/env.ts";
 import { compileFunction } from "./codegen/function.ts";
 import { finishModule } from "./codegen/module.ts";
 import { Reporter } from "./diagnostics/report.ts";
+import type { CodeUnit, DeclaredFunction, ProjectIndex, SourceLocation, SourceText } from "./project-index.ts";
 import type { FunctionDecl, Stmt } from "./syntax/ast.ts";
 import { parse } from "./syntax/parser.ts";
+import { walk } from "./syntax/walk.ts";
 
 /** Name of the program's entry function (contracts/dsdb.md section 6, "Program form"). */
 export const MAIN_FUNCTION = "__main";
@@ -50,6 +52,8 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
     hasInstance: false,
     self: null,
     other: null,
+    event: null,
+    objectScreen: null,
     lookupFunction: (name) => functions.get(name) ?? null,
     functionNames: () => functions.keys(),
     assetKind: () => null,
@@ -69,4 +73,64 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
   if (diagnostics.some((d) => d.severity === "error")) return { module: null, dsdb: null, diagnostics };
   finishModule(module);
   return { module, dsdb: encode(module, COMPILER_BUILTINS_ENV), diagnostics };
+}
+
+/**
+ * The shared project view (src/project-index.ts) of one program-form file, for the language service: `__main`
+ * plus the file's functions as global functions, no instance, no objects or assets.
+ */
+export function indexProgram(text: string, file: string): ProjectIndex {
+  const clean = text.replace(/\r/g, "");
+  const parsed = parse(clean, { file, kind: "code" });
+  const reporter = new Reporter(file, clean);
+  const source: SourceText = { file, text: clean, parsed, reporter };
+  const scripts = new Map<string, DeclaredFunction>();
+  const units: CodeUnit[] = [];
+  const statements = parsed.ast.items.filter((i): i is Stmt => i.kind !== "function");
+  units.push({
+    kind: "main",
+    funcName: MAIN_FUNCTION,
+    owner: null,
+    stem: null,
+    params: [],
+    body: statements,
+    decl: null,
+    span: parsed.ast,
+    source,
+  });
+  for (const fn of parsed.ast.items.filter((i): i is FunctionDecl => i.kind === "function")) {
+    if (!scripts.has(fn.name))
+      scripts.set(fn.name, { ...declareFunction(fn, fn.name, reporter, () => false), file, decl: fn });
+    units.push({
+      kind: "script",
+      funcName: fn.name,
+      owner: null,
+      stem: null,
+      params: fn.params.map((p) => p.name),
+      body: fn.body.body,
+      decl: fn,
+      span: fn,
+      source,
+    });
+  }
+  const globals = new Map<string, SourceLocation>();
+  for (const u of units)
+    walk(u.body, {
+      expr: (e) => {
+        if (e.kind === "global" && !globals.has(e.name)) globals.set(e.name, { file, start: e.start, end: e.end });
+      },
+    });
+  return {
+    hasInstance: false,
+    sources: [source],
+    units,
+    objects: new Map(),
+    scripts,
+    assetKinds: new Map(),
+    instanceNames: new Set(),
+    globals,
+    diagnostics: parsed.diagnostics,
+    ancestors: (o) => [o],
+    lookupFunction: (_owner, name) => scripts.get(name) ?? null,
+  };
 }

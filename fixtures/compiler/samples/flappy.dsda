@@ -1,9 +1,9 @@
 .dsda 0.1
 .seed 0
 .global score
-.asset sprite spr_bird "gfx/spr_bird.grf" 3
-.asset sprite spr_gap "gfx/spr_gap.grf" 1
-.asset sprite spr_pipe "gfx/spr_pipe.grf" 1
+.asset sprite spr_bird "gfx/spr_bird.grf" 3 origin=8,8 size=16,16 bbox=2,3,15,13
+.asset sprite spr_gap "gfx/spr_gap.grf" 1 origin=4,24 size=8,48 bbox=0,0,7,47
+.asset sprite spr_pipe "gfx/spr_pipe.grf" 1 origin=16,0 size=32,64 bbox=0,0,31,63
 .asset sound snd_flap "" 0
 .asset sound snd_hit "" 0
 .asset sound snd_point "" 0

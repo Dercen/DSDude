@@ -10,10 +10,12 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C2 DSDB container (`contracts/dsdb.md`, `packages/dsdb`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): header, ten sections (incl. KONS), 8-byte cells, instruction encoding, calling convention, event ids, OBJS/ROOM/ASET, program form, `.dsda` grammar and canonical form, ABI hash.
 - 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): section 5 operand kinds `sym` and `bivar` (names in `.dsda`); packages/dsdb encodes, decodes and assembles them (`BuiltinsEnv.variables`).
+- 0.3.0 (2026-09-26, WS4, T1, ADR-0006 proposed by WS2, co-signed by WS4): header offset 28 becomes the extension-table offset; the `SPRG` sprite-geometry extension (frame size, origin, bbox per ASET sprite); `.dsda` `.asset sprite ... origin= size= bbox=`; format minor 2 only in files that carry extensions. packages/dsdb encodes, decodes and assembles it; the compiler writes SPRG from sprite.json; fixtures/compiler goldens with sprites regenerated.
 
 ## C2 opcodes (`contracts/opcodes.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): 29 stable opcodes (0-28), 22 provisional (29-50), 4 reserved int-specialised (51-54).
 - 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): operand kinds `sym` (GETDYN/SETDYN C) and `bivar` (GETBI/SETBI Bx); new provisional GETBIX/SETBIX (55-56, builtin array variables) and GETBIO/SETBIO (57-58, builtin variables of another instance); stated meanings for WITHBEGIN/WITHNEXT/WITHEND, NEWARR and SETIDX; runtime/gen/opcodes.h and packages/dsdb/src/gen/opcodes.ts regenerated.
+- 0.2.0 T0 (2026-09-26, WS4): WS0 renumbered the opcode-operands ADR from 0003 to **ADR-0005** (co-signed by WS2); the "ADR-0003" in the two WS4 lines of 2026-09-26 above (C2 container and opcodes) means ADR-0005.
 
 ## C2 builtins (`contracts/builtins.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): ids 0-84 the 85 section-4 functions, 85-116 instance variables, 117-124 globals, 125-142 constants; ABI hash 0x0dd9987a; docs for the 30 builtins the samples use, TODO(WS7) elsewhere.
@@ -38,9 +40,11 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).
 - 0.1.0 T0 (2026-09-26, WS4): language.md clarifications pinned by the parser: a string closes on the line it starts on; a `return` value starts on the `return`'s line.
+- 0.1.0 (2026-09-26, WS4, C14 producer): conformance programs 06-10 (v1 strings and arrays, v2 instances, v3 with, v4 rooms), each with its intended output for WS2's expected logs.
 
 ## C7 Language-service host API (`packages/lang/src/host.ts`)
 - owed: WS4, by CP-B.
+- 0.1.0 (2026-09-26, WS4): `LanguageServiceHost` over plain data (UTF-16 offsets into LF text, C9 diagnostics): setProject/setFile/getFile, parse (syntax diagnostics + classified tokens), check, symbolsAt, completionsAt, hover, definitionAt, referencesAt, signatureAt, documentSymbols, foldingRanges, format; `createLanguageServiceHost()`. Freezes at CP-B.
 
 ## C8 Log protocol (`contracts/log-protocol.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): READY/LOG/ERR/MEM/STAT/PAD/EXIT lines, one protocol from 0x04FFFA00, >= 5 KB flush pad.
@@ -54,6 +58,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.
 - 0.1.0 T0 (2026-09-26, WS4): compiler catalog `packages/compiler/src/diagnostics/catalog.ts` started: E101-E129 (syntax), W030, W032.
+- 0.1.0 T0 (2026-09-26, WS4): compiler catalog adds E201-E206, E208 (names, assets, helpers), E301-E314 (arguments, types, events), E491-E494 (limits), W031, W040-W043, W050-W052 (lints).
 - R5xx catalog 0.1.0 (2026-09-26, WS2, T0): `runtime/core/diagnostics/catalog.json` created with R500-R590 (sub-ranges R50x variables, R51x runaway scripts, R52x number range, R53x division and roots, R54x wrong kinds of value, R55x lists, R56x memory, R58x the game file, R59x script checks).
 - R5xx catalog (2026-09-26, WS2, T0): R551 "Not a list" ([] or a length on a value that is not a list).
 - R5xx catalog (2026-09-26, WS2, T0): R502 instance not found, R503 no instance of that object, R504 too many extra variables, R505 read-only variable, R561 too many instances, R570/R571 picture/sound could not be loaded, R572 asset not loaded in this room.
