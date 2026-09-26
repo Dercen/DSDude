@@ -23,6 +23,11 @@ export interface ProgramOptions {
   file: string;
   /** DSDB header RNG seed; 0 lets the runtime choose (contracts/dsdb.md section 2). */
   seed?: number;
+  /**
+   * Evaluate constant expressions at compile time (codegen/fold.ts). Default off: the program form is for the
+   * conformance corpus, whose programs test the VM's arithmetic.
+   */
+  fold?: boolean;
 }
 
 export interface ProgramResult {
@@ -60,6 +65,7 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
     assetNames: () => [],
     objectInfo: () => null,
     isInstanceVariableName: () => false,
+    fold: options.fold === true,
   };
   const module = emptyModule();
   module.seed = options.seed ?? 0;

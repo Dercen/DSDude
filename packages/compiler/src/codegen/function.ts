@@ -38,6 +38,7 @@ import type {
 import { FIXED_ONE } from "../syntax/lexer.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./builtins.ts";
 import type { CodegenEnv, FunctionOverride, ObjectInfo, UserFunction } from "./env.ts";
+import { type Folded, fold } from "./fold.ts";
 import { accepts, category, describeParam, describeType, fromBuiltinType, ordinal, type ValueType } from "./types.ts";
 
 /** Registers in one frame (contracts/runtime-limits.json `registersPerFrame`, dsdb.md section 6). */
@@ -73,6 +74,10 @@ const RELATION: Readonly<Partial<Record<string, number>>> = { "==": 0, "!=": 1, 
 const NEGATED_RELATION: readonly number[] = [1, 0, 5, 4, 3, 2];
 /** The immediate form of each arithmetic opcode (C = signed 8-bit int). */
 const IMMEDIATE_OPCODE: Readonly<Partial<Record<string, string>>> = { ADD: "ADDI", SUB: "SUBI", MUL: "MULI" };
+/** Expression kinds constant folding can replace with a literal (literals and names already load directly). */
+const FOLDABLE_KINDS: ReadonlySet<string> = new Set(["unary", "binary", "ternary"]);
+/** No builtin constants: with folding off, names never count as constants. */
+const NO_CONSTANTS = (): undefined => undefined;
 /** The range of ADDI/SUBI/MULI's signed 8-bit operand. */
 const IMMEDIATE_MIN = -128;
 const IMMEDIATE_MAX = 127;
@@ -526,7 +531,15 @@ class FunctionCompiler {
 
   /** Computes `value` into the local register `reg`, going through a temporary when the value reads `name`. */
   private assignLocal(reg: number, name: string, value: Expr): void {
-    if (!readsName(value, name)) {
+    // `a = a <op> x` can target a's register directly: a binary operator reads its left operand in place and
+    // evaluates its right one into temporaries, and writes its destination only with its last instruction.
+    const selfLeft =
+      value.kind === "binary" &&
+      value.op !== "&&" &&
+      value.op !== "||" &&
+      value.left.kind === "name" &&
+      value.left.name === name;
+    if (selfLeft || !readsName(value, name)) {
       this.valueTo(value, reg);
       return;
     }
@@ -813,6 +826,13 @@ class FunctionCompiler {
 
   /** Evaluates `e` into exactly `dst`. */
   private valueTo(e: Expr, dst: number): void {
+    if (this.env.fold === true && FOLDABLE_KINDS.has(e.kind)) {
+      const k = fold(e, this.constantLookup);
+      if (k !== null) {
+        this.loadFolded(k, dst);
+        return;
+      }
+    }
     const mark = this.top;
     switch (e.kind) {
       case "number":
@@ -930,8 +950,10 @@ class FunctionCompiler {
       this.jumpIf(e.operand, !when, label);
       return;
     }
-    if (e.kind === "bool") {
-      if (e.value === when) this.jump("JMP", label);
+    const constant = this.env.fold === true ? fold(e, this.constantLookup) : e.kind === "bool" ? e : null;
+    if (constant !== null && constant.kind === "bool") {
+      // A condition known at compile time: an unconditional jump, or none.
+      if (constant.value === when) this.jump("JMP", label);
       return;
     }
     if (e.kind === "binary" && (e.op === "&&" || e.op === "||")) {
@@ -971,13 +993,43 @@ class FunctionCompiler {
    * (the same meaning as ADD/SUB/MUL with that int, one register and one instruction fewer).
    */
   private arith(op: string, dst: number, left: number, right: Expr): void {
-    const k = smallIntLiteral(right);
+    const k = this.constantOf(right);
     const immediate = IMMEDIATE_OPCODE[op];
-    if (k !== null && immediate !== undefined) {
-      this.emit(immediate, dst, left, k);
+    if (
+      immediate !== undefined &&
+      k !== null &&
+      k.kind === "number" &&
+      k.repr === "int" &&
+      k.value >= IMMEDIATE_MIN &&
+      k.value <= IMMEDIATE_MAX
+    ) {
+      this.emit(immediate, dst, left, k.value);
       return;
     }
     this.emit(op, dst, left, this.valueAny(right));
+  }
+
+  /**
+   * The literal `e` stands for: with folding on, any constant expression; with it off, only a literal or a negated
+   * number literal (what the source spells out, so the conformance goldens still run every operation on the VM).
+   */
+  private constantOf(e: Expr): Folded | null {
+    if (this.env.fold === true) return fold(e, this.constantLookup);
+    const literal = e.kind === "unary" && e.op === "-" ? e.operand : e;
+    return literal.kind === "number" || literal.kind === "string" || literal.kind === "bool"
+      ? fold(e, NO_CONSTANTS)
+      : null;
+  }
+
+  /** Builtin constants by name for folding, unless a local of the same name shadows one. */
+  private readonly constantLookup = (name: string): number | undefined =>
+    this.locals.has(name) ? undefined : builtinConstants.get(name)?.value;
+
+  /** Loads a folded value into `dst`, as its literal would. */
+  private loadFolded(k: Folded, dst: number): void {
+    if (k.kind === "number") this.loadNumber(dst, k.repr, k.value);
+    else if (k.kind === "string") this.emit("LOADK", dst, { kind: "string", value: k.value } satisfies Const);
+    else this.emit("LOADB", dst, k.value ? 1 : 0);
   }
 
   // ---- Checks (the beginner-mistake checker, PLAN.md 6 WS4) ------------------------------------------------------
@@ -1202,15 +1254,6 @@ class FunctionCompiler {
     });
     this.place(end);
   }
-}
-
-/** The value of an int literal (possibly negated) that fits ADDI/SUBI/MULI's operand, or null. */
-function smallIntLiteral(e: Expr): number | null {
-  const negated = e.kind === "unary" && e.op === "-";
-  const n = negated ? e.operand : e;
-  if (n.kind !== "number" || n.repr !== "int") return null;
-  const v = negated ? -n.value : n.value;
-  return v >= IMMEDIATE_MIN && v <= IMMEDIATE_MAX ? v : null;
 }
 
 /** A number literal with a fraction (possibly negated), e.g. `1.5` or `-0.25`. */

@@ -100,7 +100,7 @@ async function runCompile(
   } catch {
     // No packed assets yet: compile against the empty manifest (sprite.json frame counts, sound id 0).
   }
-  const result = compileProjectModule(loaded.project, manifest, { seed });
+  const result = compileProjectModule(loaded.project, manifest, { seed, fold: true });
   const diagnostics = [...loaded.diagnostics, ...result.diagnostics];
   if (result.module === null) return finish(diagnostics, { output: null });
   await fs.mkdir(path.dirname(output), { recursive: true });
