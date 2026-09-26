@@ -56,10 +56,23 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Worker safety is a test (`src/worker-safe.test.ts`): nothing statically reachable from `src/index.ts` imports
     a Node API; the CLI imports Node modules dynamically.
 
+- **Task 4, C7 `LanguageServiceHost`: done, 0.1.0** (2026-09-26; freezes at CP-B).
+  - `packages/lang/src/host.ts`: `createLanguageServiceHost()`; plain data only (UTF-16 offsets into LF text,
+    C9 diagnostics). Methods: `setProject(Project | null)`, `setFile`, `getFile`, `parse(text, file)` (syntax
+    diagnostics + classified tokens), `check(file)` (full compiler diagnostics), `symbolsAt`, `completionsAt`
+    (members after `x.`, globals after `global.`), `hover`, `definitionAt`, `referencesAt`, `signatureAt`,
+    `documentSymbols`, `foldingRanges`, `format`.
+  - Beyond PLAN's six methods, it adds what WS7's kickoff lists (references, signature help, outline, folding,
+    per-file checks). Builtin docs stay WS7's (builtins.json); user functions carry the comment above them as `doc`.
+  - Implementation in the compiler: `src/analysis.ts` (resolution identical to codegen), `src/format.ts`
+    (line-preserving formatter: indentation, spacing, semicolons; keeps aligned columns; leaves code with syntax
+    errors unchanged; idempotent; every sample and conformance file is already formatted),
+    `src/project-index.ts` (passes 1-3 shared by compileProject and the host).
+  - **For WS0:** `contracts/README.md` still lists C7 as owed; it is 0.1.0 now (CHANGELOG line added).
+
 ## Next
 
-- Task 4: C7 `LanguageServiceHost` in `packages/lang/src/host.ts` (by CP-B).
-- Task 5: conformance programs 6-10; task 6: the 20 beginner mistakes; task 7: formatter and peephole passes.
+- Task 5: conformance programs 6-10; task 6: the 20 beginner mistakes; task 7: peephole passes (formatter done).
 - Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
   child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
 

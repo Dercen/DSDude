@@ -20,12 +20,26 @@ export {
 export { type FileKind, isLValue, type ParseOptions, type ParseResult, parse } from "./syntax/parser.ts";
 
 export const packageName = "@dsdude/compiler";
+export {
+  Analysis,
+  type CompletionInfo,
+  type OutlineSymbol,
+  type ParamInfo,
+  type SignatureInfo,
+  type SymbolAt,
+  type SymbolInfo,
+  type SymbolKind,
+  type TokenClass,
+} from "./analysis.ts";
 export { type CompilerCliIo, type CompilerCliOptions, cliCommands, makeCompilerCliCommands } from "./cli.ts";
 export { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
-export { compileProgram, MAIN_FUNCTION, type ProgramOptions, type ProgramResult } from "./program.ts";
+export { formatSource, INDENT } from "./format.ts";
+export { compileProgram, indexProgram, MAIN_FUNCTION, type ProgramOptions, type ProgramResult } from "./program.ts";
 export {
   type CompileProjectOptions,
   type CompileProjectResult,
   compileProject,
   compileProjectModule,
+  indexProject,
 } from "./project.ts";
+export type { ProjectIndex, SourceLocation } from "./project-index.ts";

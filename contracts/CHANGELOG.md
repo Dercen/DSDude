@@ -34,6 +34,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C7 Language-service host API (`packages/lang/src/host.ts`)
 - owed: WS4, by CP-B.
+- 0.1.0 (2026-09-26, WS4): `LanguageServiceHost` over plain data (UTF-16 offsets into LF text, C9 diagnostics): setProject/setFile/getFile, parse (syntax diagnostics + classified tokens), check, symbolsAt, completionsAt, hover, definitionAt, referencesAt, signatureAt, documentSymbols, foldingRanges, format; `createLanguageServiceHost()`. Freezes at CP-B.
 
 ## C8 Log protocol (`contracts/log-protocol.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): READY/LOG/ERR/MEM/STAT/PAD/EXIT lines, one protocol from 0x04FFFA00, >= 5 KB flush pad.

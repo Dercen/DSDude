@@ -20,17 +20,25 @@ import {
   type ObjectDef,
   type RoomDef,
 } from "@dsdude/dsdb";
-import type { Diagnostic, ObjectResource, Project } from "@dsdude/project-format";
+import type { Diagnostic, Project } from "@dsdude/project-format";
 import type { AssetManifest, CompileOutput, RoomAssetSet } from "@dsdude/toolchain";
 import { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./codegen/builtins.ts";
 import { declareFunction } from "./codegen/declare.ts";
-import type { AssetNameKind, CodegenEnv, ObjectInfo, UserFunction } from "./codegen/env.ts";
+import type { AssetNameKind, CodegenEnv } from "./codegen/env.ts";
 import { compileFunction } from "./codegen/function.ts";
 import { finishModule } from "./codegen/module.ts";
 import type { CompilerCode } from "./diagnostics/catalog.ts";
 import { type DiagArgs, Reporter } from "./diagnostics/report.ts";
-import type { Expr, FunctionDecl, LValue, Stmt } from "./syntax/ast.ts";
+import type {
+  CodeUnit,
+  DeclaredFunction,
+  ObjectEntry,
+  ProjectIndex,
+  SourceLocation,
+  SourceText,
+} from "./project-index.ts";
+import type { Expr, FunctionDecl, LValue, Span, Stmt } from "./syntax/ast.ts";
 import { type FileKind, parse } from "./syntax/parser.ts";
 import { localsOf, walk } from "./syntax/walk.ts";
 
@@ -58,37 +66,6 @@ export interface CompileProjectResult extends CompileOutput {
   module: DsdbModule | null;
 }
 
-/** One unit of code: an event, an object function, a script function or an instance's creation code. */
-interface CodeUnit {
-  kind: "event" | "function" | "script" | "creation";
-  /** FUNC name in the DSDB. */
-  funcName: string;
-  /** The object whose instance runs it (events, object functions, creation code); null for scripts. */
-  owner: string | null;
-  /** Event stem (events only). */
-  stem: string | null;
-  params: string[];
-  body: Stmt[];
-  source: SourceText;
-}
-
-/** A parsed source text and the reporter that turns its offsets into lines. */
-interface SourceText {
-  file: string;
-  reporter: Reporter;
-}
-
-/** An object's compile-time view: its resource, parent and slot layout. */
-interface ObjectEntry {
-  res: ObjectResource;
-  parent: ObjectEntry | null;
-  info: ObjectInfo;
-  /** Instance-variable names assigned in its own code (step 3). */
-  assigned: Set<string>;
-  /** Its functions.dss functions by DSS name. */
-  functions: Map<string, UserFunction>;
-}
-
 /** C4 `CompileFn`: compiles a loaded project. */
 export function compileProject(project: Project, manifest: AssetManifest): CompileOutput {
   const { dsdb, roomSets, diagnostics } = compileProjectModule(project, manifest);
@@ -104,6 +81,14 @@ export function compileProjectModule(
   return new ProjectCompiler(project, manifest, options).run();
 }
 
+/** Runs passes 1-3 (parse, declare, lay out slots) and returns the shared project view; never throws. */
+export function indexProject(project: Project): ProjectIndex {
+  return new ProjectCompiler(project, EMPTY_MANIFEST, {}).index();
+}
+
+/** Used by indexProject, which never reaches the asset passes. */
+const EMPTY_MANIFEST: AssetManifest = { provisional: true, sprites: {}, backgrounds: {}, sounds: {} };
+
 class ProjectCompiler {
   private readonly project: Project;
   private readonly manifest: AssetManifest;
@@ -111,7 +96,9 @@ class ProjectCompiler {
   private readonly diagnostics: Diagnostic[] = [];
   private readonly units: CodeUnit[] = [];
   private readonly objects = new Map<string, ObjectEntry>();
-  private readonly scripts = new Map<string, UserFunction>();
+  private readonly scripts = new Map<string, DeclaredFunction>();
+  private readonly sources: SourceText[] = [];
+  private readonly globals = new Map<string, SourceLocation>();
   private readonly assetKinds = new Map<string, AssetNameKind>();
   /** Names written through another instance or from code whose object is unknown (dynamic symbols). */
   private readonly dynamicNames = new Set<string>();
@@ -124,12 +111,30 @@ class ProjectCompiler {
     this.options = options;
   }
 
-  run(): CompileProjectResult {
+  /** Passes 1-3, whatever errors they find (the language service works on broken code too). */
+  index(): ProjectIndex {
     this.indexAssets();
     this.indexObjects();
     this.parseAll();
-    if (this.hasErrors()) return this.failed();
     this.layouts();
+    return {
+      hasInstance: true,
+      sources: this.sources,
+      units: this.units,
+      objects: this.objects,
+      scripts: this.scripts,
+      assetKinds: this.assetKinds,
+      instanceNames: this.instanceNames,
+      globals: this.globals,
+      diagnostics: this.diagnostics,
+      ancestors: (o) => this.ancestors(o),
+      lookupFunction: (owner, name) =>
+        (owner === null ? null : this.lookupObjectFunction(owner, name)) ?? this.scripts.get(name) ?? null,
+    };
+  }
+
+  run(): CompileProjectResult {
+    this.index();
     if (this.hasErrors()) return this.failed();
     const functions = this.units.map((u) => this.generate(u));
     const fromCodegen = this.units.flatMap((u) => u.source.reporter.diagnostics);
@@ -178,6 +183,7 @@ class ProjectCompiler {
         parent: null,
         info: { name: res.name, slots: new Map() },
         assigned: new Set(),
+        assignSites: new Map(),
         functions: new Map(),
       });
     // A missing parent or a parent loop is the project loader's E294/E299; the compiler then ignores the parent.
@@ -199,11 +205,18 @@ class ProjectCompiler {
     const clean = text.replace(/\r/g, "");
     const parsed = parse(clean, { file, kind });
     this.diagnostics.push(...parsed.diagnostics);
-    return { ast: parsed.ast, source: { file, reporter: new Reporter(file, clean) } };
+    const source: SourceText = { file, text: clean, parsed, reporter: new Reporter(file, clean) };
+    this.sources.push(source);
+    return { ast: parsed.ast, source };
+  }
+
+  /** Declares a function found in `source`, remembering where. */
+  private declareFrom(fn: FunctionDecl, funcName: string, source: SourceText): DeclaredFunction {
+    const isAsset = (n: string) => this.assetKinds.has(n);
+    return { ...declareFunction(fn, funcName, source.reporter, isAsset), file: source.file, decl: fn };
   }
 
   private parseAll(): void {
-    const isAsset = (n: string) => this.assetKinds.has(n);
     // Scripts first: their functions are global.
     for (const script of this.project.scripts) {
       const { ast, source } = this.parseText(`scripts/${script.name}.dss`, script.source, "functions");
@@ -212,7 +225,7 @@ class ProjectCompiler {
           source.reporter.report("E208", { name: fn.name }, fn.nameStart, fn.nameStart + fn.name.length);
           continue;
         }
-        this.scripts.set(fn.name, declareFunction(fn, fn.name, source.reporter, isAsset));
+        this.scripts.set(fn.name, this.declareFrom(fn, fn.name, source));
         this.units.push(unitOf("script", fn.name, null, null, fn, source));
       }
     }
@@ -226,7 +239,7 @@ class ProjectCompiler {
             source.reporter.report("E208", { name: fn.name }, fn.nameStart, fn.nameStart + fn.name.length);
             continue;
           }
-          o.functions.set(fn.name, declareFunction(fn, funcName, source.reporter, isAsset));
+          o.functions.set(fn.name, this.declareFrom(fn, funcName, source));
           this.units.push(unitOf("function", funcName, o.res.name, null, fn, source));
         }
       }
@@ -238,7 +251,7 @@ class ProjectCompiler {
         for (const fn of functionsOf(ast.items)) {
           const funcName = `${o.res.name}${SEP}${FUNCTION_PREFIX}${fn.name}`;
           if (!o.functions.has(fn.name)) {
-            o.functions.set(fn.name, declareFunction(fn, funcName, source.reporter, isAsset));
+            o.functions.set(fn.name, this.declareFrom(fn, funcName, source));
             this.units.push(unitOf("function", funcName, o.res.name, null, fn, source));
           }
         }
@@ -250,6 +263,8 @@ class ProjectCompiler {
           stem,
           params: [],
           body,
+          decl: null,
+          span: ast,
           source,
         });
       }
@@ -266,6 +281,8 @@ class ProjectCompiler {
           stem: null,
           params: [],
           body,
+          decl: null,
+          span: ast,
           source,
         });
       });
@@ -309,6 +326,14 @@ class ProjectCompiler {
     for (const o of this.objects.values()) layout(o);
     for (const o of this.objects.values()) for (const name of o.info.slots.keys()) this.instanceNames.add(name);
     for (const name of this.dynamicNames) this.instanceNames.add(name);
+    // A global that is only ever read still exists as a name (reading it before any assignment is a runtime error).
+    for (const u of this.units)
+      walk(u.body, {
+        expr: (e) => {
+          if (e.kind === "global" && !this.globals.has(e.name))
+            this.globals.set(e.name, { file: u.source.file, start: e.start, end: e.end });
+        },
+      });
   }
 
   /** Is `name`, written bare, an instance variable (rather than a builtin, constant, asset or function)? */
@@ -326,30 +351,43 @@ class ProjectCompiler {
       u.kind === "event" && u.stem?.startsWith(COLLISION_PREFIX)
         ? (this.objects.get(u.stem.slice(COLLISION_PREFIX.length)) ?? null)
         : null;
-    this.collectIn(u.body, locals, owner, other, u.owner);
+    this.collectIn(u, u.body, locals, owner, other, u.owner);
   }
 
   private collectIn(
+    u: CodeUnit,
     body: readonly Stmt[],
     locals: Set<string>,
     self: ObjectEntry | null,
     other: ObjectEntry | null,
     owner: string | null,
   ): void {
-    const add = (o: ObjectEntry | null, name: string) => {
-      if (o === null) this.dynamicNames.add(name);
-      else o.assigned.add(name);
+    const add = (o: ObjectEntry | null, name: string, at: Span) => {
+      if (o === null) {
+        this.dynamicNames.add(name);
+        return;
+      }
+      o.assigned.add(name);
+      // The first assignment is the variable's definition, a Create event's first one preferred.
+      const site = o.assignSites.get(name);
+      const inCreate = u.stem === "create" && u.owner === o.res.name;
+      if (site === undefined || (inCreate && !site.file.endsWith("/create.dss")))
+        o.assignSites.set(name, { file: u.source.file, start: at.start, end: at.end });
     };
     const target = (t: LValue): void => {
       // The variable an assignment creates: `a`, `a[i]`, `a[i][j]` all create `a`.
       let base: Expr = t;
       while (base.kind === "index") base = base.object;
-      if (base.kind === "name" && !locals.has(base.name) && this.isPlainName(base.name, owner)) add(self, base.name);
+      if (base.kind === "name" && !locals.has(base.name) && this.isPlainName(base.name, owner))
+        add(self, base.name, base);
+      else if (base.kind === "global" && !this.globals.has(base.name))
+        this.globals.set(base.name, { file: u.source.file, start: base.start, end: base.end });
       else if (base.kind === "member" && !builtinVariables.has(base.name)) {
         const obj = base.object;
-        if (obj.kind === "special" && obj.which === "self") add(self, base.name);
-        else if (obj.kind === "special" && obj.which === "other") add(other, base.name);
-        else add(null, base.name);
+        const at = { start: base.nameStart, end: base.end };
+        if (obj.kind === "special" && obj.which === "self") add(self, base.name, at);
+        else if (obj.kind === "special" && obj.which === "other") add(other, base.name, at);
+        else add(null, base.name, at);
       }
     };
     walk(body, {
@@ -358,7 +396,7 @@ class ProjectCompiler {
         if (s.kind === "with") {
           // Inside `with`, self is the target and other is the outer self.
           const inner = this.withTarget(s.target, locals, self, other);
-          this.collectIn([s.body], locals, inner, self, inner?.res.name ?? null);
+          this.collectIn(u, [s.body], locals, inner, self, inner?.res.name ?? null);
           return false;
         }
         return true;
@@ -381,7 +419,7 @@ class ProjectCompiler {
   // ---- Pass 4: code generation -----------------------------------------------------------------------------------
 
   /** An object function visible from `owner`'s code: its own, then its ancestors' (events.md section 3). */
-  private lookupObjectFunction(owner: string, name: string): UserFunction | null {
+  private lookupObjectFunction(owner: string, name: string): DeclaredFunction | null {
     const o = this.objects.get(owner);
     if (o === undefined) return null;
     for (const c of this.ancestors(o)) {
@@ -675,7 +713,17 @@ function unitOf(
   fn: FunctionDecl,
   source: SourceText,
 ): CodeUnit {
-  return { kind, funcName, owner, stem, params: fn.params.map((p) => p.name), body: fn.body.body, source };
+  return {
+    kind,
+    funcName,
+    owner,
+    stem,
+    params: fn.params.map((p) => p.name),
+    body: fn.body.body,
+    decl: fn,
+    span: fn,
+    source,
+  };
 }
 
 /** Drops exact repeats (a function body compiled twice would report twice). */
