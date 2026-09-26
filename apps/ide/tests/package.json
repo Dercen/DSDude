@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "ESM scope for the Playwright _electron suite only (import.meta.dirname); the app stays CJS.",
+  "type": "module"
+}

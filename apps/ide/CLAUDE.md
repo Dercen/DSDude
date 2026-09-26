@@ -26,6 +26,12 @@ Changes follow the tiers in `contracts/README.md` (T0 doc, T1 additive + CHANGEL
 npm test -w apps/ide
 ```
 
+## Layout and commands
+- `src/main` (CJS, app:// protocol, window security), `src/preload` (sandboxed CJS bridge), `src/renderer` (React, dockview, Monaco).
+- `npm run build -w apps/ide` = `electron-vite build` to `out/`; `npm run dev -w apps/ide` = dev server on `DSDUDE_PORT_BASE` (start in the background, stop with `taskkill /T /F /PID`, then check `Get-Process electron`).
+- `npm run test:e2e -w apps/ide`: Playwright `_electron` suite in `tests/` (builds first; skips with `DSDUDE_SKIP_ELECTRON=1`). `tests/package.json` is ESM for the specs only.
+- Renderer console lines reach main's stdout as `renderer|<level>|<text>`.
+
 ## Isolation
 `MockBuildService` from `@dsdude/toolchain` (fake logs, diagnostics, a fake emulator that waits), a fixture project and `createFakeToolchain()`.
 
