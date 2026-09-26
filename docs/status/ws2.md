@@ -7,6 +7,7 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 ## Environment
 - start.sh (2026-09-26): `node v24.16.0, npm 11.13.0; push target: none yet; behind origin/main by 0; latest checkpoint: docs/status/checkpoint-0.md; open IF entries: 0`
 - Merged `origin/main` at checkpoint-4 (296821c, 2026-09-26): no open IF entries (IF-1 closed as a WS0 false alarm).
+- start.sh (2026-09-26, after checkpoint-7): `node v24.16.0, npm 11.13.0; push target: ws2-runtime-core; behind origin/main by 28; latest checkpoint: docs/status/checkpoint-7.md; open IF entries: 0`. Merged main (builtins 0.2.0: c_* colours, ABI 0xf1d376bb): all goldens green through the hash masking; WS4's regenerated `flappy.dsdb` gives the identical 600-frame trace (0xe7824fe1), so only the dsdb line of `fixtures/runtime-core/flappy-trace.fnv` changed (0x2ffb9ead). WS0 merged 70084c9 at checkpoint-6 (green on MSYS2 gcc); WS3 runs 34/34 of WS2's programs on the DS against the host `.out` files and adopts C11 0.3.0, closing ADR-0004's last gap (answer above, under "ADR-0004 answer").
 - Linux gcc check: done in the cloud (gcc 13.3.0 Ubuntu, GNU Make 4.3).
 - Test: `make -f runtime/Makefile.host test` builds and runs `runtime/build-host/dsdude-tests` twice (`-O2`, and the UBSan trap variant `-fsanitize=undefined -fsanitize-trap=undefined`).
 
