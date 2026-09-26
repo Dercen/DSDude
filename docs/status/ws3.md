@@ -34,7 +34,7 @@ Legend: todo / in progress / done (<sha>).
   the staleness check: `npm run check:dist -w runtime` (git + Node, runs in the cloud/CI) and `build:runtime`'s
   report. WS2 test/host edits no longer make `dist/` stale; `tree` stays, informational. No more VERSION-only
   refresh commits after merges.
-- **Hardware ROM set (spike 15; WS0 relay: an original 3DS with TWiLight Menu++): ready** (see the next commit
+- **Hardware ROM set (spike 15; WS0 relay: an original 3DS with TWiLight Menu++): ready** (f23500a;
   and "Hardware run" below). `npm run hardware -w runtime` builds five ROMs into `<DSDUDE_HOME>/hardware/` and
   checks each headless first: the selftest (new page 4 "results" shows the boot figures on screen, incl. the raw
   `0x04FFFA00` bytes), the M1 bench (now one ROM running the full, baseline and loop workloads and showing the VM
