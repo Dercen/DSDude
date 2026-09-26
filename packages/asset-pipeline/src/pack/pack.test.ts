@@ -142,8 +142,6 @@ describe("packAssets limits", () => {
   it("names the asset, the limit and a fix", async () => {
     const dir = copySample("samples/minimal");
     addSprite(dir, "spr_boss", 1, 100, 100);
-    addSprite(dir, "spr_Tiny", 1, 8, 8);
-    addSprite(dir, "spr_tiny", 1, 8, 8);
     addSound(dir, "mus_mp3", "music", "song.mp3", new Uint8Array(16));
     addSound(dir, "snd_bad", "effect", "bad.wav", new TextEncoder().encode("junk"));
     const { diagnostics } = await packAssets(await load(dir), {}, tempDir());
@@ -155,11 +153,31 @@ describe("packAssets limits", () => {
       hint: "Shrink it, or make it a Background.",
       file: "sprites/spr_boss/sheet.png",
     });
-    expect(byCode.E412?.message).toBe(
-      "spr_tiny and spr_Tiny differ only in capital letters, and the DS can't tell them apart.",
-    );
     expect(byCode.E408?.file).toBe("sounds/mus_mp3/song.mp3");
     expect(byCode.E409?.message).toMatch(/^snd_bad: DSDude can't read sounds\/snd_bad\/bad.wav as a sound/);
+  });
+
+  // IF-2: two folders whose names differ only in case are one folder on NTFS, so the clash is built in memory: the
+  // loaded project gets a second resource whose name differs only in case. That keeps E412 covered on every OS.
+  it("reports names that differ only in capital letters as E412, whatever the filesystem's case rules", async () => {
+    const dir = copySample("samples/minimal");
+    addSprite(dir, "spr_tiny", 1, 8, 8);
+    addSound(dir, "snd_a", "effect", "a.wav", readRepoFile("fixtures/assets/blip.wav"));
+    const project = await load(dir);
+    const byName = (a: { name: string }, b: { name: string }) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    const tiny = project.sprites.find((x) => x.name === "spr_tiny");
+    const snd = project.sounds.find((x) => x.name === "snd_a");
+    if (tiny === undefined || snd === undefined) throw new Error("fixture resources missing");
+    project.sprites = [...project.sprites, { ...tiny, name: "spr_Tiny" }].sort(byName);
+    project.sounds = [...project.sounds, { ...snd, name: "snd_A" }].sort(byName);
+    const { diagnostics, manifest } = await packAssets(project, {}, tempDir());
+    // The later name in code-point order ("spr_tiny" after "spr_Tiny") is reported and skipped.
+    expect(diagnostics.filter((d) => d.code === "E412").map((d) => [d.message, d.file])).toEqual([
+      ["spr_tiny and spr_Tiny differ only in capital letters, and the DS can't tell them apart.", "sprites/spr_tiny"],
+      ["snd_a and snd_A differ only in capital letters, and the DS can't tell them apart.", "sounds/snd_a"],
+    ]);
+    expect(Object.keys(manifest.sprites)).not.toContain("spr_tiny");
+    expect(Object.keys(manifest.sounds)).not.toContain("snd_a");
   });
 
   it("reports a missing sheet as E403 and a missing icon as the warning E418", async () => {
