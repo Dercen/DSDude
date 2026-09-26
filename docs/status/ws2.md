@@ -137,7 +137,12 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 
 ## Next
 - CP-A (2026-09-28): C11 0.3.0 freezes (ADR-0004 closed by the user).
-- Spike 12: WS3's DS run of `numeric-hashes` (by CP-C). Spike 14 / the M1 gate: WS3's timer harness on `bench.dsdb` (M1); below the gate, WS2 adds the reserved int-specialised opcodes.
+- Spike 12: WS3's DS run of `numeric-hashes` (by CP-C).
+- M1 gate (44,000 ops/frame on melonDS = ~25.5 cycles/op; 35.06 before step 4). After WS3 re-measures f22071e, the remaining levers, each needing a decision because it crosses a contract:
+  1. **Pre-decoded code (direct threading):** at load, copy CODE into 8-byte cells {handler address, instruction}, so a dispatch is `ldmia ip!, {handler, ins}; bx handler` (2 instructions instead of fetch, mask, table load, jump). Runtime-only (no format change), but it needs RAM: 8 bytes per instruction, up to ~600 KB for a maximal 300 KB DSDB, so a C13 memory budget (WS0) or a cap with a fallback to plain dispatch.
+  2. **Int-specialised ADDII/SUBII/MULII/CMPJII** (reserved 51-54, PLAN 8's fallback): skip the tag checks when WS4's checker proves int operands; saves the loads and compares of two tags on the arithmetic 40% of the mix. Needs WS4 (encoding T1 in opcodes.json, emitting them) and WS2 (handlers, verifier).
+  3. **Superinstructions** for the bench's common pairs (e.g. LOADI+ADD, GETSLOT+ADD): fewer dispatches, but new opcodes too (C2, WS4).
+  WS2's suggestion: 1 first if WS0 can grant the memory (it needs no other stream), then 2 with WS4.
 - Conformance programs for rule 8 and the seed rule (WS4's paths): runtime fixtures and expected values are ready (see above).
 
 ## Open ADR-pending markers
