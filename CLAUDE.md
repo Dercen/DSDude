@@ -8,7 +8,7 @@ DSDude is a GameMaker-Studio-style IDE for Nintendo DS homebrew with its own GML
 - **Operating mode: hybrid** (Capacity below; 7.2). Usage limits: **confirmed** (Claude Max). Cloud probe green (2026-09-25): working push order `wsN-<name>` directly, then `claude/wsN-<name>`, then the session branch; cloud environments use Network **Full**.
 - **Streams:** slot 1 WS1 (`ws1-toolchain`, running); slot 2 WS3 (released by `toolchain-ok`; launches when the memory gate passes with WS6 running); slot 3 WS6 (released by the tag). Cloud: WS2 (`ws2-runtime-core`) and WS4 (`ws4-compiler`) released by the tag; registry `docs/status/cloud.md`. WS5 and WS7 start at CP-A (D+3), WS6b at CP-B (D+7).
 - Your kickoff file governs. WS0 rewrites this block at every launch and checkpoint, and records here any switch to a fallback mode.
-- Open (PLAN 10): 4 flashcart and DS model; 5 the M5 tester (~week 10-11); 6 public releases and the unsigned installer (by M6). Answered: 1 BlocksDS install consent, 2 the `origin` URL + Claude GitHub App (Day 0); 3 usage limits (Claude Max, Day 1). Open ADR: ADR-0002 (DeSmuME R4 slot-1 profile).
+- Open (PLAN 10): 4 flashcart and DS model; 5 the M5 tester (~week 10-11); 6 public releases and the unsigned installer (by M6). Answered: 1 BlocksDS install consent, 2 the `origin` URL + Claude GitHub App (Day 0); 3 usage limits (Claude Max, Day 1). ADRs: 0001 and 0002 accepted; none open.
 
 ## Where to read (never all of PLAN.md: ~55K tokens)
 1. Your `docs/kickoff/wsN.md` (index: `docs/kickoff/README.md`; cloud sessions also its section 8), then your package's `CLAUDE.md` (WS3: `runtime/platform/ds/CLAUDE.md`). That short brief is your primary guide.
