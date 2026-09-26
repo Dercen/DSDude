@@ -88,13 +88,14 @@ describe("release builds (ADR-0008)", () => {
   });
 
   it("leaves an overflowing constant unfolded in a debug build, so the runtime reports it on its line", () => {
-    const debug = disassemble(
-      compileProgram("show_debug_message(2147483647 + 1)", { file: "t.dss", fold: true }).module!,
-    );
-    expect(debug).not.toContain(".release");
-    expect(debug).toContain("ADDI r0, r0, 1");
-    const release = compileProgram("show_debug_message(2147483647 + 1)", { file: "t.dss", fold: true, release: true });
-    expect(disassemble(release.module!)).toContain("LOADK r0, -2147483648");
+    /** The disassembly of `2147483647 + 1` compiled with folding, as a debug or a release build. */
+    const build = (release: boolean): string => {
+      const r = compileProgram("show_debug_message(2147483647 + 1)", { file: "t.dss", fold: true, release });
+      return disassemble(r.module as NonNullable<typeof r.module>);
+    };
+    expect(build(false)).not.toContain(".release");
+    expect(build(false)).toContain("ADDI r0, r0, 1");
+    expect(build(true)).toContain("LOADK r0, -2147483648");
   });
 });
 
