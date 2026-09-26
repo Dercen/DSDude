@@ -346,6 +346,10 @@ static int32_t verify_function(const DsdProgram *p, uint32_t index, DsdLoadError
             ok = bi < DSD_BUILTIN_FUNC_COUNT && argc >= dsd_builtin_info[bi].min_args &&
                  argc <= dsd_builtin_info[bi].max_args && DSD_A(ins) + argc <= fn->regs;
         }
+        if (ok && op == DSD_OP_CALLN && dsd_builtin_fn[DSD_C(ins)] == 0) {
+            // A builtin this runtime build does not implement: refused here (R582), so CALLN needs no check.
+            return fail(err, DSD_R_UNSUPPORTED, dsd_builtin_info[DSD_C(ins)].name, -1);
+        }
         if (ok && op == DSD_OP_CALL) {
             // The callee's parameters are the caller's rA..rA+params-1 (its frame starts at rA).
             ok = DSD_A(ins) + p->funcs[DSD_BX(ins)].params <= fn->regs;

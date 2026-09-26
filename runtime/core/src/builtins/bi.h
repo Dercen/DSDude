@@ -8,13 +8,22 @@
 #include "builtins.h"
 #include "vm.h"
 
+// Raises R542: builtin `bi` needs `expected` (e.g. "a number") but got `got`. Returns false. Out of line, so the
+// argument checks below inline to a tag test on the hot path (every CALLN runs one).
+bool dsd_bi_wrong_kind(DsdVm *vm, uint32_t bi, const char *expected, DsdValue got);
 // Checks that args[i] is a number (INT or REAL); otherwise raises R542 naming builtin `bi` and returns false.
-bool dsd_bi_want_number(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i);
+static inline bool dsd_bi_want_number(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
+    return dsd_is_number(args[i]) || dsd_bi_wrong_kind(vm, bi, "a number", args[i]);
+}
 // A number argument as Q.12 in 64 bits (exact for every int32). Raises R542 like dsd_bi_want_number.
 bool dsd_bi_arg_q12(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, int64_t *q12);
 // Checks that args[i] is a string / an array; otherwise raises R542 naming builtin `bi`.
-bool dsd_bi_want_string(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i);
-bool dsd_bi_want_array(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i);
+static inline bool dsd_bi_want_string(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
+    return args[i].tag == DSD_TAG_STR || dsd_bi_wrong_kind(vm, bi, "text", args[i]);
+}
+static inline bool dsd_bi_want_array(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
+    return args[i].tag == DSD_TAG_ARR || dsd_bi_wrong_kind(vm, bi, "a list", args[i]);
+}
 // An `int` argument: a number, floored when it has a fraction. Raises R542 like dsd_bi_want_number.
 bool dsd_bi_arg_int(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, int32_t *out);
 // An asset argument of kind `kind` (DSD_ASSET_*); its index in *index. Raises R542 naming `what` otherwise.
