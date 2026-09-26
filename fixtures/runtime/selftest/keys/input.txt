@@ -1,4 +1,9 @@
-# D-pad RIGHT for 3 frames, a stylus tap at (200, 150), then A (the blip effect).
-50-52 RIGHT
-60-64 TOUCH 200 150
-80-81 A
+# C8 key script (contracts/log-protocol.md "Key scripts"): D-pad right for 3 frames, a stylus tap at
+# (200, 150), then A (the blip effect).
+0 -
+49 right
+52 -
+59 T200,150
+64 -
+79 a
+81 -

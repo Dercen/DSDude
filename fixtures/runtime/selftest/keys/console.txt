@@ -1,2 +1,4 @@
-# SELECT: the console overlay on the bottom screen.
-50-51 SELECT
+# C8 key script: SELECT shows the console overlay on the bottom screen.
+0 -
+49 select
+51 -

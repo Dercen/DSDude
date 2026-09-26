@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `21768ff`). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `f6ecb1f`, checkpoint-4, after WS0 merged `ws3-platform`). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -21,11 +21,39 @@ Legend: todo / in progress / done (<sha>).
     bytes and cannot grow into the VM data. The link fails if DTCM data outgrows 0x1200.
   - **M1 switch**: `make DSD_VM_BL=1` builds `core/src/vm.arm.c` with `-marm` and without `-mlong-calls`.
   - **Build**: `npm run build:runtime -w runtime` → C4 `buildRuntime({runtimeDir})` (no ADR needed) → size/nm
-    report → `dist/VERSION`. Now: itcm 1,088 B / 24 KB, dtcm 0 / 4.5 KB, cstack 11,200 B, image 112,412 B / 0.7 MB.
+    report → `dist/VERSION`. With the core: itcm 11,056 B / 24 KB, dtcm 4,096 / 4,608 B, cstack 11,200 B, loaded
+    (code+data) 157,148 B / 0.7 MB, image (all static, pools included) 957,836 B. C8 artifact 0.2.0 (T1) moved the
+    0.7 MB budget from `image` to the new `loaded` key: the core's static pools (300 KB DSDB buffer, VM string
+    arena, instance pool) are budgeted separately in PLAN 3.3.
   - **Reproducible** (`-ffile-prefix-map`; a copy built elsewhere gave identical MD5s). **VERSION** `tree` = git
     tree of `runtime/` without `dist/`; checked equal to the committed tree.
   - **DS compile of WS2's core** at `829b00d` (`fixed.c`, `number.c`, `numfmt.c`, `vendor/trig.c`): clean with
     `-Wall -Wextra`.
+- **C11 0.2.0 reconciliation (WS0 relay, checkpoint-4): done** (9a2f0d6).
+  - `runtime/platform/ds/src/ds_plat.c` implements every `dsd_plat_*` of WS2's `dsd_platform.h` 0.2.0; `main.c`
+    only picks the log protocol and calls `dsd_core_main()`. `ds_boot_stub.c` is deleted; my provisional R580-R583
+    are dropped for the core's codes (R584 file system, R571 soundbank, the loader's and R57x load codes).
+  - `dsd_plat_init` is re-entrant: START on the error box longjmps to `main`, which calls `dsd_core_main()` again;
+    video, the UI layer and all asset tables are reset, NitroFS and maxmod start once per power-on. Checked: the
+    divide-by-zero fixture with START pressed prints `READY`, `ERR`, `READY`, `ERR`.
+  - `dsd_plat_log` writes the core's line as is (`ds_log_write`), `dsd_plat_log_flush` writes the 5 KB pad.
+  - **Decision (sound):** effect handles are kept, not `mmEffectRelease`d, because C11 has `dsd_plat_sfx_stop` and
+    maxmod cannot cancel a released effect (maxmod9.h). This departs from PLAN 3.3's "released after one-shots";
+    effects stay interruptible only by `mmEffectCancelAll` at room change.
+  - **WS2's whole core compiles for the DS** (loader, VM in ARM/ITCM, engine, builtins) with no warnings under
+    `-Wall -Wextra`: ITCM 11,056 B of 24 KB, DTCM 4,096 of 4,608 B, code+data 153.5 KB.
+  - **`npm run conformance:ds -w runtime`** (new): reads WS2's case table from `runtime/tests/test_programs.c`,
+    packs each fixture (header seed 1, as the host runs it) around `dist/arm9.elf`, runs it headless and compares
+    the DS log with the host's `.out` (PAD/STAT dropped, `DSD|MEM` compared on the core's `inst`/`arena`).
+    **34 of 34 pass** (hello, v0 conformance by hand and from WS4's compiler, v1 strings/arrays/collector, v2
+    lifecycle/with/rooms/end/motion, bench, all 13 error fixtures); v2-05 skipped (a key script's host frame
+    numbers cannot be replayed on the DS, where the core's first frame depends on boot time).
+  - **`hello.dsdb` on the DS: `DSD|READY|0.1.0|0dd9987a`, `DSD|LOG|hello`, `DSD|EXIT|0`** (py-desmume).
+  - Open (ADR-0004, with WS2; WS0 recorded both in the ADR's "WS0 notes"): (1) `dsd_plat_sprite_load` gets no
+    frame count, so `ds_plat.c` infers the frame height (square when it divides the sheet, else the tallest OBJ
+    height that does; `ADR-pending ADR-0004`); (2) the UI colour index order (PLAN 5.2 order, c_white 0 .. c_navy
+    15) to be stated in `dsd_platform.h`.
+  - `DSD|MEM`'s `snd` is 0 on the DS for now: maxmod does not report resident sample sizes (leftover).
 - Task 2. M1 path: **in progress**.
   - Init, log writer, error box: **done** (ec80829, 237f847). `nitroFSInit` → `soundEnable` → `mmInitDefault`
     when `nitro:/soundbank.bin` exists, every result checked; a failure prints one `DSD|ERR` (R580-R582,
@@ -36,7 +64,9 @@ Legend: todo / in progress / done (<sha>).
     `runtime/dist/arm9.elf`: `DSD|READY|0.1.0|0dd9987a` **exactly once on melonDS 1.1 (window, raw protocol),
     DeSmuME 0.9.13 (window, legacy stub) and py-desmume**; nothing else, as the boot stub has no VM.
   - 300-char line, `%` line and CR/LF splitting: checked through the same writer in the selftest (below).
-  - todo: `DSD|LOG|hello` needs WS2's VM (ADR-0004 stub until then); the timer harness (M1, with `bench.dsda`).
+  - **DoD item met: `hello.dsdb` prints `DSD|READY|0.1.0|0dd9987a`, `DSD|LOG|hello`, `DSD|EXIT|0` exactly once on
+    melonDS 1.1 and DeSmuME 0.9.13 (windows, `dsdude play --seconds 8`) through WS2's VM**; no duplicates on melonDS.
+    todo: the timer harness (M1, with `bench.dsda`).
 - Task 3. Selftest ROM: **done** (237f847). `runtime/selftest/`, assets in `fixtures/runtime/selftest/`.
   - Page 1: 128 sprites per screen (16x16 8bpp, 3 frames, 4 extended OBJ palettes; the bottom's 128th is an 8x8
     4bpp sprite in its own 128-byte slot), GRF room BG on BG1 of both screens (ext palette slot 1), BG0 UI text,
@@ -51,12 +81,15 @@ Legend: todo / in progress / done (<sha>).
     runtime/build/dsdude_selftest.elf --skip-compile --skip-assets`, `dsdude play ... --seconds 10`): melonDS 1.1
     (`emulator=melonDS 1.1 log=raw`) and DeSmuME 0.9.13 (`log=legacy`) each printed all 30 lines once (READY,
     every grf/bg/mm/nitrofs/text line, MEM, 8 STAT lines at fps=60 with 128+128 sprites); no duplicates on melonDS.
+  - Key scripts are now C8 format (ADR-0003 superseded); `runtime/src/keys.ts` translates them to ranges while
+    `tools/screenshot.py` still reads ADR-0003's. The fps window now starts on a VBlank (it read 59 in the first
+    second when boot ended mid-frame).
   - **1 MB NitroFS read** (sets the room-load budget): **melonDS 423,177 us (2,419 KB/s)**; DeSmuME 322,484 us
     (3,175 KB/s); py-desmume 322,447 us. Byte sum correct on all three.
   - **`DSD|MEM`**: `heapfree=3909,objvram_top=5/128,objvram_bot=1/128,cstack=4/10` (KB; C-stack high-water from a
     painted stack: ~4 KB used by the printf-heavy selftest of 10.9 KB).
-- Task 4. `dsd_platform.h` implementation: todo (C11 owed by WS2 at CP-A). The pieces exist in `platform/ds/src`:
-  VRAM/OAM (`ds_video`), UI layer (`ds_ui`), GRF/OBJ allocator/BG (`ds_gfx`), memory figures (`ds_mem`).
+- Task 4. `dsd_platform.h` implementation: **done for C11 0.2.0** (see the reconciliation above). Not yet exercised
+  by a room game with sprites and backgrounds (WS2's v2 fixtures load no assets); that comes with samples/flappy.
 - Task 5. Spikes:
   - **Spike 10 (graphics): PASS.** grit 1.24.0 with the PLAN 2.9 sprite, 4bpp and BG lines; the ROM uses the 3.3
     bank table, 128-byte-aligned frames (strides 256/128/4096 logged) and the UI layer. The screenshot shows the
@@ -86,12 +119,12 @@ Legend: todo / in progress / done (<sha>).
 
 ## Open ADR-pending markers
 
-- ADR-0004 (proposed, WS3 → WS2): core entry point `dsd_core_main`, line/pad split between core and platform,
-  `dsd_plat_fatal` + platform R5xx codes R580-R583, `dsd_plat_mem`. Markers in `runtime/platform/ds/src/main.c`,
-  `ds_boot_stub.c`/`.h`, `ds_platform.h`.
+- ADR-0004 (WS2 answered most of it in C11 0.2.0): one marker left, `runtime/platform/ds/src/ds_plat.c`
+  `frame_height()`, until C11 passes the sprite frame count.
 
 ## Leftovers
 
-- none yet.
+- `DSD|MEM` `snd` on the DS (resident sample sizes from soundbank.bin).
+- v2-05 (key script) on the DS: needs a way to align host frame 0 with an emulated frame.
 
 ## Integration feedback
