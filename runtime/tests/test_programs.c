@@ -175,6 +175,8 @@ static const ProgramCase CASES[] = {
     {"fixtures/bytecode/v4-03-stress.dsdb", "fixtures/bytecode/v4-03-stress.out", false, DSD_GAME_RUNNING,
      STRESS_FRAMES, NULL},
     {"fixtures/bytecode/bench.dsdb", "fixtures/bytecode/bench.out", false, DSD_GAME_RUNNING, 2, NULL},
+    // The same block with ADDII/SUBII/MULII/CMPJII (opcodes 0.4.0): identical output.
+    {"fixtures/bytecode/bench-ii.dsdb", "fixtures/bytecode/bench.out", false, DSD_GAME_RUNNING, 2, NULL},
     {"fixtures/bytecode/runtime/err-unset-slot.dsdb", "fixtures/bytecode/runtime/err-unset-slot.out", false,
      DSD_GAME_FAILED, 2, NULL},
     {"fixtures/bytecode/runtime/cmpj.dsdb", "fixtures/bytecode/runtime/cmpj.out", false, DSD_GAME_EXITED, 0, NULL},
@@ -635,8 +637,8 @@ static void test_mutations(void) {
 }
 
 // ---- Int-specialised opcodes (ADDII/SUBII/MULII/CMPJII, the M1 fallback) ------------------------------------------
-// WS4's assembler cannot write them until its T1, so these tests rewrite the opcode byte of chosen instructions in a
-// copy of a fixture. Where every operand is an int, the rewritten program must behave exactly like the original.
+// bench-ii (gen_bench.mjs) is bench with every ADD/SUB/MUL/CMPJ in its int form, so their traces must match. The wrap
+// checks rewrite opcode bytes in a copy (and set the release flag there until WS4's `.release` line lands).
 
 #define DSDB_SECTION_TABLE 32  // contracts/dsdb.md section 2: 12-byte {tag, offset, size} entries from offset 32
 #define DSDB_SECTION_ENTRY 12
@@ -683,24 +685,16 @@ static void test_int_specialised(void) {
     static char bytes[EXPECT_MAX];
     static char want[TRACE_MAX];
     static char got[TRACE_MAX];
-    // bench: every ADD/SUB/MUL/CMPJ works on ints, so the II forms must give the same trace (ops included).
-    int32_t n = dsd_test_read_file("fixtures/bytecode/bench.dsdb", bytes, sizeof bytes);
-    if (!CHECK(n > 0)) return;
-    uint32_t changed = rewrite_ops(bytes, DSD_OP_ADD, DSD_OP_ADDII, ALL_OCCURRENCES) +
-                       rewrite_ops(bytes, DSD_OP_SUB, DSD_OP_SUBII, ALL_OCCURRENCES) +
-                       rewrite_ops(bytes, DSD_OP_MUL, DSD_OP_MULII, ALL_OCCURRENCES) +
-                       rewrite_ops(bytes, DSD_OP_CMPJ, DSD_OP_CMPJII, ALL_OCCURRENCES);
-    CHECK(changed > 0);
-    if (!CHECK(write_bytes(II_COPY, bytes, n))) return;
+    // bench-ii: every ADD/SUB/MUL/CMPJ of bench as its int form; the traces (ops included) must match byte for byte.
     CHECK(trace_run("fixtures/bytecode/bench.dsdb", BENCH_FRAMES, NULL, "runtime/build-host/bench-a.jsonl"));
-    CHECK(trace_run(II_COPY, BENCH_FRAMES, NULL, "runtime/build-host/bench-ii.jsonl"));
+    CHECK(trace_run("fixtures/bytecode/bench-ii.dsdb", BENCH_FRAMES, NULL, "runtime/build-host/bench-ii.jsonl"));
     int32_t nw = dsd_test_read_file("runtime/build-host/bench-a.jsonl", want, sizeof want - 1);
     int32_t ng = dsd_test_read_file("runtime/build-host/bench-ii.jsonl", got, sizeof got - 1);
     CHECK(nw > 0 && nw == ng && memcmp(want, got, (size_t)nw) == 0);
 
     // wrap: its int-only overflow lines (1 ADD, 2 MUL, 4 SUB; line 3 adds a fraction and keeps ADD). Debug: R520
     // on line 1, as wrap.out; release (header flag bit 0): the wrapped values, as wrap-release.out.
-    n = dsd_test_read_file(WRAP_DSDB, bytes, sizeof bytes);
+    int32_t n = dsd_test_read_file(WRAP_DSDB, bytes, sizeof bytes);
     if (!CHECK(n > HEADER_FLAGS_OFFSET)) return;
     CHECK_EQ(rewrite_ops(bytes, DSD_OP_ADD, DSD_OP_ADDII, 0) + rewrite_ops(bytes, DSD_OP_MUL, DSD_OP_MULII, 0) +
                  rewrite_ops(bytes, DSD_OP_SUB, DSD_OP_SUBII, 0),

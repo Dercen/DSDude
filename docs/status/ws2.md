@@ -104,6 +104,9 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
   - Step 6 (c29babf): GETSLOT/SETSLOT use a cached pointer to self's slot cells (`self_slots`, NULL without a self), refreshed only at run() entry and by WITHBEGIN/WITHNEXT/WITHEND (the only places vm->self changes inside a run; event runners restore it). This drops the per-op load of vm->self, the no-instance comparison against it, the pool address and the 384-byte block multiply. **Please re-measure GETSLOT/SETSLOT.**
   - Step 5 (82488bc): CALLN no longer settles. It hands the builtin the budget as it stands and keeps `seg`, so the next transfer charges the straight run's steps and the count stays exact (every golden and trace unchanged); a nested event's watchdog just sees those steps one run later. **Please re-measure.**
 
+- **Opcodes 0.4.0 (WS4's T1, 02cfb06): ADDII/SUBII/MULII/CMPJII stable and emitted; WS2 co-signs, 2026-09-26.** The encoding is the one WS2 implemented (ABC regs; CMPJII with CMPJ's relation byte and following JMP); merged `origin/ws4-compiler` and every test passes with WS4's recompiled fixtures, which now use them. New fixture `bench-ii` (from `gen_bench.mjs`): **WS3 can time it directly** instead of a byte-patched copy; it is in the case table, so `conformance:ds` runs it on the DS too.
+- **ADR-0008 accepted by the user (main 68ca7da).** WS2's `ADR-pending ADR-0008` markers stay until WS4's `.release` / dsdb.md flags T1 is on `origin/ws4-compiler`; then WS2 merges it, drops the markers and assembles the release wrap fixture with `.release`.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.

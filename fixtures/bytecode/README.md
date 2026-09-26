@@ -72,6 +72,9 @@ the regenerated `.dsdb` together.
   into one Adler-style pair per category (mod 65521, no step can overflow) and logs `<category> <a> <b>`. The host
   tests run it in the -O2, UBSan-trap and -O0 builds against the same `.out`; the DS side is WS3's
   (`npm run conformance:ds -w runtime` runs every WS2 program against its host `.out`).
+- `bench-ii.dsda` (generated with `bench.dsda` by `runtime/tests/gen_bench.mjs`): the same block with every
+  ADD/SUB/MUL/CMPJ in its int-specialised form (ADDII/SUBII/MULII/CMPJII, opcodes 0.4.0; 600 of the 1,200
+  words). Its output is `bench.out` and its trace matches bench's byte for byte; WS3 times both on the DS.
 - `runtime/*.dsda`: WS2's runtime fixtures, each with a hand-checked `*.out` holding the full expected `dsdude-host
   --seed 1` output (READY, LOG, and EXIT or ERR with code, function, file, line and message): `strings` (TOSTR,
   CONCAT, string comparison and equality, asset ids) and one `err-*` program per runtime error the VM raises so far
