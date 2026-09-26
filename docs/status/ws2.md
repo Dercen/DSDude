@@ -31,7 +31,7 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
   - Tests: suites loader (patched hello.dsdb per R58x case), host (C8 line formatting, key scripts, RNG, C13 drift against `contracts/runtime-limits.json`), programs (every fixture against its golden; missing file R584; boot twice gives identical bytes). 89,645 checks per variant.
 
 - **Task 3 (C11): published 0.1.0, 2026-09-26** (freezes at CP-A, 2026-09-28). `runtime/core/include/dsd_platform.h` plus a C11 CHANGELOG entry. Additions over the draft: `DSD_PLATFORM_VERSION`, `dsd_plat_music_active` (audio_is_playing, rule 8), `dsd_plat_bg_load(screen, NULL)` hides BG1. WS3 has not started yet; its first review may still change the header before CP-A.
-- **ADR-0003 (proposed):** sprite geometry (frame size, origin, bbox from `sprite.json`) has no path to the runtime today. Proposal: the reserved header word becomes an extension-table offset (C2 T1), first extension `SPRG`. Needs WS4's co-signature (and WS5's review); blocks tier v2 collisions/draw placement (~D+14).
+- **ADR-0003 `0003-sprite-geometry-in-dsdb.md` (proposed; number clash):** WS4 also filed an ADR-0003 (`0003-provisional-opcode-operands.md`) the same day; only WS0 renumbers, so WS0 please renumber one of them. Sprite geometry (frame size, origin, bbox from `sprite.json`) has no path to the runtime today. Proposal: the reserved header word becomes an extension-table offset (C2 T1), first extension `SPRG`. Needs WS4's co-signature (and WS5's review); blocks tier v2 collisions/draw placement (~D+14).
 
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
