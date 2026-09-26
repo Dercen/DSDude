@@ -2,7 +2,7 @@
 
 **toolchain-ok: passed 2026-09-25 4ddccb5**
 
-Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `ca5a41e` (after checkpoint-7). WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25); checkpoint-1 merged `06e370e`. **Paused** again after the batch in "After checkpoint-7" (WS0's list).
+Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `8613b6c` (after checkpoint-10). WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25); checkpoint-1 merged `06e370e`. **Paused** again after the batch in "After checkpoint-7" (WS0's list).
 
 Gate evidence (all run 2026-09-25 on this machine, section 8 criteria):
 - **Install by `scripts/install-toolchain.ps1`:** fresh run into an empty `C:\msys64\opt\wonderful` (the earlier install was moved aside, then deleted), 23:05:22-23:06:33, exit 0, unattended, no UAC prompt. Then `scripts/smoke-test.ps1 -Screenshot`: 3/3 examples PASS plus a screenshot PASS.
@@ -191,7 +191,7 @@ Legend: todo / in progress / done (<sha>).
      - melonDS: K gave `DSD|LOG|key A`, / gave `key B`, and X and Z gave nothing. The file held `A = 75`, `B = 47`.
      - DeSmuME: the same result, with `A=75`, `B=191` (`VK_OEM_2`).
    - Both configs return to the defaults at the next launch without `keys`.
-- **Tests:** toolchain 92 (was 84), cli 6, ipc-contract 66, apps/ide 69 + 10, runtime 27. `npm run check` is green.
+- **Tests:** toolchain 92 (was 84), cli 6, runtime 27; after merging `main` at `8613b6c`: ipc-contract 73, apps/ide 88 + 10. `npm run check` is green.
 
 ## Leftovers (for CP-B, or WS8 at CP-C)
 
