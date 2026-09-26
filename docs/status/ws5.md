@@ -5,8 +5,9 @@ Cloud push target: `ws5-assets`
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
-- start.sh (2026-09-26, after checkpoint-5): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind origin/main
-  by 34 (then merged); latest checkpoint: docs/status/checkpoint-5.md; open IF entries: 1 (IF-2). Lockfile guard passed.
+- start.sh (2026-09-26, after checkpoint-6 relay): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
+  origin/main by 34 (then merged, main 91fc4c9+); latest checkpoint: docs/status/checkpoint-7.md; open IF entries: 1
+  by start.sh's count (see Blockers). Lockfile guard passed.
 
 ## Progress
 - [x] Task 1 (day 1): `contracts/assetpack.md` C3 0.1.0 written, CHANGELOG line appended.
@@ -38,11 +39,23 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   on NTFS); it adds the case-clashing sprite and sound to the loaded `Project` in memory, so E412 is covered on every
   filesystem. The product code was unchanged. Other tests checked for the same trap: goldens and fixtures are
   binary in `.gitattributes`, and paths are built with `path.join`.
-- [ ] Next: WS0's Windows run of the real-tool test; then refine the MSL/MAS reading if its figures disagree.
+- [x] Windows verification (WS0, checkpoint-6, merged ws5-assets@1e438f3; every Windows-only check passed):
+  - `src/pack/real-tools.test.ts` ran (not skipped) and passed with the real grit/mmutil 1.24.0.
+  - `npx dsdude assets samples/flappy --json`: exit 0, 0 diagnostics; `gfx/spr_bird.grf` 484 B, `spr_pipe.grf` and
+    `spr_gap.grf` 1,124 B each, `soundbank.bin` 27,012 B, `soundbank.h`; `"estimated": false` for all three sounds,
+    so the MSL/MAS reading in `src/sound/soundbank.ts` matches the real soundbank. No refinement needed.
+  - In-process `packAssets` on samples/flappy: first run 485 ms (tools run), cached second and third runs 33.9 ms
+    each: the DoD's "second run < 50 ms" holds. (The whole CLI takes ~2.6 s: process start-up, not the pipeline.)
+  - `npx dsdude build samples/minimal` builds a real ROM end to end with `packAssets` + `checkRoomBudgets`; the
+    screenshot shows the sprite at (128,96), 60 fps.
+  - The fflate lockfile entry landed at checkpoint-6; `wavefile` is gone.
+- [ ] Remaining DoD item (WS0-owned): the py-desmume golden in `fixtures/assets/golden/` for a ROM built from the
+  sample assets. Otherwise WS5 is at its definition of done; later work is fixes from IF entries and contract T1s.
 
 ## Blockers
-- None. The push.sh lockfile-range blocker (2026-09-26) was fixed by WS0 in 5b09e6c; the daily merge of origin/main
-  (checkpoint-3, CHANGELOG conflict resolved by keeping both sides) is pushed as 5fd6fa7.
+- None. (The push.sh lockfile-range blocker was fixed by WS0 in 5b09e6c.)
+- For WS0: your checkpoint-6 message says IF-2 is resolved, but the `## Integration feedback` section on main has no
+  `- IF-2 resolved by <sha>` line yet, so start.sh still counts one open entry. Please append it.
 
 ## For WS0 at integration (Windows-only checks)
 - `npm test -w packages/asset-pipeline` runs `src/pack/real-tools.test.ts` with the real grit/mmutil: flappy + the XM
@@ -50,7 +63,8 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   `estimated: false` for every sound (i.e. soundbank.bin parsed as `src/sound/soundbank.ts` expects: "*maxmod*"
   tag at byte 4, u32 offset tables, 8-byte entry prefixes, MAS sample records with msl_id at byte 10). If the MSL
   reading fails there, sounds fall back to estimates rather than failing the build; please file an IF entry.
-- `npx dsdude assets samples/flappy --json` should exit 0 locally, and the second run should take < 50 ms.
+- `npx dsdude assets samples/flappy --json` should exit 0 locally, and the second run should take < 50 ms (both
+  confirmed at checkpoint-6).
 
 ## Notes for other streams
 - ADR-0006 (sprite geometry in the DSDB), WS5 review: WS5 supports option A. C3 needs no change: the frame size,
