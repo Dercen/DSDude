@@ -47,8 +47,11 @@ export interface CodegenEnv {
   /** The slot layout of the object `name`, or null when it is not an object. */
   objectInfo(name: string): ObjectInfo | null;
   /**
-   * True when `name` may be an instance variable of an instance whose object is unknown here (a script, or a
-   * `with (all)` body): some object assigns it, so the code reads or writes it by name (GETDYN/SETDYN).
+   * True when `name` is an instance variable somewhere (a slot of some object, or a variable written by name), so
+   * code that can't use a slot of a known object reads or writes it by name (GETDYN/SETDYN): scripts, `with (all)`
+   * bodies, and a parent's code reading a variable only its children assign.
    */
   isInstanceVariableName(name: string): boolean;
+  /** The object whose functions.dss defines `name` when this code can't call it (E205), or null. */
+  helperOwner?(name: string): string | null;
 }

@@ -22,3 +22,9 @@ export { type FileKind, isLValue, type ParseOptions, type ParseResult, parse } f
 export const packageName = "@dsdude/compiler";
 export { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
 export { compileProgram, MAIN_FUNCTION, type ProgramOptions, type ProgramResult } from "./program.ts";
+export {
+  type CompileProjectOptions,
+  type CompileProjectResult,
+  compileProject,
+  compileProjectModule,
+} from "./project.ts";

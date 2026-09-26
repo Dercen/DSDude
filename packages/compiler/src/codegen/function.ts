@@ -644,13 +644,11 @@ class FunctionCompiler {
         localReg: null,
       };
     }
-    if (target.kind !== "reg" && known !== null) {
-      // A known object that never assigns this name: reading it could only fail at run time (rule 1).
+    // Not a slot of a known object: the name must be an instance variable somewhere (a descendant's slot, or a
+    // variable some code writes by name), or reading it could only fail at run time (rule 1).
+    const writesByName = forWrite && known === null;
+    if (target.kind !== "reg" && !writesByName && !this.env.isInstanceVariableName(name)) {
       this.unknownName(name, at, known);
-      return null;
-    }
-    if (target.kind !== "reg" && known === null && bare && !this.env.isInstanceVariableName(name) && !forWrite) {
-      this.unknownName(name, at, null);
       return null;
     }
     // ADR-pending ADR-0003: GETDYN/SETDYN take the symbol by name (operand kind `sym`).
@@ -958,6 +956,12 @@ class FunctionCompiler {
     const user = this.env.lookupFunction(name);
     const builtin = builtinFunctions.get(name);
     if (user === null && builtin === undefined) {
+      const owner = this.env.helperOwner?.(name) ?? null;
+      if (owner !== null) {
+        this.report("E205", { name, owner, here: this.env.self?.name ?? "a script" }, e.callee);
+        if (dst !== null) this.emit("LOADUNDEF", dst);
+        return;
+      }
       const best = suggest(name, [...this.env.functionNames(), ...builtinFunctions.keys()]);
       this.report("E201", { name, suggestion: suggestionText(best, true) }, e.callee);
       if (dst !== null) this.emit("LOADUNDEF", dst);

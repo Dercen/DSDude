@@ -1,0 +1,18 @@
+[
+  {
+    "room": "rm_main",
+    "screens": {
+      "top": {
+        "sprites": [
+          "spr_player"
+        ],
+        "backgrounds": []
+      },
+      "bottom": {
+        "sprites": [],
+        "backgrounds": []
+      }
+    },
+    "sounds": []
+  }
+]

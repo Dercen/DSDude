@@ -209,6 +209,19 @@ export const COMPILER_CATALOG = {
     "Write {name}() to call it.",
   ),
 
+  E205: err(
+    "E205",
+    "Another object's helper",
+    "{name}() is a helper of {owner}, so {here} can't use it.",
+    "To use it from {here}, move it to Scripts.",
+  ),
+  E208: err(
+    "E208",
+    "Function made twice",
+    "There are two functions called {name}.",
+    "Rename one of them: every script function needs its own name.",
+  ),
+
   // ---- E3xx: types, arguments and event misuse ------------------------------------------------------------------
   E301: err("E301", "Wrong number of values", "{name} takes {expected}, but {count} given.", "Give {name} {expected}."),
   E302: err(
@@ -248,12 +261,37 @@ export const COMPILER_CATALOG = {
     "Give {param} a fixed default, and work out the rest inside the function.",
   ),
 
+  E308: err(
+    "E308",
+    "Unknown event file",
+    "{file} is not an event DSDude knows.",
+    "Rename it to an event such as step.dss, create.dss or alarm_0.dss (see the Events list), or move the code into functions.dss.",
+  ),
+  E309: err(
+    "E309",
+    "Collision with an unknown object",
+    "{file} is a collision event, but there is no object called {name}.",
+    "Rename the file to collision_ followed by an object's name.",
+  ),
+
   // ---- E49x: hardware limits the compiler detects -----------------------------------------------------------------
+  E491: err(
+    "E491",
+    "Too many variables in one object",
+    "{object} has {count} variables of its own (counting its parent's), but an object can have at most {max}.",
+    "Keep some of them in global. values or in an array, or split the object in two.",
+  ),
   E492: err(
     "E492",
     "Too many values at once",
     "{func} needs more than 64 places for its variables and values at once.",
     "Split it into smaller functions, or use fewer var variables.",
+  ),
+  E494: err(
+    "E494",
+    "Too many variable names",
+    "The game reaches {count} different variable names through other instances or scripts, but at most 256 fit.",
+    "Use fewer different names with other., with or in Scripts, or keep the values in global. variables.",
   ),
   E493: err(
     "E493",
