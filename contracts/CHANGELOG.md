@@ -11,6 +11,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.1.0 (2026-09-25, WS0, Phase 0): header, ten sections (incl. KONS), 8-byte cells, instruction encoding, calling convention, event ids, OBJS/ROOM/ASET, program form, `.dsda` grammar and canonical form, ABI hash.
 - 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): section 5 operand kinds `sym` and `bivar` (names in `.dsda`); packages/dsdb encodes, decodes and assembles them (`BuiltinsEnv.variables`).
 - 0.3.0 (2026-09-26, WS4, T1, ADR-0006 proposed by WS2, co-signed by WS4): header offset 28 becomes the extension-table offset; the `SPRG` sprite-geometry extension (frame size, origin, bbox per ASET sprite); `.dsda` `.asset sprite ... origin= size= bbox=`; format minor 2 only in files that carry extensions. packages/dsdb encodes, decodes and assembles it; the compiler writes SPRG from sprite.json; fixtures/compiler goldens with sprites regenerated.
+- 0.3.0 T0 (2026-09-26, WS4): ADR-0006 accepted by the user (option A; format minor 2 only in files with extensions); dsdb.md says "accepted" and the ADR-pending markers are gone.
 
 ## C2 opcodes (`contracts/opcodes.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): 29 stable opcodes (0-28), 22 provisional (29-50), 4 reserved int-specialised (51-54).
@@ -85,4 +86,5 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C14 Phase-0 fixtures
 - 0.1.0 (2026-09-25, WS0, Phase 0): samples/minimal, samples/flappy v0 (ADR-0001 applied), fixtures/bytecode hello + conformance/v0-01, fixtures/assets, fixtures/conformance v0.
+- 0.1.0 T0 (2026-09-26, WS4): samples/flappy `spr_bird` bbox left 2 -> 1 (the wing reaches column 1; from WS5); fixtures/compiler/samples/flappy goldens regenerated.
 - hello (2026-09-26, WS1, producer of samples/hello and the hello fixtures): samples/hello also logs every key press as DSD|LOG|key <buttons> (ADR-0003 names) plus the pad; fixtures/runtime/hello and fixtures/build/hello regenerated (ROM SHA-256 2b2eb01c...; header, NitroFS layout and the DSD|LOG|hello line unchanged).

@@ -90,7 +90,8 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 - **Checkpoint-3 relay (2026-09-26):** merged `origin/main` (no open IF entries); ADR-0003 references renumbered to
   **ADR-0005** (markers, `contracts/dsdb.md`, `contracts/opcodes.json`, an appended CHANGELOG line).
 - **WS4 co-signs WS2's ADR-0006 (sprite geometry in the DSDB, option A), 2026-09-26**, and has implemented its side
-  (C2 `dsdb.md` 0.3.0, T1, marked `ADR-pending ADR-0006`):
+  (C2 `dsdb.md` 0.3.0, T1). **ADR-0006 accepted by the user (option A, minor 2 only with extensions); markers
+  removed after checkpoint-4.**
   - One clarification: the ADR both bumps the format minor to 2 and promises no byte change for files without SPRG.
     WS4's writer sets minor 2 **only when the file carries an extension table**; files without one keep minor 1 and
     their exact bytes (all 34 committed `.dsdb` fixtures without sprites are unchanged). Loaders accept minor >= 1.
@@ -101,6 +102,12 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     (Flappy, minimal, v3/09 goldens regenerated). `make -f runtime/Makefile.host test` stays green on WS2's current
     loader (115,719 checks).
 - push.sh range check fixed by WS0 (`5b09e6c`); the checkpoint-3 batch went out through push.sh after merging main.
+
+- **Checkpoint-4 relay (2026-09-26):** merged `origin/main` (no open IF entries); ADR-0006 markers removed;
+  samples/flappy `spr_bird` bbox left 2 -> 1 (from WS5), `fixtures/compiler/samples/flappy.{dsda,dsdb}` regenerated.
+  **For WS2:** `flappy.dsdb` changed (dsdb fingerprint `0xcc46e211`), so `runtime/tests/test_programs.c` skips the
+  trace check until `fixtures/runtime-core/flappy-trace.fnv` is refreshed; please also re-check that
+  `flappy-keys.txt` still scores with the wider bird bbox. Host tests green here (115,765 checks).
 
 ## Next
 
@@ -127,10 +134,8 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 
 ## Open ADR-pending markers
 
-- `ADR-pending ADR-0006` in `packages/dsdb/src/encode.ts`, `packages/dsdb/src/model.ts` and
-  `packages/compiler/src/project.ts` (SPRG): until WS0 accepts ADR-0006.
 
 - `ADR-pending ADR-0005` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): WS2
-  co-signed (docs/status/ws2.md); open until WS0 accepts ADR-0005 and both streams promote the opcodes (T1).
+  co-signed (docs/status/ws2.md); with the user for a decision (checkpoint-4 relay); keep until WS0 says.
 
 ## Integration feedback

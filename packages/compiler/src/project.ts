@@ -595,7 +595,7 @@ class ProjectCompiler {
         name: s.name,
         path: `gfx/${s.name}.grf`,
         aux: this.manifest.sprites[s.name]?.frames ?? s.frames,
-        // ADR-pending ADR-0006: sprite.json's geometry travels in the DSDB's SPRG extension.
+        // ADR-0006: sprite.json's geometry travels in the DSDB's SPRG extension.
         geometry: {
           width: s.frameWidth,
           height: s.frameHeight,

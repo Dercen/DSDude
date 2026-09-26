@@ -8,7 +8,7 @@ export const FORMAT_MAJOR = 0;
 export const FORMAT_MINOR = 1;
 /**
  * Format minor of a DSDB that carries an extension table (header offset 28, ADR-0006). Files without extensions
- * keep minor 1, so every DSDB written before the table existed stays byte-identical. ADR-pending ADR-0006.
+ * keep minor 1, so every DSDB written before the table existed stays byte-identical.
  */
 export const FORMAT_MINOR_EXTENSIONS = 2;
 /** Header offset of the extension-table offset (the reserved word before ADR-0006). */

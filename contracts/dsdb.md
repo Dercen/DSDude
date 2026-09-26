@@ -133,7 +133,7 @@ which live in `soundbank.bin`; `aux` is the sprite's frame count or the sound's 
 instructions from its codeIndex up to the next entry. Files are project-relative with `/`. R5xx errors use it for
 `DSD|ERR|...|<file>|<line>|...` (C8).
 
-**Extensions** (ADR-0006, proposed; 0.3.0). When the header word at offset 28 is non-zero, it points past the ten
+**Extensions** (ADR-0006, accepted; 0.3.0). When the header word at offset 28 is non-zero, it points past the ten
 sections to `u32 count;` then `count` entries `{u8[4] tag; u32 offset; u32 size}` sorted by tag, each body 4-aligned
 after the table. Loaders skip tags they do not know. Writers add the table only when there is something to put in
 it, so a DSDB without extensions keeps minor 1 and its exact bytes.
