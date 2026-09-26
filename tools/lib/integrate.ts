@@ -509,6 +509,17 @@ function main(argv: string[]): number {
       if (ws2) ws2.localOnly.push(line);
     } else localChecks.push("host goldens: skipped (no runtime/Makefile.host yet)");
 
+    // 7a. is runtime/dist still built from the merged core? (WS3's check: exit 0 current, 1 stale, 2 error)
+    if (existsSync(join(root, "runtime/src/check-dist.ts"))) {
+      const cd = run(process.execPath, ["runtime/src/check-dist.ts"], 2 * MIN);
+      localChecks.push(
+        cd.code === 0
+          ? "runtime/dist: current (check:dist)"
+          : `runtime/dist: ${cd.code === 1 ? "STALE: the merged core changed its build inputs; WS3 rebuilds dist (WS0 messages WS3)" : `check:dist error: ${failureExcerpt(cd.out)}`}`,
+      );
+      if (cd.code === 1) say("runtime/dist is stale after this merge: message WS3 to rebuild it");
+    }
+
     // 7b. the IDE's browser tests (headless Chromium; kept out of the root npm test so the cloud stays node-only)
     const touched = gitOk(["diff", "--name-only", "main", "HEAD"]).split("\n");
     const ideTouched = touched.some((f) =>
