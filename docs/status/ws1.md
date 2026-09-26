@@ -102,7 +102,28 @@ Legend: todo / in progress / done (<sha>).
     (`73f8bb7e...`), and `play` in melonDS logs `DSD|LOG|hello`.
   - **Tests:** toolchain 76, cli 6; `npm run check` green.
   - **Leftover for CP-B** (or WS8 at CP-C): wire and run the real `compileProject`/`packAssets` on `samples/minimal`
-    and `samples/flappy` once they are on `main`.- Task 5. Spike 5 + `dsdude doctor`: todo.
+    and `samples/flappy` once they are on `main`.- Task 5. Spike 5 + `dsdude doctor`: **done** (115a22b, cb9abe9); C4 0.5.0, C10 0.4.0 (T1, CHANGELOG lines appended).
+  - **Tools pack:** `tools/tools-pack.json` pins every file and licence text by SHA-256 (spike 5 below).
+    `tools/fetch-vendor.ps1 -Test` builds `vendor\tools-pack\` (19 files, 5.3 MB, gitignored) and passes every check.
+  - **`dsdude doctor [project] [--json]`:**
+    - checks BlocksDS by running each tool (0xC0000135 is E602), melonDS/DeSmuME, and py-desmume (by importing it);
+    - warns about build paths near 250 characters (E651) and about OneDrive.exe running while a path is under
+      `%OneDrive%` (E650);
+    - names the fix for each problem, and exits 2 only on a failed check;
+    - on this machine every check is OK. The worktree is under `%OneDrive%`, but OneDrive.exe is not running.
+  - **Tests:** toolchain 84, cli 6; `npm run check` green.
+  - **My slip, no effect:** I included a read-only package-manager query (`-Q`) in one command. The deny rule
+    refused it, and I took the version from the install log instead. No package manager has run since `phase0`.
+
+## Leftovers (for CP-B, or WS8 at CP-C)
+
+- Wire and run the real `compileProject`/`packAssets`/`checkRoomBudgets` on `samples/minimal` and `samples/flappy`
+  once WS4 and WS5 have them on `main`. The composition root already picks them up.
+- The DeSmuME key map is written but not verified by a real key press.
+- ADR-0003 (the key-script format) is open with WS2; `tools/screenshot.py` carries `ADR-pending ADR-0003`.
+- `dsdude toolchain install` still points to `scripts/install-toolchain.ps1`; an `installToolchain()` in TypeScript
+  is not written.
+- The packaged IDE (WS8) must point `ToolPaths` at `resources/tools-pack/` instead of `C:\msys64`.
 
 ## Definition of done (section 6 WS1)
 
@@ -112,7 +133,7 @@ Legend: todo / in progress / done (<sha>).
 - [x] Header check passes on hello. The E6xx cases are unit-tested on the fixture: `NitroFS!` zeroed → E613; FAT size zeroed → E612; FAT below 0x8000 → E611; empty `-d` folder → E612 from the real ndstool.
 - [x] 20 consecutive Play launches leave no orphan: 20/20 in melonDS and 20/20 in DeSmuME, each logging `DSD|LOG|hello` (1.6-1.9 s per relaunch, including the graceful stop of the previous one); `tasklist` shows no emulator afterwards, and `running.json` is removed.
 - [x] Each worktree's emulator config lives only under its `DSDUDE_HOME` (`melonDS.toml`, `rtc.bin` and `desmume.ini` beside the exes in `.dsdude\emulators\`).
-- [ ] Tools-pack clean-PATH test (spike 5): task 5 or a WS8 leftover.
+- [x] Tools-pack clean-PATH test passes (spike 5): `tools/fetch-vendor.ps1 -Test`.
 
 ## Notes for WS0
 
@@ -252,6 +273,18 @@ Each variant was repacked from a different `nitrofs/hello.txt` with the same ELF
 - **Boot:** melonDS PASS, DeSmuME with default settings (slot 1 "Retail MC+ROM") PASS, py-desmume PASS.
 - **DeSmuME `--slot1 R4 --slot1-fat-dir <dir>`:** FAIL. It prints `slot1 fat not successfully mounted` for an empty folder and for the ROM's own folder alike, and the ROM logs `nitroFSInit failed`. See `docs/adr/0002-desmume-r4-slot1-profile.md` (proposed: default slot 1 only).
 
-### Spike 5: todo (task 5, else a WS8 leftover)
+### Spike 5: tools pack (claim 7): PASS
+- **objdump import walk** (`C:\msys64\ucrt64\bin\objdump.exe -p`, recursive):
+  - ndstool needs `libgcc_s_seh-1`, `libiconv-2`, `libstdc++-6`, and through them `libwinpthread-1`;
+  - grit needs `libgcc_s_seh-1` and `libstdc++-6`; mmutil needs none;
+  - all four DLLs come from `C:\msys64\opt\wonderful\bin` and import `api-ms-win-crt-*`, never `msvcrt.dll`.
+- **Clean PATH** (`PATH=C:\Windows\System32`, pack in `%TEMP%\dsdude tools pack test <time>\`, a path with spaces):
+  - `ndstool -V`, `grit -V` and `mmutil -V` print `v1.24.0-dirty` and exit 0;
+  - ndstool repacks `fixtures/build/hello` byte for byte (SHA-256 `73f8bb7e...`).
+- **Without the four DLLs:** ndstool and grit exit 0xC0000135; mmutil still runs.
+- **Licence texts** (PLAN 2.11):
+  - `blocksds/{ndstool,grit,mmutil}` at `master` (the repos have no `v1.24.0` tag, so each text is pinned by SHA-256);
+  - GCC `COPYING.RUNTIME` from `gcc-mirror/gcc` (gnu.org's `gcc-exception-3.1.txt` now returns 404);
+  - LGPL-2.1 from gnu.org, and the winpthreads `COPYING` from `mingw-w64`.
 
 ## Integration feedback
