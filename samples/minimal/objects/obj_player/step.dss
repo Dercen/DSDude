@@ -1,0 +1,7 @@
+// objects/obj_player/step.dss  -- move with the D-pad, 2 pixels per frame
+if (button_check(btn_left))  x -= 2;
+if (button_check(btn_right)) x += 2;
+if (button_check(btn_up))    y -= 2;
+if (button_check(btn_down))  y += 2;
+x = clamp(x, 8, room_width - 8);
+y = clamp(y, 8, room_height - 8);

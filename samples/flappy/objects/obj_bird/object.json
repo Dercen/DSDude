@@ -1,0 +1,7 @@
+{
+  "sprite": "spr_bird",
+  "parent": null,
+  "visible": true,
+  "depth": 0,
+  "screen": "top"
+}

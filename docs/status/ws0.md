@@ -19,13 +19,13 @@ Legend: todo / in progress / done (<sha>).
 
 ### Day 1
 - Task 1. Line endings and repo hygiene: done (896eb47, pushed)
-- Task 2. Monorepo: in progress
+- Task 2. Monorepo: done (60bb682, d554fcd; spike 13 below)
   - root `package.json`, `tsconfig.base.json`, solution `tsconfig.json`, `tools/tsconfig.json`, `biome.json`, `vitest.config.ts`: done (see git log)
   - `tools/postinstall.mjs`, `tools/check-lockfile.mjs`: done
   - 14 skeletons (`packages/*`, `apps/ide`, `tools/gen-docs`, `runtime`) with the pinned stack, briefs via `tools/phase0/gen-briefs.ts`: done
   - `LICENSE`, `runtime/LICENSE`, `README.md`: done
   - lockfile (`chore(deps): regenerate lockfile`): done
-  - spike 13 (WS0 part): todo
+  - spike 13 (WS0 part): done, PASS (results below)
 - Task 3. Hooks and governance tools: in progress
   - `tools/ownership.json`, `tools/check-ownership.ts` + walk test: done (see git log)
   - `.githooks/pre-commit`, `commit-msg`, `pre-push` (+x): done
@@ -34,11 +34,11 @@ Legend: todo / in progress / done (<sha>).
   - spike 1 (`tools/phase0/spike1-hooks.ps1`): done, 11/11 PASS (results below)
   - cloud pieces (`tools/cloud/**`, `docs/status/cloud.md`, status stubs for WS2-WS8 and WS6b): done, pushed
   - cloud probe (user runs it): todo
-- Task 4. Small contracts, C4 types, project format, samples: in progress
+- Task 4. Small contracts, C4 types, project format, samples: done (5c71867 and this commit)
   - C9 `diagnostics.md` + `Diagnostic` type, C1 `Project` + schemas + load/save, C4 `api.ts` + `MockBuildService`, C10 `cli.md`: done (this commit; WS1 told to merge `main`)
-  - C13 `runtime-limits.json`, C8 `log-protocol.md`, C5 `ipc.md` + `ipc-contract`, C12 `preview.ts`: todo
-  - C1 `project-format.md` + schemas + load/save: todo
-  - `samples/minimal`, `samples/flappy` v0, ADR-0001: todo
+  - C13 `runtime-limits.json`, C8 `log-protocol.md`, C5 `ipc.md` + `ipc-contract` zod stubs, C12 `preview.ts`: done
+  - C1 `project-format.md` + schemas + load/save + E290-E299 catalog; tests load both samples and round-trip them byte for byte: done
+  - `samples/minimal`, `samples/flappy` v0 (PNGs/WAVs from `tools/phase0/make-samples.ts`), ADR-0001: done
 
 ### Day 2
 - Task 5. `contracts/language.md` v0.1, `contracts/events.md`: todo
@@ -56,7 +56,10 @@ Legend: todo / in progress / done (<sha>).
   6. pre-push: clean `main` pushes; a `vendor/probe.txt` commit (the one `--no-verify`) is refused, and still refused after `git rm --cached` + commit.
   7. A second detached worktree checks out the Makefile and all three hooks as `i/lf w/lf`, with no CR bytes.
   - Permissions: `npm ci --help` is denied by `.claude/settings.json` ("Permission to use PowerShell with command npm ci --help has been denied"); `git status` runs without a prompt. The embedded `bash.exe -lc '... wf-pacman ...'` form is checked in the tag commit, when the pacman deny rules are added.
-- Spike 13 (WS0 part: fresh worktree install, `path.txt`, `tsc -b` failure, `DSDUDE_SKIP_ELECTRON`): not run yet.
+- **Spike 13 (WS0 part), 2026-09-25: PASS.** Throwaway worktree `..\DSDude-spike13` (detached at `a0a259d`), removed afterwards:
+  - `npm install`: exit 0 in 47 s, 531 packages, postinstall ran `install-electron`; `node_modules/electron/path.txt` = `electron.exe`; `git status` clean (lockfile not rewritten).
+  - `npx tsc -b` clean: exit 0. With `export const broken: number = "not a number";` appended to `packages/dsdb/src/index.ts`: `error TS2322`, exit 2.
+  - `path.txt` deleted, then `DSDUDE_SKIP_ELECTRON=1 npm install`: postinstall printed `DSDUDE_SKIP_ELECTRON=1, skipping install-electron`, exit 0, `path.txt` still absent.
 
 ## Cloud probe
 
@@ -64,7 +67,7 @@ Not run yet. WS0 pushes the task-3 cloud pieces first.
 
 ## Open ADRs
 
-None yet.
+- ADR-0001 Flappy pipe geometry (proposed; the user decides): two 128-px pipes around the 48-px gap.
 
 ## Open questions for the user
 

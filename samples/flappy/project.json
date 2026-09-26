@@ -1,0 +1,13 @@
+{
+  "formatVersion": 0,
+  "name": "flappy",
+  "title": "Flappy",
+  "subtitle": "Tap or press A to flap",
+  "author": "DSDude",
+  "gamecode": "####",
+  "icon": "icon.png",
+  "firstRoom": "rm_game",
+  "rooms": [
+    "rm_game"
+  ]
+}

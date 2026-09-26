@@ -1,0 +1,9 @@
+// objects/obj_bird/functions.dss  -- helpers visible to this object's events
+function die() {
+    alive = false;
+    image_speed = 0;
+    audio_play_sound(snd_hit);
+    with (obj_pipe) hspeed = 0;
+    show_debug_message("Score: " + string(global.score));   // -> Output panel
+    alarm[0] = 60;                                           // restart in one second
+}

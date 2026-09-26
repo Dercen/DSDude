@@ -1,0 +1,10 @@
+// objects/obj_bird/step.dss  -- runs every frame (60 per second)
+if (!alive) exit;
+if (button_pressed(btn_a) || touch_pressed()) {   // A button, or a tap on the bottom screen
+    vspeed = flap_power;
+    audio_play_sound(snd_flap);
+}
+if (vspeed > 6) vspeed = 6;                       // terminal velocity
+image_angle = clamp(-vspeed * 8, -30, 60);        // tilt the bird's nose up or down
+if (y < 0) { y = 0; vspeed = 0; }
+if (y > room_height - sprite_height) die();

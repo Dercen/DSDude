@@ -1,0 +1,2 @@
+// objects/obj_bird/collision_obj_pipe.dss  -- bbox overlap with any obj_pipe
+if (alive) die();

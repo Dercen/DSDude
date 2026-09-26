@@ -1,0 +1,13 @@
+{
+  "formatVersion": 0,
+  "name": "minimal",
+  "title": "Minimal",
+  "subtitle": "Move with the D-pad",
+  "author": "DSDude",
+  "gamecode": "####",
+  "icon": "icon.png",
+  "firstRoom": "rm_main",
+  "rooms": [
+    "rm_main"
+  ]
+}

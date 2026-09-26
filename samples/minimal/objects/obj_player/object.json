@@ -1,0 +1,7 @@
+{
+  "sprite": "spr_player",
+  "parent": null,
+  "visible": true,
+  "depth": 0,
+  "screen": "top"
+}

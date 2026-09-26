@@ -1,0 +1,4 @@
+var gy = irandom_range(48, 144);
+instance_create(272, gy, obj_pipe);
+instance_create(272, gy, obj_gap);
+alarm[0] = 90;

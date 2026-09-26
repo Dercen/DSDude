@@ -1,0 +1,6 @@
+// objects/obj_bird/create.dss  -- runs once when the bird is created
+image_speed  = 0.2;          // wing animation: 0.2 frames per step
+gravity      = 0.25;         // built-in: added to vspeed every step by the engine
+flap_power   = -4.5;         // instance variable, created on first assignment
+alive        = true;
+global.score = 0;

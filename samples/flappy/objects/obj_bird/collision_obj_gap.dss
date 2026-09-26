@@ -1,0 +1,2 @@
+// objects/obj_bird/collision_obj_gap.dss   -- invisible score trigger between pipes
+if (alive && !other.scored) { other.scored = true; global.score += 1; audio_play_sound(snd_point); }

@@ -1,0 +1,29 @@
+{
+  "contract": "C13",
+  "version": "0.1.0",
+  "howToChange": "Owner WS2 (seeded by WS0 in Phase 0). Values and new keys change by T1: minor version bump plus a contracts/CHANGELOG.md entry in the same commit; WS0 reviews within 24 hours. Removing or renaming a key is T2 (ADR co-signed by WS3, WS4, WS5, WS6, WS6b and WS7). This file is the single source for meters, checker limits and docs.",
+  "limits": {
+    "spritesPerScreen": 128,
+    "affinePerScreen": 32,
+    "objVramBytesPerScreen": 131072,
+    "objVramAlignBytes": 128,
+    "obj16PalettesPerScreen": 16,
+    "obj256PalettesPerScreen": 16,
+    "bg256PaletteSlotsPerScreen": 4,
+    "bgTilesMax": 1024,
+    "bgMaxSize": 512,
+    "uiLayerCellPx": 8,
+    "instancesMax": 512,
+    "instanceBlockBytes": 384,
+    "userSlotsPerObject": 24,
+    "roomArenaBytes": 524288,
+    "stringArenaBytes": 196608,
+    "soundRamBytes": 786432,
+    "soundbankMaxBytes": 1048576,
+    "dsdbMaxBytes": 307200,
+    "heapReserveBytes": 524288,
+    "alarms": 8,
+    "scanlineObjCycles": 1200,
+    "registersPerFrame": 64
+  }
+}

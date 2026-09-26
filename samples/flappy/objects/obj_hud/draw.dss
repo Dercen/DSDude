@@ -1,0 +1,1 @@
+draw_text(112, 16, string(global.score));
