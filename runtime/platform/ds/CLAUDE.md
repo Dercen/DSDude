@@ -25,6 +25,7 @@ Changes follow the tiers in `contracts/README.md` (T0 doc, T1 additive + CHANGEL
 ```
 npm test -w runtime
 npm run build:runtime -w runtime   # DSDUDE_MAKE_JOBS=4; commit dist/ with the sources it was built from
+npm run check:dist -w runtime      # dist/ current? (VERSION build_tree vs the build inputs)
 npm run selftest -w runtime        # screenshot cases vs goldens
 npm run conformance:ds -w runtime  # WS2's fixtures on the DS core vs the host's .out
 ```

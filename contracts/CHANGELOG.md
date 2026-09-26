@@ -66,6 +66,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - owed: WS3, with its first runtime/dist build.
 - 0.1.0 (2026-09-26, WS3, first build): runtime/dist/arm9.elf (stripped) + arm9-debug.elf + VERSION (key=value: runtime, abi, tree = git tree of runtime/ without dist/, blocksds, arm7, arm9_sha256, itcm/dtcm/dtcm_data/cstack/image); paired ARM7 arm7_maxmod.elf; `npm run build:runtime -w runtime`; DTCM data 0x1200 with an 11,200-byte C stack; reproducible across folders; boot errors R580-R582 provisional (ADR-0004).
 - 0.2.0 (2026-09-26, WS3, T1): VERSION key `loaded` (code + data, which carries the 0.7 MB budget); `image` stays (everything static, now information only: the core's static pools are budgeted separately, PLAN 3.3); boot via the core's dsd_core_main (C11 0.2.0), errors are the core's R5xx (R584/R571), provisional R580-R582 dropped.
+- 0.3.0 (2026-09-26, WS3, T1): VERSION key `build_tree` (git tree of the DS build's inputs: core/, gen/, platform/ds/src/, data/, Makefile, package.json), appended; it is the staleness check for dist/ (`npm run check:dist -w runtime`), so WS2 test/host edits no longer make dist/ stale; `tree` unchanged, now informational.
 
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.

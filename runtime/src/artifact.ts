@@ -16,6 +16,11 @@ export const IMAGE_BUDGET_BYTES = Math.floor(0.7 * 1024 * 1024);
 export const ARM7_ELF = "$BLOCKSDS/sys/arm7/main_core/arm7_maxmod.elf";
 /** runtime/ path segments the VERSION tree hash leaves out: dist/ holds VERSION itself. */
 export const TREE_EXCLUDES = ["dist"] as const;
+/**
+ * runtime/ paths the DS build reads (runtime/Makefile without DSD_SELFTEST): the VERSION `build_tree` hash covers
+ * exactly these, so it changes only when the ELF can. WS2's tests/ and host/, the briefs and selftest/ are left out.
+ */
+export const BUILD_INPUTS = ["core", "gen", "platform/ds/src", "data", "Makefile", "package.json"] as const;
 
 const MAIN_RAM_START = 0x02000000;
 const MAIN_RAM_END = 0x02400000;
@@ -118,8 +123,10 @@ export interface VersionInfo {
   runtime: string;
   /** 8 lowercase hex digits, as in DSD|READY. */
   abi: string;
-  /** git tree hash of runtime/ without dist/. */
+  /** git tree hash of runtime/ without dist/ (informational). */
   tree: string;
+  /** git tree hash of BUILD_INPUTS only: the staleness check for dist/. */
+  buildTree: string;
   blocksds: string;
   arm9Sha256: string;
   report: MemoryReport;
@@ -140,6 +147,7 @@ export function formatVersion(v: VersionInfo): string {
     `cstack=${v.report.cstack}`,
     `image=${v.report.image}`,
     `loaded=${v.report.loaded}`,
+    `build_tree=${v.buildTree}`,
   ];
   return `${lines.join("\n")}\n`;
 }
@@ -189,9 +197,10 @@ const GIT_TIMEOUT_MS = 60_000;
 /**
  * The git tree hash of `<repoRoot>/runtime` as it is in the working tree, without runtime/dist: HEAD's tree plus
  * every tracked and untracked, non-ignored change under runtime/, staged into a throwaway index (the real index is
- * never touched). A commit that adds sources and their dist/ together records the tree it commits.
+ * never touched). A commit that adds sources and their dist/ together records the tree it commits. With `only`,
+ * the tree keeps just those runtime/-relative paths (BUILD_INPUTS for `build_tree`).
  */
-export async function runtimeTreeHash(repoRoot: string, git = "git"): Promise<string> {
+export async function runtimeTreeHash(repoRoot: string, git = "git", only?: readonly string[]): Promise<string> {
   const dir = mkdtempSync(path.join(tmpdir(), "dsdude-runtime-tree-"));
   const env = { ...process.env, GIT_INDEX_FILE: path.join(dir, "index") };
   const g = (args: string[]) => run(git, args, { cwd: repoRoot, env, timeoutMs: GIT_TIMEOUT_MS });
@@ -199,6 +208,10 @@ export async function runtimeTreeHash(repoRoot: string, git = "git"): Promise<st
     await g(["read-tree", "HEAD"]);
     await g(["add", "-A", "--", "runtime"]);
     for (const ex of TREE_EXCLUDES) await g(["rm", "-r", "-q", "--cached", "--ignore-unmatch", "--", `runtime/${ex}`]);
+    if (only) {
+      const keep = only.map((p) => `:(exclude)runtime/${p}`);
+      await g(["rm", "-r", "-q", "--cached", "--ignore-unmatch", "--", "runtime", ...keep]);
+    }
     const { stdout } = await g(["write-tree", "--prefix=runtime/"]);
     const tree = stdout.trim();
     if (!/^[0-9a-f]{40}$/.test(tree)) throw new Error(`git write-tree printed ${JSON.stringify(stdout)}`);
@@ -206,4 +219,19 @@ export async function runtimeTreeHash(repoRoot: string, git = "git"): Promise<st
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+/**
+ * Why dist/ does not match its inputs, from dist/VERSION and the current state: `build_tree` differs (a build input
+ * changed since dist/ was built) or `arm9_sha256` is not dist/arm9.elf's. Empty when dist/ is current. A VERSION
+ * without `build_tree` (C8 artifact < 0.3.0) counts as stale.
+ */
+export function distProblems(version: Record<string, string>, buildTree: string, arm9Sha256: string): string[] {
+  const out: string[] = [];
+  if (!version.build_tree) out.push("dist/VERSION has no build_tree (built before C8 artifact 0.3.0)");
+  else if (version.build_tree !== buildTree) {
+    out.push(`a build input changed since dist/ was built (build_tree ${version.build_tree} -> ${buildTree})`);
+  }
+  if (version.arm9_sha256 !== arm9Sha256) out.push("dist/arm9.elf is not the file dist/VERSION describes");
+  return out;
 }
