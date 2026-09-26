@@ -115,6 +115,13 @@ export const TOOLCHAIN_CATALOG = {
     "{emulator} could not be downloaded from {url}: {detail}",
     "Check the internet connection and try again.",
   ),
+  E625: {
+    code: "E625",
+    severity: "warning",
+    title: "Key can't be used",
+    message: "The key '{key}' can't be used for the {button} button, so {button} stays on {fallback}.",
+    hint: "Choose a letter, a digit, an arrow key or another key from the list in Settings > Controls.",
+  },
   E630: e(
     "E630",
     "Screenshot tool missing",

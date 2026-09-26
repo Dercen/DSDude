@@ -26,6 +26,14 @@ export {
 } from "./fake-toolchain.ts";
 export { FIXTURE_ELF, FIXTURE_NITROFS, FIXTURE_PACKROM, FIXTURE_ROM } from "./fixtures.ts";
 export {
+  configKeyName,
+  DEFAULT_KEYS,
+  DS_BUTTONS,
+  type ResolvedKeys,
+  resolveKeys,
+  translateKey,
+} from "./keymap.ts";
+export {
   bashEnv,
   dsdudeHome,
   projectBuildDir,

@@ -128,6 +128,25 @@ describe("plain BlocksDS folder (samples/hello)", () => {
     expect(await res.emulator?.exited).toBe(0);
   });
 
+  it("launchRom passes the keys to the emulator; a key it cannot use is an E625 warning, not a failure", async () => {
+    const fake = createFakeToolchain({ home: home() });
+    const built = await fake.service.build({
+      projectDir: HELLO,
+      runtime: FIXTURE_ELF,
+      skipCompile: true,
+      skipAssets: true,
+    });
+    const warned: string[] = [];
+    fake.service.onEvent((e) => e.phase === "running" && warned.push(...e.diagnostics.map((d) => d.code)));
+    const keys = { a: "k", b: "F13" };
+    const res = await fake.service.launchRom(built.ndsPath ?? "", { kind: "melonds", keys });
+    expect(res.ok).toBe(true);
+    expect(fake.launches[0]?.keys).toEqual(keys);
+    expect(res.diagnostics.map((d) => [d.code, d.severity])).toEqual([["E625", "warning"]]);
+    expect(warned).toContain("E625");
+    await fake.service.stop();
+  });
+
   it("Debug with DeSmuME fails with E623 and launches nothing", async () => {
     const fake = createFakeToolchain({ home: home() });
     const res = await fake.service.play({
