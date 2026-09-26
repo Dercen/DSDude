@@ -4,6 +4,7 @@
 //   - runtime fixtures (fixtures/bytecode/*.out, fixtures/bytecode/runtime/*.out): the full output, READY and
 //     EXIT/ERR included, so error codes, object/event/file/line and messages are pinned.
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "collision.h"
@@ -15,6 +16,7 @@
 #include "host.h"
 #include "opcodes.h"
 #include "test.h"
+#include "vm.h"
 
 // Captured protocol output of one run.
 #define CAPTURE_MAX (256 * 1024)
@@ -91,6 +93,28 @@ static void keep_lines(const char *text, const char *prefix, char *out, uint32_t
         text += len;
     }
     out[n] = '\0';
+}
+
+// The DSD|MEM key naming the dispatch path (C8 0.3.0): its KB differ between the paths by design.
+#define PREDECODE_KEY ",predecode="
+
+// Removes the KB figure of every `predecode=<KB>/<total>` in `text`, in place, so a run on either dispatch path
+// matches the same golden (the goldens record the pre-decoded figure; test_predecode_paths checks the figures).
+static void mask_predecode(char *text) {
+    size_t key = strlen(PREDECODE_KEY);
+    for (char *p = strstr(text, PREDECODE_KEY); p != NULL; p = strstr(p, PREDECODE_KEY)) {
+        p += key;
+        size_t digits = strspn(p, "0123456789");
+        memmove(p, p + digits, strlen(p + digits) + 1);
+    }
+}
+
+// Masks what a golden does not pin (the ABI hash and the predecode KB) in the captured output and the golden.
+static void mask_unpinned(void) {
+    dsd_test_mask_abi(g_capture);
+    dsd_test_mask_abi(g_expected);
+    mask_predecode(g_capture);
+    mask_predecode(g_expected);
 }
 
 // Reads an expected-output file with '\r' removed (goldens compare after stripping \r).
@@ -228,8 +252,7 @@ static void test_cases(void) {
         if (!dsd_test_check_i64(st, c->state, __FILE__, __LINE__, c->dsdb)) continue;
         dsd_test_check_i64(host_fatal_seen(), c->state == DSD_GAME_FAILED, __FILE__, __LINE__, c->dsdb);
         if (!read_expected(c->expected)) continue;
-        dsd_test_mask_abi(g_capture);
-        dsd_test_mask_abi(g_expected);
+        mask_unpinned();
         if (c->log_only) {
             keep_lines(g_capture, LOG_PREFIX, g_filtered, sizeof g_filtered);
             dsd_test_check_str(g_filtered, g_expected, __FILE__, __LINE__, c->dsdb);
@@ -699,14 +722,51 @@ static void test_int_specialised(void) {
         if (!CHECK(write_bytes(II_COPY, bytes, n))) return;
         run_program(II_COPY);
         if (CHECK(read_expected(goldens[release]))) {
-            dsd_test_mask_abi(g_capture);
-            dsd_test_mask_abi(g_expected);
+            mask_unpinned();
             CHECK_STR(g_capture, g_expected);
         }
     }
 }
 
-void suite_programs(void) {
+// ---- Dispatch paths (M1 lever 1: pre-decoded cells, with the plain dispatch as the fallback) --------------------
+
+#define BENCH_DSDB "fixtures/bytecode/bench.dsdb"
+#define KB 1024u
+#define DECIMAL_BASE 10
+
+// The KB figure of the captured DSD|MEM line's predecode key, or -1 when there is none.
+static int32_t captured_predecode_kb(void) {
+    const char *p = strstr(g_capture, PREDECODE_KEY);
+    return p != NULL ? (int32_t)strtol(p + strlen(PREDECODE_KEY), NULL, DECIMAL_BASE) : -1;
+}
+
+// Boots bench (a room game: its first room prints DSD|MEM) with the cell limit `limit`; true when it ran threaded.
+static bool bench_threaded(uint32_t limit) {
+    dsd_vm_predecode_limit(limit);
+    CHECK_EQ(run_frames(BENCH_DSDB, 0, NULL), DSD_GAME_RUNNING);
+    return dsd_game_vm()->cells != NULL;
+}
+
+static void test_predecode_paths(void) {
+    // By default the module is pre-decoded: one 8-byte contract cell per instruction, reported in KB rounded up.
+    CHECK(bench_threaded(DSD_PREDECODE_CELLS_MAX));
+    uint32_t cells = dsd_game_vm()->prog->code_count;
+    CHECK_EQ(dsd_vm_predecode_bytes(dsd_game_vm()), cells * DSD_PREDECODE_CELL_BYTES);
+    CHECK_EQ(captured_predecode_kb(), (cells * DSD_PREDECODE_CELL_BYTES + KB - 1u) / KB);
+    CHECK(strstr(g_capture, PREDECODE_KEY) != NULL && strstr(g_capture, "/256\n") != NULL); // the C13 total
+    // Exactly enough cells stays threaded; one fewer runs the whole module on the plain dispatch.
+    CHECK(bench_threaded(cells));
+    CHECK(!bench_threaded(cells - 1u));
+    CHECK_EQ(dsd_vm_predecode_bytes(dsd_game_vm()), 0);
+    CHECK_EQ(captured_predecode_kb(), 0);
+    // Forced plain (dsdude-host's DSD_PLAIN_DISPATCH=1), and a limit above the budget is clamped to it.
+    CHECK(!bench_threaded(0));
+    CHECK(bench_threaded(UINT32_MAX));
+    dsd_vm_predecode_limit(DSD_PREDECODE_CELLS_MAX);
+}
+
+// Every whole-program test, on the dispatch path the current predecode limit selects.
+static void program_tests(void) {
     test_cases();
     test_collector_ran();
     test_draw_oam();
@@ -720,4 +780,17 @@ void suite_programs(void) {
     test_missing_file();
     test_core_main();
     test_repeatable();
+}
+
+void suite_programs(void) {
+    dsd_vm_predecode_limit(DSD_PREDECODE_CELLS_MAX);
+    program_tests();
+    test_predecode_paths();
+}
+
+// The same goldens, traces and screens on the plain dispatch: both paths must print identical output.
+void suite_programs_plain(void) {
+    dsd_vm_predecode_limit(0);
+    program_tests();
+    dsd_vm_predecode_limit(DSD_PREDECODE_CELLS_MAX);
 }

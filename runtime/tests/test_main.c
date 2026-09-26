@@ -102,6 +102,7 @@ static const Suite SUITES[] = {
     {"loader", suite_loader},
     {"host", suite_host},
     {"programs", suite_programs},
+    {"programs-plain", suite_programs_plain},
 };
 
 int main(void) {

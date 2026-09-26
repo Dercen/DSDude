@@ -70,6 +70,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.2.0 T0 (2026-09-26, WS2): a trace line is written when the frame has ended (after a pending room change); DSD|STAT comes every 60th frame; DSD|MEM comes after Room Start and its `inst` counts instance blocks in use.
 - 0.2.0 T0 (2026-09-26, WS2, from WS1): the flush pad is >= 5120 bytes, at least six DSD|PAD| lines (five 1023-char lines are 5,115 characters). DSD|STAT's spr_top/spr_bot/oam_drop/aff_drop describe the last frame (oam_drop and aff_drop summed over both screens).
 - 0.2.0 T0 (2026-09-26, WS2): "Screens" describes what `--png-dir` writes now that tier v4 has it: the layer order, RGB555 widening (`c5 << 3 | c5 >> 2`, compare in RGB555), no files for program form, and magenta box outlines for sprites without GRFs (a `.dsdb` root).
+- 0.3.0 (2026-09-26, WS2, T1): DSD|MEM key `predecode=<KB>/256`, appended after `cstack`: the pre-decoded code's size (M1 lever 1, WS0's go-ahead), 0 on the plain dispatch. dsdude-host's environment variable `DSD_PLAIN_DISPATCH=1` forces the plain dispatch. WS3's conformance normalisation keeps only `inst`/`arena`, so no DS golden changes.
 
 ## C8 Runtime artifact (`contracts/runtime-artifact.md`)
 - owed: WS3, with its first runtime/dist build.
@@ -111,6 +112,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C13 Runtime limits (`contracts/runtime-limits.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): the 22 PLAN 5.2 C13 keys and values.
 - 0.2.0 (2026-09-26, WS2, T1, proposed by WS3): scanlineObjCycles 1200 -> 2048. On a real 3DS in DS mode (WS3 spike 15), 2,178 OBJ line cycles drew fully and 2,208 dropped, consistently for normal, affine and affine2x sprites, so the limit with DISPCNT bit 23 clear is 2,178-2,207; 2048 keeps ~6% margin. The value is still a warning threshold (checkers and meters read it from this file).
+- 0.3.0 (2026-09-26, WS2, T1, WS0's M1 decision): new key predecodeBytes 262144: the heap the runtime may use for pre-decoded code (direct threading, M1 lever 1), 32,768 instructions at 8 bytes each (one cell per CODE word). A module over it, or a failed allocation, runs the whole module on the plain dispatch; DSD|MEM `predecode` (C8 0.3.0) reports which. No DSDB format change (C2 unchanged).
 
 ## C14 Phase-0 fixtures
 - 0.1.0 (2026-09-25, WS0, Phase 0): samples/minimal, samples/flappy v0 (ADR-0001 applied), fixtures/bytecode hello + conformance/v0-01, fixtures/assets, fixtures/conformance v0.

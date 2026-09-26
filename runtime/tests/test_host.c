@@ -149,6 +149,7 @@ static void test_limits(void) {
         {"registersPerFrame", DSD_C13_REGISTERS_PER_FRAME},
         {"spritesPerScreen", DSD_C13_SPRITES_PER_SCREEN},
         {"affinePerScreen", DSD_C13_AFFINE_PER_SCREEN},
+        {"predecodeBytes", DSD_C13_PREDECODE_BYTES},
     };
     static char json[LIMITS_MAX];
     int32_t n = dsd_test_read_file(LIMITS_JSON, json, LIMITS_MAX - 1);

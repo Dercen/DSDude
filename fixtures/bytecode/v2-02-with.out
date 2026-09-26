@@ -12,4 +12,4 @@ DSD|LOG|7
 DSD|LOG|2
 DSD|LOG|100005
 DSD|LOG|100005
-DSD|MEM|inst=5/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0
+DSD|MEM|inst=5/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0,predecode=1/256

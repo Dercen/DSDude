@@ -1,6 +1,6 @@
 # C8: Runtime log protocol
 
-Version: 0.2.0 · Owner: WS2 · Changes: see the tiers in contracts/README.md
+Version: 0.3.0 · Owner: WS2 · Changes: see the tiers in contracts/README.md
 
 How the runtime reports to the IDE and the CLI: text lines on the emulator's stdout, captured through a pipe by
 EmulatorManager (C4). Phase-0 draft by WS0; WS2 owns it from the tag (WS0 holds it until `start-ws2`). The runtime
@@ -16,7 +16,7 @@ Every line starts with `DSD|`, has `|`-separated fields and ends with `\n`. Pars
 | `DSD\|READY\|<version>\|<abihash>` | once, after boot and the DSDB loaded | runtime semver; the runtime's ABI hash as 8 lowercase hex digits (C2) |
 | `DSD\|LOG\|<text>` | `show_debug_message` and runtime notes | free text (rules below) |
 | `DSD\|ERR\|<code>\|<object>\|<event>\|<file>\|<line>\|<message>` | a runtime error (the game stops) | R5xx code (C9); object and event names; project-relative DSS file; 1-based line (0 if unknown); message in the C9 voice |
-| `DSD\|MEM\|inst=14/512,arena=40/512,heapfree=1310,snd=120/768,objvram_top=48/128,objvram_bot=12/128,pal16_top=1/16,pal256_top=3/16,pal16_bot=0/16,pal256_bot=1/16,cstack=2/11` | at room start (after Room Start) | `key=used/total` pairs; KB unless a count; `inst` counts instance blocks in use |
+| `DSD\|MEM\|inst=14/512,arena=40/512,heapfree=1310,snd=120/768,objvram_top=48/128,objvram_bot=12/128,pal16_top=1/16,pal256_top=3/16,pal16_bot=0/16,pal256_bot=1/16,cstack=2/11,predecode=10/256` | at room start (after Room Start) | `key=used/total` pairs; KB unless a count; `inst` counts instance blocks in use; `predecode` (0.3.0) is the pre-decoded code's KB against C13 `predecodeBytes` (8-byte cells, rounded up), 0 when the module runs on the plain dispatch (over the budget, allocation failed, or dsdude-host's `DSD_PLAIN_DISPATCH=1`); both paths print otherwise identical output |
 | `DSD\|STAT\|fps=60,inst=14,spr_top=9,spr_bot=2,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1820` | once per second: every 60th frame | `spr_top`/`spr_bot`: sprites shown per screen in the last frame; `oam_drop`: draws beyond 128 visible per screen in the last frame (on both screens together); `aff_drop`: rotated or scaled draws beyond 32 per screen that drew unrotated in the last frame; `sfx_drop`: effects that found no free channel; `ops`: VM ops in the last frame |
 | `DSD\|PAD\|...` | after READY, ERR and STAT | flush pad (below); parsers drop it |
 | `DSD\|EXIT\|<code>` | the game ends (`game_end()`, the end of a program-form `__main`) | integer exit code, 0 = normal |
