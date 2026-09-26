@@ -561,7 +561,7 @@ static void log_mem(void) {
 
 // Loads room r (contracts/events.md section 4 load order): assets, placed instances (Create, then creation code),
 // Game Start in the game's first room, Room Start.
-static bool load_room(uint32_t r) {
+static bool load_room_now(uint32_t r) {
     DsdEngine *e = &dsd_engine;
     const DsdRoom *rm = &e->world->rooms[r];
     e->room = r;
@@ -589,6 +589,15 @@ static bool load_room(uint32_t r) {
     dsd_plat_screens_blank(false);
     log_mem();
     return true;
+}
+
+// load_room, with its duration left out of the DSD|STAT fps window: loading assets and running Create and Room Start
+// events is not a frame, so the window's start moves forward by the time it took (WS3: the first STAT read fps=59).
+static bool load_room(uint32_t r) {
+    uint32_t start = dsd_plat_millis();
+    bool ok = load_room_now(r);
+    g_stat_millis += dsd_plat_millis() - start;
+    return ok;
 }
 
 // A pending room change (end of frame): Room End for everyone, all instances removed (no Destroy), the new room.

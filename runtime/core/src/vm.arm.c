@@ -6,7 +6,11 @@
 // prediction and ITCM layout, so both are off for this file.
 //
 // The loader has verified every instruction (registers, constants, jumps, builtins, globals, callees), so the
-// handlers index without bounds checks. Every step decrements the watchdog budget (R510 past 200,000 per frame).
+// handlers index without bounds checks. The watchdog (R510 past 200,000 steps per frame) counts every step exactly,
+// but settles the count only at control transfers: code between two transfers runs in sequence, so the steps it took
+// are `ip - seg`, where `seg` is where that straight run began (see TRANSFER below). An endless loop always
+// transfers, so it is still caught; only the moment of the stop moves, from the exact 200,001st step to the next
+// jump, call or return (at most one straight run later). DSD|STAT's and the traces' `ops` stay exact.
 #pragma GCC optimize("no-gcse", "no-crossjumping")
 
 #include <string.h>
@@ -486,18 +490,34 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     const uint32_t entry_depth = vm->depth;
     const uint32_t *ip = code + prog->funcs[func].code_start;
     DsdValue *R = vm->regs + base; // the running frame's r0
-    uint32_t budget = vm->budget;
+    int32_t budget = (int32_t)vm->budget; // steps left this frame, settled at transfers (never more than 200,000)
+    const uint32_t *seg = ip;              // the first step of the current straight run, not yet charged
     uint32_t ins;
     DsdValue a;
     DsdValue b;
     int32_t r;
 
-// Fetch the next instruction and jump to its handler, after charging one watchdog step.
+// Fetch the next instruction and jump to its handler. No per-step work: the step is charged at the next transfer.
 #define DISPATCH()                                                                                                     \
     do {                                                                                                               \
-        if (budget-- == 0) goto watchdog_fired;                                                                        \
         ins = *ip++;                                                                                                   \
         goto *dispatch_base[DSD_OP(ins)];                                                                              \
+    } while (0)
+// Charge the steps of the straight run that ends here (the running instruction included); R510 when the frame's
+// budget is spent. Every non-sequential change of ip and every hand-over of the budget (to a builtin, to the caller)
+// goes through it.
+#define SETTLE()                                                                                                       \
+    do {                                                                                                               \
+        budget -= (int32_t)(ip - seg);                                                                                 \
+        seg = ip;                                                                                                      \
+        if (budget < 0) goto watchdog_fired;                                                                           \
+    } while (0)
+// Settle, then continue at `target`, where the next straight run begins.
+#define TRANSFER(target)                                                                                               \
+    do {                                                                                                               \
+        SETTLE();                                                                                                      \
+        ip = (target);                                                                                                 \
+        seg = ip;                                                                                                      \
     } while (0)
 // Record the running instruction's code index for errors and builtins (ip already points past it).
 #define SYNC_PC() (vm->pc = (uint32_t)(ip - 1 - code))
@@ -508,8 +528,9 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     DISPATCH();
 
 op_HALT:
+    SETTLE();
     vm->halted = true;
-    vm->budget = budget;
+    vm->budget = (uint32_t)budget;
     vm->depth = entry_depth;
     return DSD_R_NONE;
 
@@ -616,24 +637,25 @@ op_NOT:
     DISPATCH();
 
 op_JMP:
-    ip += DSD_SBX(ins);
+    TRANSFER(ip + DSD_SBX(ins));
     DISPATCH();
 
 op_JMPT:
-    if (dsd_truthy(RA)) ip += DSD_SBX(ins);
+    if (dsd_truthy(RA)) TRANSFER(ip + DSD_SBX(ins));
     DISPATCH();
 
 op_JMPF:
-    if (!dsd_truthy(RA)) ip += DSD_SBX(ins);
+    if (!dsd_truthy(RA)) TRANSFER(ip + DSD_SBX(ins));
     DISPATCH();
 
 op_CALLN: {
     uint32_t bi = DSD_C(ins);
     DsdBuiltinFn fn = dsd_builtin_fn[bi]; // never NULL: the loader refuses unimplemented builtins (R582)
     SYNC_PC();
-    vm->budget = budget; // a builtin may run script code (events) that charges the same budget
+    SETTLE();
+    vm->budget = (uint32_t)budget; // a builtin may run script code (events) that charges the same budget
     if (!fn(vm, &RA, DSD_B(ins))) goto failed;
-    budget = vm->budget;
+    budget = (int32_t)vm->budget;
     if (vm->halted) goto halted_inside;
     DISPATCH();
 }
@@ -654,15 +676,16 @@ op_CALL: {
     vm->depth++;
     func = callee;
     R = vm->regs + callee_base;
-    ip = code + prog->funcs[callee].code_start;
+    TRANSFER(code + prog->funcs[callee].code_start);
     DISPATCH();
 }
 
 op_RET:
     // The callee's r0 is the caller's rA, so the result lands in place.
     R[0] = DSD_B(ins) ? RA : dsd_undef();
+    SETTLE();
     if (vm->depth == entry_depth) {
-        vm->budget = budget;
+        vm->budget = (uint32_t)budget;
         return DSD_R_NONE;
     }
     {
@@ -670,6 +693,7 @@ op_RET:
         func = f->func;
         R = vm->regs + f->base;
         ip = code + f->ret_pc;
+        seg = ip;
         vm->top = f->base + prog->funcs[func].regs;
     }
     DISPATCH();
@@ -787,7 +811,7 @@ op_CMPJ: {
         SYNC_PC();
         if (!relation_holds(vm, DSD_C(ins), a, b, &holds)) goto failed;
     }
-    if (holds) ip++; // the verifier guarantees the next word is a JMP inside the function
+    if (holds) TRANSFER(ip + 1); // skip the JMP (the verifier guarantees one follows), which never runs
     DISPATCH();
 }
 
@@ -878,12 +902,12 @@ op_WITHBEGIN: {
     bool empty;
     SYNC_PC();
     if (!dsd_with_begin(RA, &RA, &empty)) goto failed;
-    if (empty) ip += DSD_SBX(ins);
+    if (empty) TRANSFER(ip + DSD_SBX(ins));
     DISPATCH();
 }
 
 op_WITHNEXT:
-    if (dsd_with_next(RA)) ip += DSD_SBX(ins);
+    if (dsd_with_next(RA)) TRANSFER(ip + DSD_SBX(ins));
     DISPATCH();
 
 op_WITHEND:
@@ -891,22 +915,25 @@ op_WITHEND:
     DISPATCH();
 
 watchdog_fired:
-    budget = 0;                     // the post-decrement wrapped it; the frame's budget is spent
-    vm->pc = (uint32_t)(ip - code); // the step that would have run next
+    budget = 0;                         // the frame's budget is spent
+    vm->pc = (uint32_t)(ip - 1 - code); // the transfer that settled past the budget
     watchdog(vm);
     goto failed;
 
 halted_inside:
-    vm->budget = budget;
+    vm->budget = (uint32_t)budget;
     vm->depth = entry_depth;
     return DSD_R_NONE;
 
 failed:
-    vm->budget = budget;
+    budget -= (int32_t)(ip - seg); // the steps of the failing run still count (never below 0: ops stays sane)
+    vm->budget = budget < 0 ? 0u : (uint32_t)budget;
     vm->depth = entry_depth;
     return vm->err_code;
 
 #undef DISPATCH
+#undef SETTLE
+#undef TRANSFER
 #undef SYNC_PC
 #undef RA
 #undef RB

@@ -54,6 +54,14 @@ the regenerated `.dsdb` together.
   line stops with R520 (`wrap.out`); the tests also run a copy with header flags bit 0 set (a release build,
   ADR-0008), which prints the wrapped values `-2147483648`, `0`, `-448575.5`, `2147483647` (`wrap-release.out`),
   and a copy with an unknown flag bit, which the loader refuses with R581.
+- `runtime/music` (rule 8): a room with two modules (`mus_theme` id 3, `mus_boss` id 4). Play theme, play theme again
+  (a no-op), play boss, stop, play boss again; `audio_is_playing` logs `true false false true false true`, and
+  the host's module-player model (`host_music_starts`) counts 3 starts, ending on module 4.
+- `runtime/rng-platform`, `runtime/rng-header` (the RNG seed rule): five `irandom(1000000)` draws around a
+  `randomize()` (a no-op). With header seed 0 the platform seed decides (`--seed 1`: 634622 432814 599388 686835
+  494759; `--seed 2`: 253436 882057 951552 968815 966513); with header seed 1234 every `--seed` gives 584499
+  940738 581632 355230 472505. The values were checked against an independent xorshift32 (13/17/5) with the
+  runtime's rejection-sampled bounded draw.
 - `runtime/numeric-hashes` (`.dss` source, `.dsda`, `.dsdb`, `.out`): spike 12's numeric harness (PLAN.md 7.1,
   `docs/research/verification.md` claim 11). The `.dsda` is WS4's `compileProgram` output for the `.dss` (then
   `.seed 20260926` in the header, so every platform draws the same random numbers). It folds the raw Q20.12

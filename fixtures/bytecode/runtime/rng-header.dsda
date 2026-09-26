@@ -1,0 +1,28 @@
+.dsda 0.1
+.seed 1234
+
+.func __main 0 1
+    .loc "rt/rng-header.dss" 1
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-header.dss" 2
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-header.dss" 3
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-header.dss" 4
+    CALLN r0, 0, randomize
+    .loc "rt/rng-header.dss" 5
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-header.dss" 6
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end

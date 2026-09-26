@@ -316,7 +316,7 @@ const HostScreenOam *host_oam(uint32_t screen) { return &g_oam[screen]; }
 
 void dsd_plat_screens_blank(bool blank) { (void)blank; } // the host renders only between frames, never mid-load
 
-void dsd_plat_assets_free(void) { free_assets(); }
+void host_gfx_free(void) { free_assets(); }
 
 // ---- C11: the UI layer --------------------------------------------------------------------------------------------
 

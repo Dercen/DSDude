@@ -49,7 +49,14 @@ static char g_key_text[EXPECT_MAX];
 
 // Boots one program with output captured, runs up to `frames` frames with the key script `keys` (or none), and
 // returns the game state.
+static int32_t run_frames_seeded(const char *root, uint32_t frames, const char *keys, uint32_t seed);
+
 static int32_t run_frames(const char *root, uint32_t frames, const char *keys) {
+    return run_frames_seeded(root, frames, keys, RUN_SEED);
+}
+
+// run_frames with the platform seed `seed` (dsd_plat_rng_seed, --seed N) instead of RUN_SEED.
+static int32_t run_frames_seeded(const char *root, uint32_t frames, const char *keys, uint32_t seed) {
     g_capture_len = 0;
     g_capture[0] = '\0';
     const HostKeyScript *ks = NULL;
@@ -59,7 +66,7 @@ static int32_t run_frames(const char *root, uint32_t frames, const char *keys) {
         if (!CHECK(n >= 0) || !CHECK(host_keys_parse(&g_keys, g_key_text, (uint32_t)n, err, sizeof err))) return -1;
         ks = &g_keys;
     }
-    HostConfig cfg = {root, RUN_SEED, ks, capture, NULL};
+    HostConfig cfg = {root, seed, ks, capture, NULL};
     host_configure(&cfg);
     int32_t st = dsd_game_boot();
     for (uint32_t f = 0; f < frames && st == DSD_GAME_RUNNING; f++) st = dsd_game_frame();
@@ -184,6 +191,12 @@ static const ProgramCase CASES[] = {
     // Debug arithmetic (header flags 0): the first overflow stops the game with R520 (test_release_flag runs the
     // same program as a release build).
     {"fixtures/bytecode/runtime/wrap.dsdb", "fixtures/bytecode/runtime/wrap.out", false, DSD_GAME_FAILED, 0, NULL},
+    // Rule 8 (music) and the RNG seed rule (language.md section 7); test_music_and_seed checks the rest.
+    {"fixtures/bytecode/runtime/music.dsdb", "fixtures/bytecode/runtime/music.out", false, DSD_GAME_RUNNING, 1, NULL},
+    {"fixtures/bytecode/runtime/rng-platform.dsdb", "fixtures/bytecode/runtime/rng-platform.out", false,
+     DSD_GAME_EXITED, 0, NULL},
+    {"fixtures/bytecode/runtime/rng-header.dsdb", "fixtures/bytecode/runtime/rng-header.out", false, DSD_GAME_EXITED,
+     0, NULL},
     {"fixtures/bytecode/runtime/err-overflow.dsdb", "fixtures/bytecode/runtime/err-overflow.out", false,
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-recursion.dsdb", "fixtures/bytecode/runtime/err-recursion.out", false,
@@ -549,6 +562,71 @@ static void test_release_flag(void) {
     }
 }
 
+// ---- Rule 8 and the RNG seed rule (language.md section 7) ---------------------------------------------------------
+
+#define MUSIC_BOSS_ID 4    // music.dsda: mus_boss's soundbank id
+#define MUSIC_STARTS 3     // theme, boss, boss again after audio_stop_music (the second theme call is a no-op)
+#define OTHER_SEED 2u      // a platform seed other than RUN_SEED
+
+static void test_music_and_seed(void) {
+    CHECK_EQ(run_frames("fixtures/bytecode/runtime/music.dsdb", 1, NULL), DSD_GAME_RUNNING);
+    CHECK_EQ(host_music_starts(), MUSIC_STARTS);
+    CHECK_EQ(host_music_playing(), MUSIC_BOSS_ID);
+    // A non-zero header seed wins over the platform's: the same numbers whatever --seed says.
+    static char first[CAPTURE_MAX];
+    run_program("fixtures/bytecode/runtime/rng-header.dsdb");
+    memcpy(first, g_capture, g_capture_len + 1);
+    run_frames_seeded("fixtures/bytecode/runtime/rng-header.dsdb", 0, NULL, OTHER_SEED);
+    CHECK_STR(g_capture, first);
+    // Header seed 0: the platform's seed decides.
+    run_program("fixtures/bytecode/runtime/rng-platform.dsdb");
+    memcpy(first, g_capture, g_capture_len + 1);
+    run_frames_seeded("fixtures/bytecode/runtime/rng-platform.dsdb", 0, NULL, OTHER_SEED);
+    CHECK(strcmp(g_capture, first) != 0);
+}
+
+// ---- Mutation fuzzing of the loader and verifier -------------------------------------------------------------------
+// Every case's DSDB with a few bytes changed must be refused with an R58x code or run safely: no crash, no UBSan trap
+// (the trap build runs the same test), and only the three documented end states. The mutations come from the test
+// PRNG with a fixed seed, so a failure reproduces.
+
+#define FUZZ_SEED 0x5EED0FF5u         // dsd_test_rand seed for the mutations
+#define FUZZ_MUTANTS 40               // mutated copies per case
+#define FUZZ_MAX_FLIPS 4              // bytes changed per mutant: 1..FUZZ_MAX_FLIPS
+#define FUZZ_FRAMES 3                 // frames a room-game mutant that loads runs for
+#define FUZZ_COPY "runtime/build-host/fuzz.dsdb"
+
+static void test_mutations(void) {
+    static char original[EXPECT_MAX];
+    static char mutant[EXPECT_MAX];
+    uint32_t loaded = 0;
+    uint32_t refused = 0;
+    uint32_t bad_state = 0;
+    dsd_test_seed(FUZZ_SEED);
+    for (size_t c = 0; c < sizeof CASES / sizeof CASES[0]; c++) {
+        int32_t n = dsd_test_read_file(CASES[c].dsdb, original, sizeof original);
+        if (!CHECK(n > 0)) continue;
+        for (uint32_t m = 0; m < FUZZ_MUTANTS; m++) {
+            memcpy(mutant, original, (size_t)n);
+            uint32_t flips = 1 + dsd_test_rand() % FUZZ_MAX_FLIPS;
+            for (uint32_t k = 0; k < flips; k++) {
+                mutant[dsd_test_rand() % (uint32_t)n] = (char)(dsd_test_rand() & 0xFFu);
+            }
+            FILE *f = fopen(FUZZ_COPY, "wb");
+            if (!CHECK(f != NULL)) return;
+            bool written = fwrite(mutant, 1, (size_t)n, f) == (size_t)n;
+            if (!CHECK(fclose(f) == 0 && written)) return;
+            int32_t st = run_frames(FUZZ_COPY, FUZZ_FRAMES, NULL);
+            bool refused_at_load = strstr(g_capture, "DSD|READY|") == NULL;
+            refused += refused_at_load ? 1u : 0u;
+            loaded += refused_at_load ? 0u : 1u;
+            if (st != DSD_GAME_RUNNING && st != DSD_GAME_EXITED && st != DSD_GAME_FAILED) bad_state++;
+        }
+    }
+    CHECK_EQ(bad_state, 0);
+    CHECK(loaded > 0 && refused > 0); // both paths were exercised
+}
+
 void suite_programs(void) {
     test_cases();
     test_collector_ran();
@@ -556,6 +634,8 @@ void suite_programs(void) {
     test_screens();
     test_broadphase();
     test_release_flag();
+    test_music_and_seed();
+    test_mutations();
     test_flappy_deterministic();
     test_missing_file();
     test_core_main();
