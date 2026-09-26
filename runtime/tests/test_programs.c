@@ -303,9 +303,15 @@ static void test_flappy_deterministic(void) {
     char got[EXPECT_MAX];
     snprintf(got, sizeof got, "dsdb 0x%08x\ntrace 0x%08x %d\n", (unsigned)fnv1a(dsdb_bytes, nd), (unsigned)fnv1a(a, na),
              (int)na);
+    // The trace line decides: an unchanged trace passes whatever happened to the DSDB bytes. A changed trace fails,
+    // unless the DSDB changed too (WS4 recompiled Flappy): then it is noted and skipped until WS2 re-pins it.
+    const char *want_trace = strchr(want, '\n');
+    const char *got_trace = strchr(got, '\n');
+    if (want_trace != NULL && got_trace != NULL && strcmp(want_trace, got_trace) == 0) return;
     if (strncmp(got, want, strlen("dsdb 0x00000000")) != 0) {
-        printf("note: %s changed since fixtures/runtime-core/flappy-trace.fnv was made; the trace check is skipped.\n"
-               "      Regenerate it (fixtures/runtime-core/README.md); the new fingerprints are:\n%s",
+        printf("note: %s changed since fixtures/runtime-core/flappy-trace.fnv was made and so did its trace; the\n"
+               "      trace check is skipped. Check and re-pin it (fixtures/runtime-core/README.md); the new\n"
+               "      fingerprints are:\n%s",
                dsdb, got);
         return;
     }
