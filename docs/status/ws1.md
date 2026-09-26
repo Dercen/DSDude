@@ -2,8 +2,8 @@
 
 **toolchain-ok: passed 2026-09-25 4ddccb5**
 
-Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `41c7714`.
-WS1 now stops touching the branch until WS0 reports the merge and tags `toolchain-ok`.
+Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `039e6c6`
+(after `phase0`). WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25).
 
 Gate evidence (all run 2026-09-25 on this machine, section 8 criteria):
 - **Install by `scripts/install-toolchain.ps1`:** fresh run into an empty `C:\msys64\opt\wonderful` (the earlier install was moved aside, then deleted), 23:05:22-23:06:33, exit 0, unattended, no UAC prompt. Then `scripts/smoke-test.ps1 -Screenshot`: 3/3 examples PASS plus a screenshot PASS.
@@ -48,12 +48,31 @@ Legend: todo / in progress / done (<sha>).
   - `packages/cli`: the registry of every package's `cliCommands`, and `--help`.
   - `tools/screenshot.py`, `scripts/smoke-test.ps1`, `contracts/toolchain-api.md` 0.2.0, `contracts/cli.md` 0.2.0.
   - Tests: toolchain 54 (mocked spawns assert argv, env, windowsHide and timeout; real-ndstool tests skip without ToolPaths), cli 4; `tsc -b` and Biome clean.
-- Task 3. CLI polish: todo. Next:
-  - `ensureInstalled("melonds")` downloads and SHA-256-checks the zip (today: E620 when missing);
-  - reconcile compares the start time as well as the image name;
-  - GDB 3333/3334 for Debug;
-  - `--keys` follows WS2's "Host runner" format once it exists (today: the provisional cli.md draft).
-- Task 4. `BuildService`: in progress.
+- Task 3. CLI polish: **done** (5f40fcd, 6c7c469); C4 and C10 are now 0.3.0 (T1, CHANGELOG lines appended).
+  - **melonDS install.** `ensureInstalled("melonds")` reads a local release zip, else downloads it. It checks the
+    size and SHA-256 before writing (E622, or E624 when the download fails), then unpacks with System32 `tar.exe`.
+    A real-zip test runs with the hour-zero `%TEMP%\melonDS.zip` (0.4 s); the fakes cover the checksum, download and
+    local-zip cases.
+  - **Reconcile** by PID + exe path + start time (10 s tolerance) through `Get-Process`. Measured on a detached
+    melonDS:
+    - a matching record killed it; a record with a wrong start time left it alone;
+    - the OS start time was 13 ms from the recorded one;
+    - a launcher that exits without `stop()` takes melonDS down with it (closed stdout pipe, within 2 s), so the
+      stale record then matched nothing and was removed.
+  - **Debug.** `play --debug` makes melonDS listen on 3333 and 3334 (its own PID; verified with
+    `Get-NetTCPConnection`), and still logs `DSD|LOG|hello`. DeSmuME with `--debug` is E623, exit 2. melonDS binds
+    the stub on `0.0.0.0`, so it is on only while Debug runs.
+  - **`--keys`.** The ADR-0003 format (buttons, and `TOUCH x y`), because WS2's "Host runner" has no key format yet
+    (checked `main` and `origin/ws2-runtime-core`: no commits). Verified with the SDK's `input/touch_input` and
+    `input/key_input`:
+    - `40-120 TOUCH 128 96` reads back as (129, 97), with the box drawn at the centre;
+    - `60-120 A, RIGHT` shows "Held: A Right";
+    - bad lines give E631 naming file:line, exit 2;
+    - timing: a one-frame touch on frame 100 first shows in the frame-102 screenshot (`key_input` samples only
+      every 10th frame, so it misses one-frame presses; that is the ROM, not py-desmume).
+  - The C10 flags `--runtime --skip-compile --skip-assets --emulator --no-build --seed --jobs --json` and exit codes
+    0/1/2 were already in place (task 2).
+  - Tests: toolchain 61 (was 54), cli 4; `npm run check` green (Biome, `tsc -b`, generators).- Task 4. `BuildService`: in progress.
   - Plain-folder builds, cancellation, graceful Stop and the DeSmuME launch work.
   - Todo: the `project.json` path with the injected WS4/WS5 functions, `createFakeToolchain()`, and a `desmume.ini` key map.
 - Task 5. Spike 5 + `dsdude doctor`: todo.
@@ -70,12 +89,20 @@ Legend: todo / in progress / done (<sha>).
 
 ## Notes for WS0
 
-- **CHANGELOG lines owed.** C4 went to 0.2.0 (T1: `ToolPaths.arm7Elf/icon/gcc`, `RomHeaderInfo`/`RomInfo.header`; the `ndsPath` comment now names `game.nds`, as PLAN 3.2 does), and C10 went to 0.2.0 (T1: `play --seconds`, the plain-folder rules, the `--json` fields, the provisional key scripts). `contracts/CHANGELOG.md` does not exist on `main` yet, so the entries are in each file's "Changes" section; I append them to the CHANGELOG once it exists.
+- **T1 for review: C4 0.3.0 and C10 0.3.0** (6c7c469), all additive. The CHANGELOG lines are appended.
+  - C4: `LaunchOptions.debug`, `BuildRequest.debug`, optional `EmulatorManager.reconcile()`, and the melonDS
+    download in `ensureInstalled`.
+  - C10: `play --debug`, and the ADR-0003 key scripts.
+  - (0.2.0 was accepted at checkpoint 0.)
 - **C8 pad wording (for WS2, T0).** Five pad lines of 1023 chars are 5115 bytes, just under 5 KB (5120). `samples/hello` sends six (6138 bytes). "At least six lines" or ">= 5120 bytes" would remove the ambiguity.
 - **C4 `PackAssetsFn` (for WS5, task 4).** The signature says nothing about where the NitroFS files go. `LocalBuildService` packs `<DSDUDE_HOME>\build\<project-hash>\nitrofs\`, so `packAssets` must write there. Either WS5 computes that folder the same way (`projectBuildDir` is exported), or a T1 adds an `outDir` argument; I'll raise it when wiring.
 - **ADR-0002 (proposed):** DeSmuME's R4 slot-1 profile does not mount NitroFS, so DSDude uses DeSmuME's default slot 1 only.
 - **Python on PATH.** The Microsoft Store alias is found first; MSYS2's own `python.exe` 3.14.3 sits in `C:\msys64\ucrt64\bin` later on PATH. `detectToolchain` uses `lstat`, because `existsSync` misses the alias and would fall through to MSYS2's python.
-- No `ADR-pending` markers in WS1 code.
+- **ADR-0003 (proposed, for WS2):** one key-script format for `dsdude screenshot --keys` and `dsdude-host`.
+  Open marker: `ADR-pending ADR-0003` in `tools/screenshot.py`; it goes when WS2's "Host runner" section adopts the
+  format.
+- **Memory gate.** Checkpoint 0 recorded a 1095 MB minimum during my install, with emulators open. Since then I run
+  one emulator at a time, for 4-6 s, and close it after each test.
 
 ## Deviations from PLAN.md (for WS0)
 
