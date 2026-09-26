@@ -15,6 +15,7 @@ import {
   RECONCILE_TOLERANCE_MS,
 } from "./emulator.ts";
 import { desmumeExe, melonDsExe } from "./layout.ts";
+import { MELONDS_DEFAULT_TOML } from "./melonds-default.ts";
 import { type FakeChild, FIXTURE_ROM, fakeChild } from "./test-support.ts";
 
 describe("LineSplitter", () => {
@@ -230,7 +231,7 @@ describe("LocalEmulatorManager", () => {
     const handle = await mgr.launch(FIXTURE_ROM, { kind: "melonds", debug: true });
     const toml = readFileSync(path.join(path.dirname(melonDsExe(home)), "melonDS.toml"), "utf8");
     expect(toml).toMatch(/\[Instance0\.Gdb\]\nEnabled = true/);
-    expect(toml).toMatch(/\[Instance0\.Gdb\.ARM9\]\nPort = 3333/);
+    expect(toml).toMatch(/\[Instance0\.Gdb\.ARM9\]\n(?:[^[]*\n)?Port = 3333\n/);
     await handle.stop();
     await mgr.launch(FIXTURE_ROM, { kind: "melonds" });
     expect(readFileSync(path.join(path.dirname(melonDsExe(home)), "melonDS.toml"), "utf8")).toMatch(
@@ -240,6 +241,66 @@ describe("LocalEmulatorManager", () => {
     await expect(mgr.launch(FIXTURE_ROM, { kind: "desmume", debug: true })).rejects.toMatchObject({
       diagnostics: [expect.objectContaining({ code: "E623" })],
     });
+  });
+
+  it("seeds a missing or empty melonDS.toml with melonDS's defaults (melonDS 1.1 crashes on a partial file)", async () => {
+    const mgr = manager((_args, child) => child?.finish(0));
+    const file = path.join(path.dirname(melonDsExe(home)), "melonDS.toml");
+    for (const before of [null, "", "\r\n"]) {
+      if (before !== null) writeFileSync(file, before);
+      await mgr.launch(FIXTURE_ROM, { kind: "melonds" });
+      await mgr.stopCurrent();
+      const toml = readFileSync(file, "utf8");
+      expect(toml).toBe(patchToml(MELONDS_DEFAULT_TOML, melonDsOverrides()));
+      for (const section of ["[Emu]", "[Instance0.Firmware]", "[Instance0.Joystick]", "[JIT]"]) {
+        expect(toml).toContain(`${section}\n`);
+      }
+      expect(toml).not.toMatch(/RecentROM|Geometry/);
+    }
+    // A file melonDS wrote itself is patched, never replaced.
+    writeFileSync(file, "LimitFPS = false\r\n");
+    await mgr.launch(FIXTURE_ROM, { kind: "melonds" });
+    await mgr.stopCurrent();
+    expect(readFileSync(file, "utf8")).toMatch(/^LimitFPS = false\r\n/);
+    expect(readFileSync(file, "utf8")).not.toContain("[JIT]");
+  });
+
+  it("writes LaunchOptions.keys into both emulators and falls back per button with E625 (ADR-0007)", async () => {
+    const mgr = manager((_args, child) => child?.finish(0));
+    const keys = { a: "k", b: "F13", start: " ", select: "Control", up: "I", x: "/" };
+    const melon = await mgr.launch(FIXTURE_ROM, { kind: "melonds", keys });
+    await mgr.stopCurrent();
+    const toml = readFileSync(path.join(path.dirname(melonDsExe(home)), "melonDS.toml"), "utf8");
+    const keyboard = /\[Instance0\.Keyboard\]\n([^[]*)/.exec(toml)?.[1] ?? "";
+    for (const line of [
+      "A = 75",
+      "B = 90",
+      "X = 47",
+      "Start = 32",
+      "Select = 16777249",
+      "Up = 73",
+      "Down = 16777237",
+    ]) {
+      expect(keyboard).toMatch(new RegExp(`^${line}$`, "m"));
+    }
+    expect(melon.diagnostics).toEqual([
+      expect.objectContaining({
+        code: "E625",
+        severity: "warning",
+        message: "The key 'F13' can't be used for the B button, so B stays on z.",
+      }),
+    ]);
+    const desmume = await mgr.launch(FIXTURE_ROM, { kind: "desmume", keys });
+    await mgr.stopCurrent();
+    const ini = readFileSync(path.join(path.dirname(desmumeExe(home)), "desmume.ini"), "utf8");
+    for (const line of ["A=75", "B=90", "X=191", "Start=32", "Select=17", "Up=73", "Down=40"]) {
+      expect(ini).toContain(`${line}\n`);
+    }
+    expect(desmume.diagnostics?.map((d) => d.code)).toEqual(["E625"]);
+    const plain = await mgr.launch(FIXTURE_ROM, { kind: "desmume" });
+    expect(plain.diagnostics).toEqual([]);
+    expect(readFileSync(path.join(path.dirname(desmumeExe(home)), "desmume.ini"), "utf8")).toContain("A=88\n");
+    await mgr.stopCurrent();
   });
 
   it("E620 when DeSmuME is missing, E607 when the ROM is", async () => {

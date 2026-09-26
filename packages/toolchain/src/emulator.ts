@@ -7,10 +7,13 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
+import type { Diagnostic } from "@dsdude/project-format";
 import type { EmulatorHandle, EmulatorKind, EmulatorManager, LaunchOptions } from "./api.ts";
 import { ToolchainError, toolchainDiagnostic } from "./diagnostics/catalog.ts";
 import { type DownloadFn, type ExtractFn, installMelonDs } from "./emulator-install.ts";
+import { configKeyName, DS_BUTTONS, type ResolvedKeys, resolveKeys } from "./keymap.ts";
 import { DESMUME_EXE, desmumeExe, emulatorsDir, melonDsExe } from "./layout.ts";
+import { MELONDS_DEFAULT_TOML } from "./melonds-default.ts";
 import { runProcess } from "./process.ts";
 
 export const PAD_PREFIX = "DSD|PAD|";
@@ -37,31 +40,26 @@ export class LineSplitter {
   }
 }
 
-/** Qt key codes of the default Controls mapping (PLAN.md 6 WS1/WS6). */
-export const MELONDS_KEYS: Readonly<Record<string, number>> = {
-  A: 88,
-  B: 90,
-  X: 83,
-  Y: 65,
-  L: 81,
-  R: 87,
-  Start: 16777220,
-  Select: 16777248,
-  Up: 16777235,
-  Down: 16777237,
-  Left: 16777234,
-  Right: 16777236,
-};
+/** Qt key codes of the default Controls mapping (PLAN.md 6 WS1/WS6), by melonDS.toml key name. */
+export const MELONDS_KEYS: Readonly<Record<string, number>> = byConfigName(resolveKeys().qt);
+
+/** A per-button table keyed by the config files' names (A, B, ..., Start, Select, Up, ...). */
+function byConfigName(codes: Readonly<Record<string, number>>): Record<string, number> {
+  return Object.fromEntries(DS_BUTTONS.map((b) => [configKeyName(b), codes[b] as number]));
+}
 
 export interface MelonDsSettings {
   /** Enables the GDB stub on 3333 (ARM9) / 3334 (ARM7); only for Debug. */
   gdb?: boolean;
+  /** The keys to write (resolveKeys()); default: the default mapping. ADR-0007. */
+  keys?: ResolvedKeys;
 }
 
 /** The [section] key = value pairs DSDude owns in melonDS.toml. */
 export function melonDsOverrides(settings: MelonDsSettings = {}): [string, string, string][] {
   const out: [string, string, string][] = [];
-  for (const [key, code] of Object.entries(MELONDS_KEYS)) out.push(["Instance0.Keyboard", key, String(code)]);
+  const keys = settings.keys ? byConfigName(settings.keys.qt) : MELONDS_KEYS;
+  for (const [key, code] of Object.entries(keys)) out.push(["Instance0.Keyboard", key, String(code)]);
   out.push(
     ["Instance0.Window0", "IntegerScaling", "true"],
     ["Instance0.Window0", "ShowOSD", "false"],
@@ -122,23 +120,11 @@ export function patchConfig(text: string | null, overrides: readonly [string, st
  * The same Controls mapping for DeSmuME 0.9.13: `[Controls]` in desmume.ini (beside the exe) takes Windows
  * virtual-key codes. Key names from the exe's own strings (frontend/windows/inputdx.cpp).
  */
-export const DESMUME_KEYS: Readonly<Record<string, number>> = {
-  A: 0x58, // X
-  B: 0x5a, // Z
-  X: 0x53, // S
-  Y: 0x41, // A
-  L: 0x51, // Q
-  R: 0x57, // W
-  Start: 0x0d, // VK_RETURN
-  Select: 0x10, // VK_SHIFT
-  Up: 0x26,
-  Down: 0x28,
-  Left: 0x25,
-  Right: 0x27,
-};
+export const DESMUME_KEYS: Readonly<Record<string, number>> = byConfigName(resolveKeys().vk);
 
-export function desmumeOverrides(): [string, string, string][] {
-  return Object.entries(DESMUME_KEYS).map(([key, vk]) => ["Controls", key, String(vk)]);
+/** The [Controls] pairs DSDude owns in desmume.ini; `keys` from resolveKeys(), default the default mapping. */
+export function desmumeOverrides(keys?: ResolvedKeys): [string, string, string][] {
+  return Object.entries(keys ? byConfigName(keys.vk) : DESMUME_KEYS).map(([key, vk]) => ["Controls", key, String(vk)]);
 }
 
 export type SpawnEmulatorFn = (
@@ -250,17 +236,21 @@ export class LocalEmulatorManager implements EmulatorManager {
   }
 
   /** desmume.ini beside the DeSmuME exe, patched before every launch (the Controls mapping). */
-  writeDesmumeConfig(): string {
+  writeDesmumeConfig(keys?: ResolvedKeys): string {
     const file = path.join(path.dirname(this.exePath("desmume")), "desmume.ini");
     const current = existsSync(file) ? readFileSync(file, "utf8") : null;
-    writeFileSync(file, patchIni(current, desmumeOverrides()));
+    writeFileSync(file, patchIni(current, desmumeOverrides(keys)));
     return file;
   }
 
-  /** melonDS.toml beside melonDS.exe (a portable build), rewritten before every launch. */
+  /**
+   * melonDS.toml beside melonDS.exe (a portable build), rewritten before every launch. A missing or empty file is
+   * seeded with melonDS's own defaults first: melonDS 1.1 crashes on a file that holds only DSDude's keys.
+   */
   writeMelonDsConfig(settings: MelonDsSettings = {}): string {
     const file = path.join(path.dirname(this.exePath("melonds")), "melonDS.toml");
-    const current = existsSync(file) ? readFileSync(file, "utf8") : null;
+    const existing = existsSync(file) ? readFileSync(file, "utf8") : "";
+    const current = existing.trim() === "" ? MELONDS_DEFAULT_TOML : existing;
     writeFileSync(file, patchToml(current, melonDsOverrides(settings)));
     return file;
   }
@@ -274,14 +264,15 @@ export class LocalEmulatorManager implements EmulatorManager {
     if (!existsSync(romPath)) {
       throw new ToolchainError([toolchainDiagnostic("E607", { what: "The ROM", path: romPath })]);
     }
-    if (opts.kind === "melonds") this.writeMelonDsConfig({ gdb: opts.debug === true });
-    else this.writeDesmumeConfig();
+    const keys = resolveKeys(opts.keys);
+    if (opts.kind === "melonds") this.writeMelonDsConfig({ gdb: opts.debug === true, keys });
+    else this.writeDesmumeConfig(keys);
     const spawnFn = this.#opts.spawn ?? spawnEmulator;
     const child = spawnFn(exe, [path.resolve(romPath)], {
       cwd: path.dirname(exe),
       env: { ...process.env, ...opts.env },
     });
-    const handle = this.#wrap(opts.kind, child);
+    const handle = this.#wrap(opts.kind, child, keys.diagnostics);
     if (child.pid === undefined) {
       const name = opts.kind === "melonds" ? "melonDS" : "DeSmuME";
       throw new ToolchainError([toolchainDiagnostic("E621", { emulator: name, detail: `${exe} did not start` })]);
@@ -352,7 +343,7 @@ export class LocalEmulatorManager implements EmulatorManager {
     writeFileSync(this.runningFile, `${JSON.stringify(rec)}\n`);
   }
 
-  #wrap(kind: EmulatorKind, child: ChildProcess): EmulatorHandle {
+  #wrap(kind: EmulatorKind, child: ChildProcess, diagnostics: readonly Diagnostic[]): EmulatorHandle {
     const listeners = new Set<(line: string) => void>();
     const backlog: string[] = [];
     const splitter = new LineSplitter();
@@ -395,6 +386,7 @@ export class LocalEmulatorManager implements EmulatorManager {
       kind,
       pid,
       exited,
+      diagnostics,
       onLine(listener) {
         for (const line of backlog) listener(line);
         listeners.add(listener);

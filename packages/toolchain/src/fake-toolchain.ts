@@ -14,6 +14,7 @@ import * as path from "node:path";
 import type { Diagnostic } from "@dsdude/project-format";
 import type {
   BuildServiceDeps,
+  DsButton,
   EmulatorHandle,
   EmulatorKind,
   EmulatorManager,
@@ -26,6 +27,7 @@ import { LocalBuildService } from "./build-service.ts";
 import { ToolchainError, toolchainDiagnostic } from "./diagnostics/catalog.ts";
 import { sha256 } from "./emulator-install.ts";
 import { FIXTURE_ELF, FIXTURE_ROM } from "./fixtures.ts";
+import { resolveKeys } from "./keymap.ts";
 import { fakeEmulator, MOCK_EMULATOR_LINES } from "./mock-build-service.ts";
 import { checkRom, readRomHeader } from "./rom.ts";
 
@@ -46,6 +48,8 @@ export interface FakeLaunch {
   romPath: string;
   kind: EmulatorKind;
   debug: boolean;
+  /** LaunchOptions.keys as passed. The fake writes no config files, but reports E625 like the real manager. */
+  keys?: Partial<Record<DsButton, string>>;
 }
 
 export interface FakeToolchain {
@@ -90,10 +94,10 @@ class FakeEmulatorManager implements EmulatorManager {
     if (!existsSync(romPath))
       throw new ToolchainError([toolchainDiagnostic("E607", { what: "The ROM", path: romPath })]);
     await this.stopCurrent();
-    this.#launches.push({ romPath, kind: opts.kind, debug: opts.debug === true });
+    this.#launches.push({ romPath, kind: opts.kind, debug: opts.debug === true, keys: opts.keys });
     const handle = fakeEmulator([...this.#lines]);
     this.#current = handle;
-    return { ...handle, kind: opts.kind };
+    return { ...handle, kind: opts.kind, diagnostics: resolveKeys(opts.keys).diagnostics };
   }
 
   async stopCurrent(): Promise<void> {

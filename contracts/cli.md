@@ -1,6 +1,6 @@
 # C10: the `dsdude` CLI
 
-Version: 0.4.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+Version: 0.5.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
 
 Phase-0 draft by WS0; WS1 finalises it by CP-C. Source: PLAN.md section 5.2 C10 and section 6 WS1.
 Run it as `npx dsdude <command> ...` from a worktree or clone root; `packages/cli` declares the `dsdude` bin
@@ -56,7 +56,7 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 | `--debug` | play | Start melonDS with its GDB stub on ports 3333 (ARM9) and 3334 (ARM7); DeSmuME has none (E623). 0.3.0. |
 | `--seed N` | compile, build, play | DSDB header RNG seed (C2); 0 = the runtime picks. `build`/`play` write it into `game.dsdb`, also into a reused one under `--skip-compile`. |
 | `--jobs N` | build, play | Runtime build parallelism; default `DSDUDE_MAKE_JOBS`, else 8. |
-| `--frames N`, `--keys file`, `--out dir` | screenshot | Frame count; key script; output folder. |
+| `--frames N`, `--keys file`, `--out dir` | screenshot | Frame count; key script (C8 `--input` format, below); output folder. |
 
 `--json` fields per command:
 
@@ -64,6 +64,7 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 |---|---|
 | `toolchain status` | `installed`, `blocksdsVersion`, `paths` (C4 `ToolPaths`) |
 | `emulator` | `kind`, `installed`, `exe` |
+| `assets` | `buildDir`, `manifestPath` (`<buildDir>/assets.manifest.json`, or null when nothing was packed), `manifest` (C3 `assets.manifest.json`, or null) |
 | `build` | `ndsPath`, `timings` |
 | `play` | `ndsPath`, `emulator`, `pid`, `exitCode`, `ms`, `log` (the `DSD|` lines, pads dropped) |
 | `screenshot` | `top`, `bottom`, `uniform` (`{top, bottom}`: true when that screen is one solid colour), `log` |
@@ -73,22 +74,23 @@ Without `--json`, `play` prints each `DSD|` line on stdout as it arrives and eve
 
 ### Key scripts (`--keys`)
 
-The format of `docs/adr/0003-key-script-format.md` (proposed; it moves into `contracts/log-protocol.md` "Host
-runner" when WS2 accepts it, so `dsdude-host` reads the same files):
+`--keys` reads the one key-script format of `contracts/log-protocol.md` "Key scripts (`--input`)" (C8 0.2.0), the
+same files `dsdude-host --input` reads (ADR-0003 is superseded by it):
 
 ```
 # comment
-<frames> <button>...          buttons held on those frames
-<frames> TOUCH <x> <y>         the bottom screen touched at (x, y), x 0-255, y 0-191
+<frame> <spec>
 ```
 
-- `<frames>` is `N` or `N-M`: 1-based and inclusive, where frame N is the Nth emulated frame.
-- Buttons are `A B X Y L R START SELECT UP DOWN LEFT RIGHT`, separated by spaces or commas.
-- A button is held on every frame some line lists it; when several `TOUCH` lines cover a frame, the last one wins.
-- A bad line fails the screenshot with E631, naming the file and the line.
+- One line per change of input. Frames are 0-based and strictly increasing; frame f is the (f+1)th emulated frame.
+  The input holds from that frame until the next line, and nothing is held before the first line.
+- `spec` is `-` (nothing held, stylus up) or `+`-joined parts: key names `a b x y l r start select up down left
+  right` (lower case) and at most one touch `T<x>,<y>` in bottom-screen pixels (x 0-255, y 0-191).
+- Blank lines and lines starting with `#` are ignored; spaces or tabs separate the two fields; CRLF is accepted.
+- A bad line fails the screenshot with E631, naming the file and the line (exit 2).
 - A screenshot shows an input's effect two frames later at the earliest, so take it a few frames after the input.
 
-Example: `30-35 START`, `90 A`, `200 TOUCH 128 96`.
+Example: `30 start`, `36 -`, `90 a`, `91 -`, `200 T128,96`, `201 -`.
 
 ## Exit codes
 
@@ -119,3 +121,4 @@ The folder holds `nitrofs\`, `game.nds` and `packrom.json` (C4).
 - 0.3.0 (WS1, 2026-09-26, T1): `play --debug`; the `--keys` format of ADR-0003 (adds `TOUCH`); `emulator install melonds` downloads and SHA-256-checks.
 - 0.3.0 T0 (WS1, 2026-09-26): `--seed` is written into `game.dsdb`; DSDude projects need the injected compiler and asset pipeline (E641).
 - 0.4.0 (WS1, 2026-09-26, T1): `dsdude doctor [project]` implemented, with the `checks` `--json` field; E650/E651 warnings.
+- 0.5.0 (WS1, 2026-09-26, T1): `screenshot --keys` reads the C8 0.2.0 `--input` key-script format (ADR-0003 superseded by the user; 0-based change-point lines, `a+right`, `T<x>,<y>`); the `assets` `--json` fields row (WS5).

@@ -36,6 +36,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.4.0 (2026-09-26, WS1, T1): PackAssetsFn gets a third argument outDir (the build folder; an implementation that takes two still type-checks, but must write there); the build-folder layout (nitrofs/, icon.png, cache/, assets.manifest.json by BuildService); the project.json build path; compileOnly with a provisional manifest; createFakeToolchain(), MOCK_EMULATOR_LINES, BUILD_PHASES and the FIXTURE_* paths exported; MockBuildService phases and ROM name (game.nds) now match LocalBuildService; DeSmuME [Controls] key map; E641.
 - 0.5.0 (2026-09-26, WS1, T1): runDoctor (dsdude doctor); the tools pack pinned by tools/tools-pack.json and built by tools/fetch-vendor.ps1 (spike 5 passes); E650/E651 doctor warnings (severity warning, the only non-error E6xx).
 - 0.5.0 T0 (2026-09-26, WS1): the DeSmuME [Controls] key map is verified with real key presses (toolchain-api.md wording).
+- 0.6.0 (2026-09-26, WS1, T1, ADR-0007): DsButton, SUPPORTED_KEYS and LaunchOptions.keys (KeyboardEvent.key per DS button, written as Qt codes into melonDS.toml and virtual-key codes into desmume.ini; verified with key presses in both emulators); optional EmulatorHandle.diagnostics carrying the new E625 warning (a key that can't be used keeps that button's default); DEFAULT_KEYS/resolveKeys/translateKey exported; FakeLaunch.keys. A missing or empty melonDS.toml is now seeded with melonDS 1.1's defaults before patching (the first-Play crash WS3 reported). All additive.
 
 ## C5 IPC (`contracts/ipc.md`, `packages/ipc-contract`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): channel list and zod stubs.
@@ -84,6 +85,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.3.0 (2026-09-26, WS1, T1): `play --debug`; the `--keys` key-script format of ADR-0003 (proposed; adds TOUCH x y); `emulator install melonds` downloads and SHA-256-checks.
 - 0.3.0 T0 (2026-09-26, WS1): `--seed` is written into game.dsdb (also a reused one); DSDude projects need the injected compiler and asset pipeline, else E641.
 - 0.4.0 (2026-09-26, WS1, T1): `dsdude doctor [project]` implemented, `--json` field `checks`.
+- 0.5.0 (2026-09-26, WS1, T1): `screenshot --keys` reads the C8 0.2.0 `--input` key-script format (ADR-0003 superseded by the user; `tools/screenshot.py` switched, its ADR-pending marker removed); the `assets` `--json` fields row (`buildDir`, `manifestPath`, `manifest`; WS5's request).
 
 ## C11 Platform seam (`runtime/core/include/dsd_platform.h`)
 - owed: WS2, by CP-A.
