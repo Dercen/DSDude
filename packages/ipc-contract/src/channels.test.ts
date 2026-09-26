@@ -14,6 +14,7 @@ import {
   LearnPathSchema,
   ProjectSchema,
   SettingsSchema,
+  TemplateIndexSchema,
 } from "./channels.ts";
 
 const diag: Diagnostic = {
@@ -55,6 +56,21 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     req: { dir: "C:/p", name: "my_game", template: "flappy" },
     res: { dir: "C:/p/my_game" },
     badReq: { dir: "C:/p", name: "my game" },
+  },
+  "project.templates": {
+    req: {},
+    res: { templates: [{ id: "empty", title: "Empty", description: "One room, nothing in it." }] },
+    badReq: [],
+  },
+  "app.info": {
+    req: {},
+    res: {
+      version: "0.1.0",
+      packaged: false,
+      defaultProjectsDir: "C:/Users/me/DSDudeProjects",
+      oneDriveDirs: ["C:/Users/me/OneDrive"],
+    },
+    badReq: 0,
   },
   "assets.import": {
     req: { projectDir: "C:/p", kind: "sprite", sourcePath: "C:/x.png", name: "spr_x" },
@@ -152,11 +168,13 @@ const EVENT_SAMPLES: { [C in EventChannel]: { ok: unknown; bad: unknown } } = {
 };
 
 describe("C5 channel map", () => {
-  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0, 0.5.0 and 0.6.0 additions", () => {
+  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0-0.7.0 additions", () => {
     expect(INVOKE_CHANNELS).toEqual([
       "project.open",
       "project.save",
       "project.create",
+      "project.templates",
+      "app.info",
       "assets.import",
       "assets.preview",
       "build.play",
@@ -245,6 +263,15 @@ describe("payload schemas", () => {
     const images = invokeChannels["learn.read"].response.shape.images;
     expect(images.safeParse({ a: "https://example.com/x.png" }).success).toBe(false);
     expect(images.safeParse({ a: "data:image/svg+xml;base64,PHN2Zz4=" }).success).toBe(false);
+  });
+
+  it("reads templates/index.json entries and refuses unsafe folders", () => {
+    const ok = TemplateIndexSchema.parse({ templates: [{ id: "flappy", title: "Flappy Bird", dir: "flappy" }] });
+    expect(ok.templates[0]?.description).toBe("");
+    expect(
+      TemplateIndexSchema.safeParse({ templates: [{ id: "x", title: "X", dir: "../samples/flappy" }] }).success,
+    ).toBe(false);
+    expect(TemplateIndexSchema.safeParse({ templates: [] }).success).toBe(false);
   });
 
   it("settings.set refuses undefined values and unknown keys", () => {

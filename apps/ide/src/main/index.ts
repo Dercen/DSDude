@@ -150,7 +150,21 @@ app.whenReady().then(() => {
   registerIpc(
     ipcMain,
     {
-      ...createCoreHandlers({ settings, dialog, shell, learnRoot: learnRoot() }),
+      ...createCoreHandlers({
+        settings,
+        dialog,
+        shell,
+        learnRoot: learnRoot(),
+        samplesDir: app.isPackaged ? null : resolve(app.getAppPath(), "../../samples"),
+        appInfo: {
+          version: app.getVersion(),
+          packaged: app.isPackaged,
+          defaultProjectsDir: join(app.getPath("home"), "DSDudeProjects"),
+          oneDriveDirs: [process.env.OneDrive, process.env.OneDriveConsumer, process.env.OneDriveCommercial].filter(
+            (d, i, all): d is string => !!d && all.indexOf(d) === i,
+          ),
+        },
+      }),
       ...createBuildHandlers(play, emulators, home),
     },
     (event: IpcMainInvokeEvent) => ({

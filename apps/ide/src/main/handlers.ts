@@ -13,6 +13,7 @@ import type { IdeEmulatorManager } from "./build/modes.ts";
 import type { PlayController } from "./build/play.ts";
 import { inside, readProjectFile, writeProjectFile } from "./files.ts";
 import { listLearnDocs, readLearnDoc } from "./learn.ts";
+import { createProject, templateSources } from "./projects.ts";
 import type { SettingsStore } from "./settings.ts";
 
 export interface DialogLike {
@@ -30,10 +31,20 @@ export interface ShellLike {
   openPath(path: string): Promise<string>;
 }
 
+export interface AppInfo {
+  version: string;
+  packaged: boolean;
+  defaultProjectsDir: string;
+  oneDriveDirs: string[];
+}
+
 export interface CoreHandlerDeps {
   settings: SettingsStore;
   dialog: DialogLike;
   shell?: ShellLike;
+  /** The repo's samples/ in development (template fallback until WS7 ships templates/); null when packaged. */
+  samplesDir?: string | null;
+  appInfo?: AppInfo;
   /** The folder that contains docs/ (Learn documents). */
   learnRoot: string;
 }
@@ -75,8 +86,31 @@ export function createBuildHandlers(
   };
 }
 
-export function createCoreHandlers({ settings, dialog, shell, learnRoot }: CoreHandlerDeps): InvokeHandlers {
+export function createCoreHandlers({
+  settings,
+  dialog,
+  shell,
+  learnRoot,
+  samplesDir = null,
+  appInfo,
+}: CoreHandlerDeps): InvokeHandlers {
   return {
+    "project.templates": async () => ({
+      templates: (await templateSources(learnRoot, samplesDir)).map(({ id, title, description }) => ({
+        id,
+        title,
+        description,
+      })),
+    }),
+    "project.create": async ({ dir, name, template }) => ({
+      dir: await createProject({
+        parent: dir,
+        name,
+        template: template ?? "empty",
+        sources: await templateSources(learnRoot, samplesDir),
+      }),
+    }),
+    ...(appInfo ? { "app.info": () => appInfo } : {}),
     "learn.openAssets": async () => {
       const path = inside(learnRoot, "docs/tutorial/assets");
       if (!existsSync(path)) throw new Error("the tutorial assets are not installed");

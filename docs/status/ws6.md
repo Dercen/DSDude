@@ -168,6 +168,15 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - C5 0.6.0 (T1): `build.manifest` reads the build folder's `assets.manifest.json` through a tolerant `ManifestSummarySchema` (C3 is provisional, owned by WS5). The store refreshes it after open and after every Play.
   - Tests: node 74 (meters 4, build.manifest handler), browser 10, ipc-contract 68, Playwright 8. Screenshot checked.
 
+- **Task 6d, New Project wizard: done.**
+  - The wizard asks for a name (C1 NAME rule) and a folder (default `%USERPROFILE%DSDudeProjects`, with Browse, and a warning when the folder is inside `%OneDrive%` / `%OneDriveConsumer%` / `%OneDriveCommercial%`).
+  - Templates come from `templates/index.json`; Flappy Bird is preselected when listed. Create opens the new project. It is reached from the toolbar New… and the Welcome panel.
+  - Main: `project.create` copies the template without any `build/` folder and sets project.json's name and title through C1.
+    - The built-in Empty template writes rm_main plus a generated 32x32 two-colour icon.png, since C1 requires the icon.
+    - Until WS7 ships `templates/`, the list is Empty plus, in development only, the repo's `samples/*` projects.
+  - C5 0.7.0 (T1): `project.templates`, `app.info`, and `TemplateIndexSchema`, the reader's format for WS7's `templates/index.json`: `{templates: [{id, title, description, dir}]}`. It also pins the `project.create` semantics.
+  - Tests: node 82 (projects 5, helpers 3), browser 10, ipc-contract 73, Playwright 9 (new-project.spec: OneDrive warning, invalid name, create from a template, opens, refuses an existing folder). Screenshot checked.
+
 ## Next
 - Task 6 continues: meters, import dialogs, New Project and first-run wizards, Debug, the fake-toolchain smoke test; the rebinding page once ADR-0007 is accepted.
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.

@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.6.0";
+export const CONTRACT_VERSION = "0.7.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -176,6 +176,26 @@ export const ManifestSummarySchema = z.looseObject({
 });
 export type ManifestSummary = z.infer<typeof ManifestSummarySchema>;
 
+/**
+ * `templates/index.json` (WS7's file; the New Project wizard reads it, 0.7.0): each template is a complete C1 project
+ * in `templates/<dir>/`. Listed in the order the wizard shows them.
+ */
+export const TemplateIndexSchema = z.object({
+  templates: z
+    .array(
+      z.object({
+        /** Stable id, e.g. "empty", "flappy". */
+        id: z.string().regex(/^[a-z0-9-]+$/),
+        title: z.string().min(1),
+        description: z.string().default(""),
+        /** Folder under templates/ that holds the project (project.json at its root). */
+        dir: z.string().refine(isSafeRelativePath, "expected a folder under templates/"),
+      }),
+    )
+    .min(1),
+});
+export const TemplateInfoSchema = z.object({ id: z.string(), title: z.string(), description: z.string() });
+
 /** Emulator key names per DS button (KeyboardEvent.key values); defaults are PLAN.md 6 WS6 "Controls card". */
 export const ControlsSchema = z.object({
   up: z.string().default("ArrowUp"),
@@ -222,9 +242,27 @@ export const invokeChannels = {
   },
   /** Writes every JSON and DSS file of the project (C1 `save`); never deletes files. */
   "project.save": { request: z.object({ dir: z.string().min(1), project: ProjectSchema }), response: Ok },
+  /**
+   * Creates `<dir>/<name>` from a template (default "empty"): refuses an existing non-empty folder, copies the
+   * template, and sets project.json's name and title (0.7.0 pins these semantics). Returns the new project folder.
+   */
   "project.create": {
     request: z.object({ dir: z.string().min(1), name: NameSchema, template: z.string().optional() }),
     response: z.object({ dir: z.string() }),
+  },
+  /** (0.7.0) The New Project templates (templates/index.json; a built-in Empty template when it is missing). */
+  "project.templates": { request: z.object({}), response: z.object({ templates: z.array(TemplateInfoSchema) }) },
+  /** (0.7.0) Facts the wizards need from main. */
+  "app.info": {
+    request: z.object({}),
+    response: z.object({
+      version: z.string(),
+      packaged: z.boolean(),
+      /** %USERPROFILE%\DSDudeProjects */
+      defaultProjectsDir: z.string(),
+      /** OneDrive folders (%OneDrive%, %OneDriveConsumer%, %OneDriveCommercial%): projects there get a warning. */
+      oneDriveDirs: z.array(z.string()),
+    }),
   },
   "assets.import": {
     request: z.object({

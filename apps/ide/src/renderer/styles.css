@@ -555,3 +555,131 @@ button.primary {
   border-radius: 3px;
   font-weight: 600;
 }
+
+.dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  padding: 16px 22px 18px;
+  border-radius: 6px;
+  background: #252526;
+  border: 1px solid #3c3c3c;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.dialog h2 {
+  margin: 0 0 12px;
+  font-weight: 500;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.field-row {
+  display: flex;
+  gap: 6px;
+}
+
+.field input,
+.dialog button {
+  background: #3c3c3c;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font: inherit;
+  color: inherit;
+}
+
+.field-row input {
+  flex: 1;
+}
+
+.dialog button {
+  cursor: pointer;
+}
+
+.dialog button.primary,
+.welcome button.primary {
+  background: #0e639c;
+  border-color: #1177bb;
+}
+
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.field-error {
+  color: #f48771;
+  margin: 0 0 8px;
+}
+
+.field-warning {
+  color: #ffe08a;
+  margin: 0 0 8px;
+}
+
+.field-hint {
+  opacity: 0.7;
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.templates {
+  border: none;
+  padding: 0;
+  margin: 8px 0 12px;
+}
+
+.templates legend {
+  margin-bottom: 4px;
+}
+
+.template {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.template.selected {
+  border-color: #0e639c;
+  background: #04395e55;
+}
+
+.template-title {
+  font-weight: 600;
+}
+
+.template-description {
+  grid-column: 2;
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.welcome-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.welcome button {
+  background: #3c3c3c;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  padding: 4px 12px;
+  cursor: pointer;
+}

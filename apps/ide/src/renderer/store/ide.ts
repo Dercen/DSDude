@@ -54,6 +54,8 @@ export interface IdeState {
   controlsCard: boolean;
   /** The project's last C3 assets.manifest.json (meters), null before the first build. */
   manifest: ManifestSummary | null;
+  /** The New Project dialog is open. */
+  newProject: boolean;
 }
 
 /** What the store needs from the dockview layout. */
@@ -90,6 +92,10 @@ export interface IdeActions {
   showToast(message: string, kind?: Toast["kind"]): void;
   /** Re-reads the build folder's manifest (after open and after every build). */
   refreshManifest(): Promise<void>;
+  showNewProject(): void;
+  hideNewProject(): void;
+  /** Creates <parent>/<name> from a template and opens it; throws (for the dialog) when main refuses. */
+  createProject(opts: { parent: string; name: string; template: string }): Promise<void>;
   showControls(): void;
   hideControls(): void;
   /** Help > Tutorial assets: opens docs/tutorial/assets/ in the file manager. */
@@ -121,6 +127,7 @@ const initial = (): IdeState => ({
   learn: { target: null, seq: 0 },
   controlsCard: false,
   manifest: null,
+  newProject: false,
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -325,6 +332,19 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
       } catch {
         // meters keep what they had
       }
+    },
+
+    showNewProject() {
+      set({ newProject: true });
+    },
+
+    hideNewProject() {
+      set({ newProject: false });
+    },
+
+    async createProject({ parent, name, template }) {
+      const { dir } = await ipc.invoke("project.create", { dir: parent, name, template });
+      if (await actions.openProject(dir)) set({ newProject: false });
     },
 
     showControls() {

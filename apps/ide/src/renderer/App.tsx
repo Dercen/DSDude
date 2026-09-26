@@ -18,6 +18,7 @@ import { ProjectTree } from "./panels/ProjectTree.tsx";
 import { loadEditorModules, registerEditor, saveDirtyPanels } from "./panels/registry.ts";
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
 import { createIde } from "./store/ide.ts";
+import { NewProjectDialog } from "./wizards/NewProjectDialog.tsx";
 import { DockWorkbench } from "./workbench.ts";
 
 loadEditorModules();
@@ -56,6 +57,9 @@ function Toolbar() {
   const dirty = useIde((s) => Object.keys(s.dirty).length > 0);
   return (
     <div className="toolbar">
+      <button type="button" data-testid="new" onClick={() => actions.showNewProject()}>
+        New…
+      </button>
       <button type="button" data-testid="open" onClick={() => void actions.chooseAndOpenProject()}>
         Open…
       </button>
@@ -199,6 +203,7 @@ export function App() {
         <StatusBar />
         <ToastView />
         <ControlsCard />
+        <NewProjectDialog />
       </div>
     </IdeContext.Provider>
   );
