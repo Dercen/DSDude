@@ -20,6 +20,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C3 Asset pack (`contracts/assetpack.md`)
 - owed: WS5 writes 0.1.0 on its first day (CP-A).
+- 0.1.0 (2026-09-26, WS5, day 1): assetpack.md written: build-folder layout, names, sprite conversion (transparency, RGB555, 16/256 mode, median-cut reduction, palette order, OBJ-size padding, vertical stitch, grit lines, frame/VRAM stride), backgrounds (text-BG padding, tile count), sounds (WAV rewrite, module pass-through, mmutil line, ids from soundbank.h, RAM bytes), icon, assets.manifest.json schema (a superset of C4's provisional AssetManifest), cache key, per-room budgets and E401-E422.
 
 ## C4 Toolchain API (`packages/toolchain/src/api.ts`, `contracts/toolchain-api.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): api.ts types (BuildService, BuildEvent, ToolPaths, EmulatorHandle/Manager, provisional AssetManifest and RoomAssetSet, CompileFn, PackAssetsFn, CheckRoomBudgetsFn, CliCommand) and MockBuildService. toolchain-api.md owed by WS1 (CP-A).
