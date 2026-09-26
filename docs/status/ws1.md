@@ -153,15 +153,15 @@ Legend: todo / in progress / done (<sha>).
 
      | Sample | Emulator | exit | READY lines | ERR lines | LOG lines |
      |---|---|---|---|---|---|
-     | minimal | melonDS 1.1 (with no `melonDS.toml`, item 2) | 0 | 1 (version 0.1.0, ABI f1d376bb)\|f1d376bb`) | none | none |
+     | minimal | melonDS 1.1 (with no `melonDS.toml`, item 2) | 0 | 1 (version 0.1.0, ABI f1d376bb) | none | none |
      | flappy | melonDS 1.1 | 0 | 1 | none | `Score: 0` x5 (the bird falls and the room restarts) |
      | minimal | DeSmuME 0.9.13 | 0 | 1 | none | none |
      | flappy | DeSmuME 0.9.13 | 0 | 1 | none | `Score: 0` x5 |
 
      `DSD|STAT` shows fps=60 (flappy 59-60) and no OAM/affine/sfx drops; nothing is left running afterwards.
-   - Screenshots (`<DSDUDE_HOME>atch\`, 120 frames): minimal shows the blue player sprite centred on a black top
+   - Screenshots (`<DSDUDE_HOME>\batch\`, 120 frames): minimal shows the blue player sprite centred on a black top
      screen; flappy shows the score `0` and the bird, fallen to the bottom. Both bottom screens are one colour (as
-     designed). With a C8 key script flapping every 22 frames (`batchlappy-flap.keys`), frame 100 shows the bird
+     designed). With a C8 key script flapping every 22 frames (`batch\flappy-flap.keys`), frame 100 shows the bird
      near the top and the first pipes coming in; without it, the bird is mid-screen and no pipes have spawned.
 2. **melonDS 1.1 crash on first Play (WS3's report): fixed.** Reproduced in a scratch copy: writing only DSDude's keys
    into a new `melonDS.toml` made melonDS exit 0xC0000409 within 4.4 s and left the file at 0 bytes. With no file it
