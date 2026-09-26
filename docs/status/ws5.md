@@ -54,6 +54,10 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   calls from `./browser` (`previewSpriteDetails`, `spriteDefaults`, `decodePng` and their option/result types), so
   the freeze covers them. The implementation files alias these types; `tsc -b` passes for asset-pipeline,
   ipc-contract and apps/ide. No behaviour changed.
+- [x] MP3 effects are now tested: `fixtures/assets/tone-44k.mp3` (generated once with lamejs 1.2.1 by
+  `scripts/make-mp3-fixture.cjs`, reproducible byte for byte, CC0) decodes through `@audio/decode-mp3` to a
+  22050 Hz mono effect with the 440 Hz tone intact, and packs as `snd_tone.wav` for mmutil. (The decoder returns two
+  identical channels for mono MP3s; the mono mix handles it.)
 - [ ] Remaining DoD item (WS0-owned): the py-desmume golden in `fixtures/assets/golden/` for a ROM built from the
   sample assets. Otherwise WS5 is at its definition of done; later work is fixes from IF entries and contract T1s.
 
