@@ -11,7 +11,6 @@ import {
   ALPHA_OPAQUE_MIN,
   CHANNEL5_MAX,
   dsB,
-  dsDistance2,
   dsG,
   dsR,
   MAGENTA_DS,
