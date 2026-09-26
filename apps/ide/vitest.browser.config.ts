@@ -11,7 +11,11 @@ const port = Number(process.env.DSDUDE_PORT_BASE ?? 5160) + 1;
 export default defineConfig({
   plugins: [react()],
   // Scan the whole renderer up front: a dependency found mid-run makes Vite reload the test page.
-  optimizeDeps: { entries: ["src/renderer/**/*.{ts,tsx}", "!src/renderer/**/*.test.{ts,tsx}"] },
+  // pixi.js is listed too: its subpath side-effect import (pixi.js/unsafe-eval) was once found late (IF-1).
+  optimizeDeps: {
+    entries: ["src/renderer/**/*.{ts,tsx}", "!src/renderer/**/*.test.{ts,tsx}"],
+    include: ["pixi.js", "pixi.js/unsafe-eval"],
+  },
   test: {
     name: "ide-browser",
     include: ["src/**/*.browser.test.{ts,tsx}"],

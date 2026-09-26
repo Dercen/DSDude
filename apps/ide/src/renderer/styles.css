@@ -1021,6 +1021,21 @@ canvas.pixelated {
   opacity: 1;
 }
 
+.bg-meters {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.bg-meters p {
+  margin: 4px 0;
+}
+
+.bg-meters .bg-hint {
+  font-size: 11px;
+  color: #f48771;
+}
+
 .se-canvas-wrap {
   flex: 1;
   overflow: auto;
