@@ -52,7 +52,9 @@ describe("program form: the conformance corpus", () => {
     const golden = `fixtures/compiler/conformance/${tier}/${stem}.dsda`;
     it(`compiles ${tier}/${name} to its golden and round-trips through the disassembler`, () => {
       const text = readFileSync(join(REPO_ROOT, "fixtures", "conformance", tier, name), "utf8").replace(/\r/g, "");
-      const r = compileProgram(text, { file: `${tier}/${name}`, seed: PROGRAM_SEEDS[`${tier}/${name}`] });
+      // The int-specialised opcodes on (the VM runs them too); v0/01's hand-assembled check above keeps them off.
+      const seed = PROGRAM_SEEDS[`${tier}/${name}`];
+      const r = compileProgram(text, { file: `${tier}/${name}`, seed, intOps: true });
       // Programs may exercise a lint on purpose (v1/07's fractional index is W041), never an error.
       expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
       expect(r.diagnostics.map((d) => d.code)).toEqual(EXPECTED_WARNINGS[`${tier}/${name}`] ?? []);

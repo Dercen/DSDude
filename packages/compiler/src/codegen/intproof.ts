@@ -6,8 +6,9 @@
  *
  * A value is proved int when it is (checked against the runtime's C, runtime/core/src, 2026-09-26):
  * - an int literal, or a builtin constant (every constant is loaded as an int);
- * - a read-only builtin variable of type int (`room_width`, `room_height`, `room_speed`, `image_number`), bare or
- *   through an instance: user code can't store a fraction in one;
+ * - a builtin variable of type int (`room_width`, `room_speed`, `image_number`, `depth`, ...), bare or through an
+ *   instance, and an element of the int array `alarm`: the runtime keeps them as int32 (a store is floored to an
+ *   int, bivars.c `to_int`) and reads them back as ints;
  * - a call of a builtin whose builtins.json return type is int (`floor`, `irandom`, `array_length`, ...), unless a
  *   local or user function of that name shadows it;
  * - `-x`, `x + y`, `x - y`, `x * y`, `x mod y` of proved ints (int op int stays int; on overflow a release build
@@ -23,15 +24,26 @@
  * anything), and neither is a local ever written by `/=` or declared without a value (that stores undefined).
  * The set is found by optimistic iteration: assume every candidate is int, drop any with an assignment that is not
  * int under the current assumption, and repeat until nothing changes.
+ *
+ * Int variables (intVariables below) extend the same idea to the whole project: a user instance variable (by name,
+ * whichever object holds it) or a global is int when every store into it, in every function, event and creation
+ * code, stores a proved int. No definite-assignment rule is needed there: reading one that was never assigned stops
+ * with R500/R501. Builtin variables are never int variables: the engine itself writes `x`, `y` and friends
+ * (`x += hspeed` each step) and most are typed "number", so only the int-typed ones above count.
  */
-import type { AssignOp, BinaryOp, Expr, Stmt } from "../syntax/ast.ts";
-import { walk } from "../syntax/walk.ts";
+import type { AssignOp, BinaryOp, Expr, LValue, Stmt } from "../syntax/ast.ts";
+import { localsOf, walk } from "../syntax/walk.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./builtins.ts";
+
+/** The two kinds of variables that outlive a function: instance variables (by name) and globals. */
+export type VariableKind = "instance" | "global";
 
 /** What the proof needs to know about names outside the function. */
 export interface IntProofScope {
   /** True when `name` is one of the project's own functions (it shadows a builtin of the same name). */
   isUserFunction(name: string): boolean;
+  /** True when the project-wide proof (intVariables) found `name` to be an int variable of that kind. */
+  isIntVariable?(kind: VariableKind, name: string): boolean;
 }
 
 /** The builtins.json type name of int values. */
@@ -72,9 +84,15 @@ export class IntProof {
         return e.repr === "int";
       case "name":
         if (this.locals.has(e.name)) return intLocals.has(e.name);
-        return builtinConstants.has(e.name) || isReadOnlyIntVariable(e.name);
+        if (builtinConstants.has(e.name)) return true;
+        return this.variableIsInt("instance", e.name);
       case "member":
-        return isReadOnlyIntVariable(e.name);
+        return this.variableIsInt("instance", e.name);
+      case "global":
+        return this.variableIsInt("global", e.name);
+      case "index":
+        // An element of a builtin int array (`alarm[0]`); user arrays can hold anything.
+        return e.object.kind === "name" && !this.locals.has(e.object.name) && isIntBuiltinArray(e.object.name);
       case "call":
         return (
           e.callee.kind === "name" &&
@@ -92,6 +110,12 @@ export class IntProof {
       default:
         return false;
     }
+  }
+
+  /** A builtin variable is int when its type is int; a user one when the project proof says so. */
+  private variableIsInt(kind: VariableKind, name: string): boolean {
+    if (kind === "instance" && builtinVariables.has(name)) return isIntBuiltinVariable(name);
+    return this.scope.isIntVariable?.(kind, name) ?? false;
   }
 
   /** The int locals of `body` (see the file comment). */
@@ -181,8 +205,108 @@ function topLevelDeclarations(body: readonly Stmt[]): Map<string, number> {
   return decls;
 }
 
-/** A read-only builtin variable of type int, not an array (`room_width`, `image_number`, ...). */
-function isReadOnlyIntVariable(name: string): boolean {
+/** A builtin array variable of type int (`alarm`). */
+function isIntBuiltinArray(name: string): boolean {
   const v = builtinVariables.get(name);
-  return v?.readonly === true && v.arrayLength === 0 && v.type === INT_TYPE;
+  return v !== undefined && v.arrayLength > 0 && v.type === INT_TYPE;
+}
+
+/** A builtin variable of type int, not an array (`room_width`, `image_number`, `depth`, ...). */
+function isIntBuiltinVariable(name: string): boolean {
+  const v = builtinVariables.get(name);
+  return v !== undefined && v.arrayLength === 0 && v.type === INT_TYPE;
+}
+
+/** One store into an instance variable or a global: the value stored, or null for a store that is never int. */
+export interface VariableStore {
+  kind: VariableKind;
+  name: string;
+  value: Expr | null;
+}
+
+/** Every store a function body makes into instance variables and globals (locals are the IntProof's business). */
+export function variableStores(body: readonly Stmt[], locals: ReadonlySet<string>): VariableStore[] {
+  const stores: VariableStore[] = [];
+  const target = (t: LValue, value: Expr | null): void => {
+    switch (t.kind) {
+      case "name":
+        if (!locals.has(t.name)) stores.push({ kind: "instance", name: t.name, value });
+        return;
+      case "member":
+        stores.push({ kind: "instance", name: t.name, value });
+        return;
+      case "global":
+        stores.push({ kind: "global", name: t.name, value });
+        return;
+      case "index": {
+        // An element write stores the array back into its variable (creating it if needed): never an int.
+        let base: Expr = t.object;
+        while (base.kind === "index") base = base.object;
+        if (base.kind === "name" || base.kind === "member" || base.kind === "global") target(base, null);
+        return;
+      }
+    }
+  };
+  walk(body, {
+    stmt: (s) => {
+      if (s.kind === "incdec") target(s.target, s.target);
+      else if (s.kind === "assign") {
+        if (s.op === "=") target(s.target, s.value);
+        else {
+          const op = INT_COMPOUND[s.op];
+          target(s.target, op === undefined ? null : compound(op, s.target, s.value));
+        }
+      }
+      return true;
+    },
+  });
+  return stores;
+}
+
+/** One function body as the project-wide proof sees it. */
+export interface ProofUnit {
+  params: readonly string[];
+  body: readonly Stmt[];
+  /** True when `name` is one of the project's functions this code can call. */
+  isUserFunction(name: string): boolean;
+}
+
+/** The int variables of a project, by kind. */
+export interface IntVariables {
+  instance: ReadonlySet<string>;
+  global: ReadonlySet<string>;
+}
+
+/**
+ * The project's int variables (see the file comment): every instance variable and global whose every store is a
+ * proved int, found by optimistic iteration together with each unit's int locals. `excluded` names instance
+ * variables that a bare read would not reach (asset and function names: code reading those gets the asset or the
+ * function); builtin variables are always excluded.
+ */
+export function intVariables(units: readonly ProofUnit[], excluded: (name: string) => boolean): IntVariables {
+  const prepared = units.map((u) => {
+    const locals = localsOf(u.params, u.body);
+    return { unit: u, locals, stores: variableStores(u.body, locals) };
+  });
+  const sets: Record<VariableKind, Set<string>> = { instance: new Set(), global: new Set() };
+  for (const p of prepared)
+    for (const st of p.stores)
+      if (st.kind === "global" || !(builtinVariables.has(st.name) || excluded(st.name))) sets[st.kind].add(st.name);
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const p of prepared) {
+      const proof = new IntProof(p.unit.params, p.unit.body, p.locals, {
+        isUserFunction: (name) => p.unit.isUserFunction(name),
+        isIntVariable: (kind, name) => sets[kind].has(name),
+      });
+      for (const st of p.stores)
+        if (sets[st.kind].has(st.name) && (st.value === null || !proof.isInt(st.value))) {
+          sets[st.kind].delete(st.name);
+          changed = true;
+        }
+    }
+  }
+  return sets;
 }

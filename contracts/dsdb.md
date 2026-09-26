@@ -1,6 +1,6 @@
 # C2: DSDB bytecode container
 
-Version: 0.4.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
+Version: 0.5.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
 
 DSDB is the compiled form of a DSS game: one file, `game.dsdb`, at the NitroFS root (C3), loaded by the runtime VM.
 Written by WS0 in Phase 0; from the `phase0` tag WS2 and WS4 co-own this file (either may commit; the other
@@ -161,15 +161,20 @@ bits 16-31 signed. `contracts/opcodes.json` gives each opcode's number, status a
 | `sym` | SYMS index (C, 8 bits; ADR-0005) | the symbol's name |
 | `bivar` | dense builtin-variable index (`DSD_BUILTIN_VARS` order; ADR-0005) | the variable's name |
 
-**The stable opcodes** (0.4.0): numbers 0-28 (HALT, MOV, LOADK, LOADI, LOADB, LOADUNDEF, ADD, SUB, MUL, DIV, IDIV,
+**The stable opcodes** (0.5.0): numbers 0-28 (HALT, MOV, LOADK, LOADI, LOADB, LOADUNDEF, ADD, SUB, MUL, DIV, IDIV,
 MOD, NEG, EQ, NE, LT, LE, GT, GE, NOT, JMP, JMPT, JMPF, CALLN, RET, CONCAT, TOSTR, GETGLOB, SETGLOB), 29-50 (CALL,
 ADDI/SUBI/MULI, CMPJ, GETSLOT/SETSLOT(O), GETDYN/SETDYN, GETBI/SETBI, WITHBEGIN/WITHNEXT/WITHEND,
-NEWARR/GETIDX/SETIDX/LEN, TOINT/TOFIXED) and 55-58 (GETBIX/SETBIX, GETBIO/SETBIO), with the operands of ADR-0005.
-Numbers 51-54 stay reserved for the int-specialised ADD/SUB/MUL/CMPJ variants (the M1 fallback).
+NEWARR/GETIDX/SETIDX/LEN, TOINT/TOFIXED), 51-54 (the int-specialised ADDII/SUBII/MULII/CMPJII, PLAN.md 8's M1
+fallback, 0.5.0) and 55-58 (GETBIX/SETBIX, GETBIO/SETBIO), with the operands of ADR-0005.
 
 - **CMPJ A B C** compares rA with rB by relation C (0 `==`, 1 `!=`, 2 `<`, 3 `<=`, 4 `>`, 5 `>=`, with the meaning of
   EQ..GE) and must be followed by a JMP (the loader checks): the JMP is skipped when the relation holds and taken
   otherwise, so `while (i < n)` is `CMPJ i, n, 2; JMP Lend`.
+- **ADDII/SUBII/MULII A B C** and **CMPJII A B C** have exactly the operands and meaning of ADD/SUB/MUL and CMPJ, for
+  operands the compiler has proved to be ints (its int proof: packages/compiler/src/codegen/intproof.ts). The VM reads
+  the payloads without checking tags, so a wrong emission can only give a wrong number, never an unsafe memory
+  access. The result is an int; int32 overflow behaves as in ADD/SUB/MUL (R520 in a debug build, a wrap in a release
+  build). The loader checks them like ADD and CMPJ (register bounds; for CMPJII C <= 5 and a JMP next).
 - Instance slots and globals start in a "never assigned" state inside the runtime (not `undefined`): GETSLOT,
   GETDYN and GETGLOB of one raise R500/R501 (language.md rule 1). GETDYN/GETBIO on `noone`, or on an object with no
   instance, raise R5xx; on `all` they read the first instance.

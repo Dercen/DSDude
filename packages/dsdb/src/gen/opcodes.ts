@@ -11,7 +11,7 @@ export interface OpcodeInfo {
   readonly operands: readonly string[];
 }
 
-export const OPCODES_VERSION = "0.3.0";
+export const OPCODES_VERSION = "0.4.0";
 
 export const OPCODES: readonly OpcodeInfo[] = [
   { number: 0, name: "HALT", status: "stable", format: "none", operands: [] },
@@ -65,10 +65,10 @@ export const OPCODES: readonly OpcodeInfo[] = [
   { number: 48, name: "LEN", status: "stable", format: "ABC", operands: ["A:reg", "B:reg"] },
   { number: 49, name: "TOINT", status: "stable", format: "ABC", operands: ["A:reg", "B:reg"] },
   { number: 50, name: "TOFIXED", status: "stable", format: "ABC", operands: ["A:reg", "B:reg"] },
-  { number: 51, name: "ADDII", status: "reserved", format: "none", operands: [] },
-  { number: 52, name: "SUBII", status: "reserved", format: "none", operands: [] },
-  { number: 53, name: "MULII", status: "reserved", format: "none", operands: [] },
-  { number: 54, name: "CMPJII", status: "reserved", format: "none", operands: [] },
+  { number: 51, name: "ADDII", status: "stable", format: "ABC", operands: ["A:reg", "B:reg", "C:reg"] },
+  { number: 52, name: "SUBII", status: "stable", format: "ABC", operands: ["A:reg", "B:reg", "C:reg"] },
+  { number: 53, name: "MULII", status: "stable", format: "ABC", operands: ["A:reg", "B:reg", "C:reg"] },
+  { number: 54, name: "CMPJII", status: "stable", format: "ABC", operands: ["A:reg", "B:reg", "C:u8"] },
   { number: 55, name: "GETBIX", status: "stable", format: "ABC", operands: ["A:reg", "B:bivar", "C:reg"] },
   { number: 56, name: "SETBIX", status: "stable", format: "ABC", operands: ["A:reg", "B:bivar", "C:reg"] },
   { number: 57, name: "GETBIO", status: "stable", format: "ABC", operands: ["A:reg", "B:reg", "C:bivar"] },

@@ -7,7 +7,7 @@
  */
 import type { Diagnostic } from "@dsdude/project-format";
 import type { AssetManifest, CliCommand, ExitCode } from "@dsdude/toolchain";
-import { compileProjectModule } from "./project.ts";
+import { compileProjectModule, GAME_OPTIONS } from "./project.ts";
 
 /** Where output goes; tests inject their own. */
 export interface CompilerCliIo {
@@ -100,7 +100,7 @@ async function runCompile(
   } catch {
     // No packed assets yet: compile against the empty manifest (sprite.json frame counts, sound id 0).
   }
-  const result = compileProjectModule(loaded.project, manifest, { seed, fold: true });
+  const result = compileProjectModule(loaded.project, manifest, { ...GAME_OPTIONS, seed });
   const diagnostics = [...loaded.diagnostics, ...result.diagnostics];
   if (result.module === null) return finish(diagnostics, { output: null });
   await fs.mkdir(path.dirname(output), { recursive: true });
