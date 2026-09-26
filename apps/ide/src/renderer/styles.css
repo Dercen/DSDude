@@ -745,3 +745,86 @@ button.primary {
   padding: 0;
   text-decoration: underline;
 }
+
+.tree-section {
+  position: relative;
+}
+
+.tree-import {
+  position: absolute;
+  right: 8px;
+  top: 1px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 0 6px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.tree-import:hover {
+  opacity: 1;
+  border-color: #45494e;
+}
+
+.import-dialog {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.import-sprite {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.import-fields {
+  flex: 1;
+  min-width: 240px;
+}
+
+.import-fields select,
+.import-fields input[type="number"] {
+  background: #3c3c3c;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  padding: 3px 6px;
+  color: inherit;
+  font: inherit;
+}
+
+.import-previews {
+  display: flex;
+  gap: 16px;
+}
+
+.import-previews figure,
+.import-dialog figure {
+  margin: 0;
+}
+
+.import-previews figcaption,
+.import-dialog figcaption {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+canvas.pixelated {
+  image-rendering: pixelated;
+  background: repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 50% / 16px 16px;
+  border: 1px solid #45494e;
+}
+
+[data-testid="import-origin"] {
+  cursor: crosshair;
+}
+
+.import-background {
+  max-width: 100%;
+}
+
+.import-problems {
+  width: 100%;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #ffe08a;
+}

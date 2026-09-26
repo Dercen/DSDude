@@ -10,6 +10,8 @@ const port = Number(process.env.DSDUDE_PORT_BASE ?? 5160) + 1;
 
 export default defineConfig({
   plugins: [react()],
+  // Scan the whole renderer up front: a dependency found mid-run makes Vite reload the test page.
+  optimizeDeps: { entries: ["src/renderer/**/*.{ts,tsx}", "!src/renderer/**/*.test.{ts,tsx}"] },
   test: {
     name: "ide-browser",
     include: ["src/**/*.browser.test.{ts,tsx}"],

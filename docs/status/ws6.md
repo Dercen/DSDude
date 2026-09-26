@@ -203,8 +203,23 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - The fake-mode play test now also breaks step.dss and checks the compiler's own E101 on line 1 in Problems.
   - Tests: node 88, browser 10, Playwright 11, all green. Screenshots checked.
 
+- **Task 6h, import dialogs: done.** A '+' on the Sprites, Backgrounds and Sounds headings picks a file; the dialog suggests a unique C1 name.
+  - Sprite:
+    - WS5's `previewSpriteDetails` runs in the renderer on the picked bytes, via `@dsdude/asset-pipeline/browser`.
+    - It shows an editable frame count, a colour mode, the original first frame (click it to place the origin; Top left / Centre / Bottom presets) and an animated 'On the DS' preview of the converted frames.
+    - It also shows colour counts, E401/E407 and uneven-frame warnings.
+  - Background: an image preview.
+  - Sound: effect/music (guessed from the extension) and a WAV/MP3 Listen button (Web Audio decode, so no media CSP change).
+  - Main (`imports.ts`) copies the file into its resource folder and writes the JSON through C1 schemas. It refuses taken names across all kinds, non-PNG pictures, other sound types and broken PNGs.
+  - The store adds only the new resource from disk, so unsaved edits stay.
+  - C5 0.9.0 (T1):
+    - `assets.import` gains optional `sprite` (C1 SpriteJson) and `sound.kind`, and its semantics are pinned.
+    - New `dialog.readPicked`: the bytes of a file picked through `dialog.open` in this session only, at most 32 MB.
+  - The browser Vitest config pre-scans the renderer (`optimizeDeps.entries`) so a dependency found mid-run no longer reloads the page.
+  - Tests: node 92, browser 10, ipc-contract 75, Playwright 12 (import.spec: sprite with 3 frames and a moved origin, a WAV effect). Screenshot checked.
+
 ## Next
-- Task 6 continues: import dialogs (WS5's `previewSprite` is on main via `@dsdude/asset-pipeline/browser`); the rebinding page once WS1's `LaunchOptions.keys` is on main.
+- Task 6: all parts done except the rebinding page, which waits for WS1's `LaunchOptions.keys` on main (ADR-0007). Then task 7 (visual editors) unless WS6b runs.
 - Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 

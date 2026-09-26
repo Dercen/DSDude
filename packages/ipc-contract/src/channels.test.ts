@@ -72,8 +72,21 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     },
     badReq: 0,
   },
+  "dialog.readPicked": { req: { path: "C:/art/bird.png" }, res: { bytes: new Uint8Array(8) }, badReq: { path: "" } },
   "assets.import": {
-    req: { projectDir: "C:/p", kind: "sprite", sourcePath: "C:/x.png", name: "spr_x" },
+    req: {
+      projectDir: "C:/p",
+      kind: "sprite",
+      sourcePath: "C:/x.png",
+      name: "spr_x",
+      sprite: {
+        frames: 3,
+        frameWidth: 16,
+        frameHeight: 16,
+        origin: { x: 8, y: 8 },
+        bbox: { left: 0, top: 0, right: 15, bottom: 15 },
+      },
+    },
     res: { name: "spr_x", diagnostics: [] },
     badReq: { projectDir: "C:/p", kind: "tileset", sourcePath: "C:/x.png", name: "spr_x" },
   },
@@ -177,7 +190,7 @@ const EVENT_SAMPLES: { [C in EventChannel]: { ok: unknown; bad: unknown } } = {
 };
 
 describe("C5 channel map", () => {
-  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0-0.7.0 additions", () => {
+  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0 and 0.4.0-0.9.0 additions", () => {
     expect(INVOKE_CHANNELS).toEqual([
       "project.open",
       "project.save",
@@ -205,6 +218,7 @@ describe("C5 channel map", () => {
       "learn.list",
       "learn.read",
       "learn.openAssets",
+      "dialog.readPicked",
       "dialog.open",
     ]);
     expect(EVENT_CHANNELS).toEqual([

@@ -1,6 +1,6 @@
 # C5: IPC channel map
 
-Version: 0.8.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
+Version: 0.9.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
 
 The typed channels between the IDE's renderer and its main process. Source: PLAN.md section 5.2 C5. The Phase-0
 channel list and zod stubs were written by WS0; WS6 completed them in 0.2.0. The schemas live in
@@ -30,7 +30,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `project.create` | `{dir, name, template?}` | `{dir}`: creates `<dir>/<name>` from the template (default `empty`), refusing an existing non-empty folder, and sets project.json's `name` and `title` (0.7.0 pins these semantics); returns the new folder |
 | `project.templates` (0.7.0) | `{}` | `{templates: [{id, title, description}]}` from `templates/index.json` (`TemplateIndexSchema`); without it a built-in Empty template (plus, in development only, the repo's `samples/*`) |
 | `app.info` (0.7.0) | `{}` | `{version, packaged, defaultProjectsDir, oneDriveDirs}` |
-| `assets.import` | `{projectDir, kind: sprite\|background\|sound, sourcePath, name}` | `{name, diagnostics}` |
+| `assets.import` | `{projectDir, kind: sprite\|background\|sound, sourcePath, name, sprite?, sound?}` | `{name, diagnostics}`: copies the file into the resource folder (`sprites/<name>/sheet.png`, `backgrounds/<name>/background.png`, `sounds/<name>/<file>`) and writes the resource JSON through C1; refuses a name any resource uses. 0.9.0: `sprite` (a C1 `SpriteJsonSchema` value from the import dialog; default one frame, the whole image, origin at the centre) and `sound.kind` (default from the extension) |
 | `assets.preview` | `{projectDir, sprite?, sourcePath?, options?}`: exactly one of `sprite`/`sourcePath`; `sourcePath` needs `options` | `SpritePreview` (C12) |
 | `build.play` | C4 `BuildRequest` (incl. `debug`, 0.3.0) | `PlayResult` (`BuildResult` + `emulator`) |
 | `build.build`, `build.compileOnly` | C4 `BuildRequest` | C4 `BuildResult` |
@@ -49,6 +49,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `learn.list` (0.4.0) | `{}` | `{docs: [{path, title, section}]}`: tutorial, then manual, then reference; `assets/` folders skipped; title = first `# ` heading, else the file name |
 | `learn.read` (0.4.0) | `{path: LearnPath}` | `{path, markdown, images}`: `images` maps each relative image source as written in the markdown to a `data:image/(png\|jpeg\|gif\|webp);base64,` URL; remote images and files outside `docs/` are never included |
 | `learn.openAssets` (0.5.0) | `{}` | `{path}`: opens `docs/tutorial/assets/` (under the same root as `learn.*`) in the file manager (Help > Tutorial assets); fails when the folder is missing |
+| `dialog.readPicked` (0.9.0) | `{path}` | `{bytes}`: a file the user picked with `dialog.open` (kind `file`) in this session, at most 32 MB; any other path is refused |
 | `dialog.open` (0.2.0) | `{kind: directory\|file, title?, defaultPath?, filters?}` | `{paths}` (empty when cancelled) |
 
 ## Event channels (main -> renderer)
