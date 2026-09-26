@@ -1,0 +1,20 @@
+DSD|READY|0.1.0|0dd9987a
+DSD|LOG|true
+DSD|LOG|false
+DSD|LOG|100002
+DSD|LOG|24
+DSD|LOG|100002
+DSD|LOG|-4
+DSD|LOG|true
+DSD|LOG|-4
+DSD|LOG|100002
+DSD|LOG|40
+DSD|LOG|55
+DSD|LOG|16
+DSD|MEM|inst=3/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0
+DSD|LOG|hit 28
+DSD|LOG|wall hit by 28
+DSD|LOG|hit 32
+DSD|LOG|wall hit by 32
+DSD|LOG|hit 28
+DSD|LOG|wall hit by 28

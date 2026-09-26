@@ -4,8 +4,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 
+#include "builtins_table.h"
+#include "game.h"
 #include "test.h"
 
 // Seed for dsd_test_rand when a suite does not pick its own (any non-zero value; fixed so runs are reproducible).
@@ -42,6 +45,27 @@ int dsd_test_check_str(const char *got, const char *want, const char *file, int 
         return 0;
     }
     return 1;
+}
+
+#define READY_PREFIX "DSD|READY|"
+#define ABI_HEX_DIGITS 8 // the hash prints as 8 lower-case hex digits
+#define READY_LINE_MAX 64
+
+void dsd_test_mask_abi(char *text) {
+    size_t prefix = strlen(READY_PREFIX);
+    for (char *line = text; line != NULL; line = strchr(line, '\n') != NULL ? strchr(line, '\n') + 1 : NULL) {
+        if (strncmp(line, READY_PREFIX, prefix) != 0) continue;
+        char *p = strchr(line + prefix, '|'); // the bar after the version field
+        if (p == NULL) continue;
+        p++;
+        for (int k = 0; k < ABI_HEX_DIGITS && isxdigit((unsigned char)*p); k++) *p++ = DSD_TEST_ABI_MASK;
+    }
+}
+
+const char *dsd_test_ready_line(void) {
+    static char line[READY_LINE_MAX];
+    snprintf(line, sizeof line, "%s%s|%08x\n", READY_PREFIX, DSD_RUNTIME_VERSION, (unsigned)DSD_ABI_HASH);
+    return line;
 }
 
 int32_t dsd_test_read_file(const char *path, char *buf, uint32_t cap) {

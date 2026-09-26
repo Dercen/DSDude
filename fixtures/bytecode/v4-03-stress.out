@@ -1,0 +1,8 @@
+DSD|READY|0.1.0|0dd9987a
+DSD|MEM|inst=321/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0
+DSD|LOG|frame 60 hits 6178 left 240
+DSD|STAT|fps=60,inst=260,spr_top=30,spr_bot=40,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1669
+DSD|LOG|frame 120 hits 10756 left 204
+DSD|STAT|fps=60,inst=225,spr_top=23,spr_bot=35,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1702
+DSD|LOG|frame 180 hits 14259 left 186
+DSD|STAT|fps=60,inst=207,spr_top=23,spr_bot=42,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1262

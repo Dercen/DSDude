@@ -1,8 +1,0 @@
-.dsda 0.1
-.seed 0
-
-.func __main 0 1
-    .loc "rt/missing-builtin.dss" 1
-    CALLN r0, 0, draw_self
-    RET r0, 0
-.end

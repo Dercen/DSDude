@@ -1,0 +1,92 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_a "gfx/spr_a.grf" 1 origin=8,8 size=16,16 bbox=0,0,15,15
+.asset sprite spr_c "gfx/spr_c.grf" 3 origin=2,3 size=12,10 bbox=0,0,11,9
+.asset sprite spr_w "gfx/spr_w.grf" 1 origin=0,0 size=20,8 bbox=0,0,19,7
+
+.func flip_create 0 1
+    .loc "objects/obj_flip/create.dss" 1
+    LOADI r0, -1
+    SETBI r0, image_xscale
+    .loc "objects/obj_flip/create.dss" 2
+    SETBI r0, image_yscale
+    .loc "objects/obj_flip/create.dss" 3
+    LOADI r0, 4
+    SETBI r0, image_index
+    RET r0, 0
+.end
+
+.func rot_create 0 1
+    .loc "objects/obj_rot/create.dss" 1
+    LOADI r0, 90
+    SETBI r0, image_angle
+    RET r0, 0
+.end
+
+.func drawer_draw 0 7
+    .loc "objects/obj_drawer/draw.dss" 1
+    LOADK r0, @spr_w
+    LOADI r1, 0
+    LOADI r2, 200
+    LOADI r3, 20
+    CALLN r0, 4, draw_sprite
+    .loc "objects/obj_drawer/draw.dss" 2
+    LOADK r0, @spr_a
+    LOADI r1, 0
+    LOADI r2, 30
+    LOADI r3, 150
+    LOADI r4, 1
+    LOADI r5, 1
+    LOADI r6, 360
+    CALLN r0, 7, draw_sprite_ext
+    .loc "objects/obj_drawer/draw.dss" 3
+    LOADK r0, @spr_a
+    LOADI r1, 0
+    LOADI r2, -100
+    LOADI r3, -100
+    CALLN r0, 4, draw_sprite
+    .loc "objects/obj_drawer/draw.dss" 4
+    LOADI r0, 1
+    CALLN r0, 1, draw_set_screen
+    .loc "objects/obj_drawer/draw.dss" 5
+    LOADK r0, @spr_a
+    LOADI r1, 0
+    LOADI r2, 50
+    LOADI r3, 60
+    CALLN r0, 4, draw_sprite
+    RET r0, 0
+.end
+
+.object obj_plain sprite=spr_a parent=- visible=1 screen=top depth=5
+.end
+
+.object obj_hidden sprite=spr_a parent=- visible=0 screen=top depth=-9
+.end
+
+.object obj_flip sprite=spr_c parent=- visible=1 screen=top depth=0
+    .event create flip_create
+.end
+
+.object obj_rot sprite=spr_c parent=- visible=1 screen=top depth=-3
+    .event create rot_create
+.end
+
+.object obj_drawer sprite=- parent=- visible=1 screen=top depth=2
+    .event draw drawer_draw
+.end
+
+.room rm_draw 512 384
+    .screen top - 16 0
+    .screen bottom - 0 8
+    .instance obj_plain 40 50 top -
+    .instance obj_hidden 40 50 top -
+    .instance obj_flip 100 60 top -
+    .instance obj_rot 128 96 top -
+    .instance obj_drawer 0 0 top -
+    .instance obj_plain 60 50 top -
+    .set top spr_a+spr_c+spr_w -
+    .set bottom spr_a -
+    .sounds -
+.end
+
+.first rm_draw

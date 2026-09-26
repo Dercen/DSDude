@@ -1,7 +1,8 @@
 // dsd_platform.h: contract C11, the platform seam between the portable core (runtime/core, WS2) and a platform
 // layer: libnds/maxmod on the DS (runtime/platform/ds, WS3) and the headless host runner (runtime/host, WS2).
 //
-// Version: 0.2.0 (0.1.0 published 2026-09-26; 0.2.0 adds dsd_core_main and dsd_plat_init's results for WS3's ADR-0004;
+// Version: 0.3.0 (0.1.0 published 2026-09-26; 0.2.0 adds dsd_core_main and dsd_plat_init's results for WS3's ADR-0004;
+// 0.3.0 makes dsd_sprite_info's box and frame count inputs from the core, since a GRF cannot tell them;
 // frozen at CP-A; after that, changes follow contracts/README.md: an added function or field is T1, a changed
 // signature or meaning T2). Source: PLAN.md 2.4, 3.2, 3.3 and 5.2 C11.
 //
@@ -17,7 +18,7 @@
 #ifndef DSD_PLATFORM_H
 #define DSD_PLATFORM_H
 
-#define DSD_PLATFORM_VERSION "0.2.0" // C11 version (contracts/CHANGELOG.md)
+#define DSD_PLATFORM_VERSION "0.3.0" // C11 version (contracts/CHANGELOG.md)
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -84,12 +85,15 @@ typedef struct dsd_input {
 } dsd_input;
 _Static_assert(sizeof(dsd_input) == 16, "dsd_input layout (C11)");
 
-// What the core needs to know about a loaded sprite; read from the GRF header on both platforms.
+// A sprite to load. The core fills width, height and frames before dsd_plat_sprite_load (from the DSDB's SPRG and
+// ASET records): a GRF holds only the whole padded sheet (paddedWidth x frames * paddedHeight), which does not tell
+// the frame height. The platform fills bpp from the GRF header. Frame f starts at byte f * frameBytes of the GRF's
+// GFX chunk, frameBytes = width * height * bpp / 8 (C3 section 3).
 typedef struct dsd_sprite_info {
-    uint16_t width;   // one frame's width in pixels (before OBJ-size padding)
-    uint16_t height;  // one frame's height in pixels
-    uint16_t frames;  // frames stacked vertically in the GRF
-    uint16_t bpp;     // 4 or 8
+    uint16_t width;   // in: the frame's OBJ box width in pixels (padded to one of the 12 OBJ sizes, C3)
+    uint16_t height;  // in: the frame's OBJ box height in pixels
+    uint16_t frames;  // in: frames stacked vertically in the GRF
+    uint16_t bpp;     // out: 4 or 8
 } dsd_sprite_info;
 _Static_assert(sizeof(dsd_sprite_info) == 8, "dsd_sprite_info layout (C11)");
 
@@ -186,7 +190,9 @@ void dsd_plat_mem_report(dsd_mem_report *out);
 
 // ---- Graphics ---------------------------------------------------------------------------------------------------
 
-// Loads a sprite GRF into `screen`'s OBJ memory. Returns a handle >= 0 and fills *info, or DSD_PLAT_E*.
+// Loads a sprite GRF into `screen`'s OBJ memory, `info` giving its box and frames (above). Returns a handle >= 0 and
+// sets info->bpp, or DSD_PLAT_E*: DSD_PLAT_ELOAD when the GRF does not match `info` (its gfxWidth is not the box
+// width, or it has fewer than frames * height rows), DSD_PLAT_ENOMEM when OBJ memory is full.
 int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_info *info);
 // Loads a background GRF as `screen`'s room background (BG1); grf_path NULL hides BG1 (a room screen without a
 // background). DSD_PLAT_OK or DSD_PLAT_E*.
@@ -199,6 +205,11 @@ void dsd_plat_oam_submit(uint32_t screen, const dsd_oam_entry *list, uint32_t n,
                          uint32_t naffine);
 
 // ---- UI layer (BG0, 8-pixel cells) ------------------------------------------------------------------------------
+// Colours 0-15 (others wrap to colour & 15) are the 16 UI colours in the PLAN.md 5.2 order of GameMaker's c_*
+// constants, with GameMaker's RGB values as RGB555 (r, g, b): 0 c_white (31,31,31), 1 c_black (0,0,0), 2 c_red
+// (31,0,0), 3 c_green (0,16,0), 4 c_blue (0,0,31), 5 c_yellow (31,31,0), 6 c_orange (31,20,8), 7 c_purple
+// (16,0,16), 8 c_gray (16,16,16), 9 c_ltgray (24,24,24), 10 c_dkgray (8,8,8), 11 c_aqua (0,31,31), 12 c_fuchsia
+// (31,0,31), 13 c_lime (0,31,0), 14 c_maroon (16,0,0), 15 c_navy (0,0,16). draw_set_color's value is the number.
 
 // Writes `len` ASCII bytes at cell (cx, cy); cells off the map are skipped; non-printable bytes draw as '?'.
 void dsd_plat_ui_text(uint32_t screen, int32_t cx, int32_t cy, const char *str, uint32_t len, uint32_t colour);

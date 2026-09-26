@@ -1,13 +1,12 @@
 // platform.c: dsd_platform.h (C11) for the headless host runner. Deterministic by construction: no clocks, no
-// real input, the RNG seed from --seed. Graphics, UI and sound calls are recorded later for PNG frames and traces
-// (WS2 task 6); for now they accept everything and draw nothing.
+// real input, the RNG seed from --seed. Graphics and the UI layer live in gfx.c (recorded for tests and --png-dir);
+// sound calls accept everything and play nothing.
 #include <stdio.h>
 #include <string.h>
 
 #include "dsd_platform.h"
 #include "host.h"
 
-#define PATH_MAX_BYTES 1024           // longest file path the host builds
 #define DSDB_SUFFIX ".dsdb"           // a root ending in this is served as game.dsdb
 #define DSDB_NAME "game.dsdb"
 #define MS_PER_SECOND 1000u
@@ -16,13 +15,12 @@
 static HostConfig g_cfg;
 static uint32_t g_frame;    // frames completed
 static bool g_fatal;        // dsd_plat_fatal was called
-static int32_t g_sprite_handles; // sprite handles handed out since the last dsd_plat_assets_free
 
 void host_configure(const HostConfig *cfg) {
     g_cfg = *cfg;
     g_frame = 0;
     g_fatal = false;
-    g_sprite_handles = 0;
+    host_gfx_reset();
 }
 
 bool host_fatal_seen(void) { return g_fatal; }
@@ -40,19 +38,24 @@ static bool ends_with(const char *s, const char *suffix) {
 
 int32_t dsd_plat_init(void) { return g_cfg.root != NULL ? DSD_PLAT_OK : DSD_PLAT_ENOENT; }
 
-void dsd_plat_frame_begin(void) {}
-
 void dsd_plat_frame_end(void) { g_frame++; }
 
 void dsd_plat_read_input(dsd_input *out) { host_keys_state(g_cfg.keys, g_frame, out); }
 
-int32_t dsd_plat_read_file(const char *path, void *buf, uint32_t cap) {
-    char full[PATH_MAX_BYTES];
-    if (ends_with(g_cfg.root, DSDB_SUFFIX) && strcmp(path, DSDB_NAME) == 0) {
-        snprintf(full, sizeof full, "%s", g_cfg.root);
-    } else {
-        snprintf(full, sizeof full, "%s/%s", g_cfg.root, path);
+bool host_nitro_path(const char *path, char *full, size_t cap) {
+    // A .dsdb root has no NitroFS directory: only game.dsdb exists (served from the root itself).
+    if (ends_with(g_cfg.root, DSDB_SUFFIX)) {
+        if (strcmp(path, DSDB_NAME) != 0) return false;
+        snprintf(full, cap, "%s", g_cfg.root);
+        return true;
     }
+    snprintf(full, cap, "%s/%s", g_cfg.root, path);
+    return true;
+}
+
+int32_t dsd_plat_read_file(const char *path, void *buf, uint32_t cap) {
+    char full[HOST_PATH_MAX];
+    if (!host_nitro_path(path, full, sizeof full)) return DSD_PLAT_ENOENT;
     FILE *f = fopen(full, "rb");
     if (f == NULL) return DSD_PLAT_ENOENT;
     int32_t rc = DSD_PLAT_EIO;
@@ -86,58 +89,7 @@ void dsd_plat_fatal(const dsd_fatal *err) {
 
 void dsd_plat_mem_report(dsd_mem_report *out) { memset(out, 0, sizeof *out); }
 
-// ---- Graphics, UI, sound ----------------------------------------------------------------------------------------
-// The host is headless: loading always succeeds, because the core never takes game logic from GRF files (its
-// geometry comes from the DSDB), so a run without the GRFs (the cloud) and one with them (WS0) trace the same.
-// Pixels are read for --png-dir from tier v4 on.
-
-int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_info *info) {
-    (void)screen;
-    (void)grf_path;
-    memset(info, 0, sizeof *info);
-    return g_sprite_handles++;
-}
-
-int32_t dsd_plat_bg_load(uint32_t screen, const char *grf_path) {
-    (void)screen;
-    (void)grf_path;
-    return DSD_PLAT_OK;
-}
-
-void dsd_plat_bg_scroll(uint32_t screen, int32_t x, int32_t y) {
-    (void)screen;
-    (void)x;
-    (void)y;
-}
-
-void dsd_plat_oam_submit(uint32_t screen, const dsd_oam_entry *list, uint32_t n, const dsd_affine *affine,
-                         uint32_t naffine) {
-    (void)screen;
-    (void)list;
-    (void)n;
-    (void)affine;
-    (void)naffine;
-}
-
-void dsd_plat_ui_text(uint32_t screen, int32_t cx, int32_t cy, const char *str, uint32_t len, uint32_t colour) {
-    (void)screen;
-    (void)cx;
-    (void)cy;
-    (void)str;
-    (void)len;
-    (void)colour;
-}
-
-void dsd_plat_ui_fill(uint32_t screen, int32_t cx, int32_t cy, int32_t cw, int32_t ch, uint32_t colour) {
-    (void)screen;
-    (void)cx;
-    (void)cy;
-    (void)cw;
-    (void)ch;
-    (void)colour;
-}
-
-void dsd_plat_ui_clear(uint32_t screen) { (void)screen; }
+// ---- Sound ------------------------------------------------------------------------------------------------------
 
 int32_t dsd_plat_sfx_play(uint32_t sound_id) {
     (void)sound_id;
@@ -154,9 +106,6 @@ bool dsd_plat_music_active(void) { return false; }
 
 void dsd_plat_volume(int32_t volume_fx) { (void)volume_fx; }
 
-void dsd_plat_screens_blank(bool blank) { (void)blank; }
-
-void dsd_plat_assets_free(void) { g_sprite_handles = 0; }
 
 int32_t dsd_plat_sfx_load(uint32_t sound_id) {
     (void)sound_id;
