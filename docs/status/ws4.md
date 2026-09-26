@@ -43,11 +43,23 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - ASET paths (`gfx/<name>.grf`, `bg/<name>.grf`, sounds `""`) and `aux` follow the provisional C4 AssetManifest
     until WS5's C3 (`contracts/assetpack.md`).
 
+- **Task 3, `compileProject` + `dsdude compile`: done** (2026-09-26).
+  - `compileProject` (C4 `CompileFn`) returns the DSDB (ABI hash, DBG table via `@dsdude/dsdb` `encode`) and
+    `roomSets`; `compileProjectModule` adds options (`seed`) and the module.
+  - `cliCommands` exports `compile` (`src/cli.ts`): `dsdude compile <project> [-o <file.dsdb>] [--seed N] [--json]`,
+    default output `<DSDUDE_HOME>/build/<project-hash>/nitrofs/game.dsdb`, reads `<build>/assets.manifest.json`
+    when present. `packages/cli` already registers it: `npx dsdude compile samples/flappy --json` works on Linux and
+    writes the golden bytes; `dsdb-dis` round-trips them.
+  - **For WS1 (cli.md is yours):** `compile --json` fields besides `ok`/`diagnostics`: `output`, `bytes`,
+    `roomSets`, `ms` (please add the row, T1). `compile` does not run room budgets yet: `checkRoomBudgets` is WS5's
+    and not on main; BuildService calls it after `compileProject` anyway.
+  - Worker safety is a test (`src/worker-safe.test.ts`): nothing statically reachable from `src/index.ts` imports
+    a Node API; the CLI imports Node modules dynamically.
+
 ## Next
 
-- Task 3: `dsdude compile` in `cliCommands`, DBG/ABI writer checks (done by `encode`), `compileProject` wiring note
-  for WS1 (CP-B).
 - Task 4: C7 `LanguageServiceHost` in `packages/lang/src/host.ts` (by CP-B).
+- Task 5: conformance programs 6-10; task 6: the 20 beginner mistakes; task 7: formatter and peephole passes.
 - Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
   child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
 
