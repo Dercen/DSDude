@@ -75,6 +75,10 @@ static uint32_t g_mod_loaded_n;
 static struct { mm_sfxhand handle; uint16_t id; } g_sfx_playing[DS_SFX_TRACKED];
 static uint32_t g_sfx_next;
 static mm_byte g_sfx_volume = 255;
+// A module started and not stopped. C11 modules always loop, so this is audio_is_playing's answer; maxmod's
+// mmActive() only turns true at its next frame tick, which would make audio_is_playing false right after
+// audio_play_music (WS2's fixtures/bytecode/runtime/music, host platform.c).
+static bool g_music_on;
 
 bool ds_frame_nowait = false;
 const char *ds_game_file = NULL;
@@ -398,19 +402,22 @@ void dsd_plat_sfx_stop(uint32_t sound_id)
 
 void dsd_plat_music_play(uint32_t module_id)
 {
-    if (ds_sound_ready)
-        mmStart(module_id, MM_PLAY_LOOP);
+    if (!ds_sound_ready)
+        return;
+    mmStart(module_id, MM_PLAY_LOOP);
+    g_music_on = true;
 }
 
 void dsd_plat_music_stop(void)
 {
     if (ds_sound_ready)
         mmStop();
+    g_music_on = false;
 }
 
 bool dsd_plat_music_active(void)
 {
-    return ds_sound_ready && mmActive();
+    return g_music_on;
 }
 
 void dsd_plat_volume(int32_t volume_fx)
@@ -436,6 +443,7 @@ void dsd_plat_screens_blank(bool blank)
 
 void dsd_plat_assets_free(void)
 {
+    g_music_on = false;
     if (ds_sound_ready)
     {
         mmStop();
