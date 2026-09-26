@@ -194,6 +194,10 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     `dsd_plat_music_play` until `dsd_plat_music_stop`, ideally counting starts, so a test can see exactly two
     (the second `audio_play_music` must not restart the tune; README.md in the folder says so).
 
+- **For WS0:** `contracts/README.md` still lists C7 as "owed"; `packages/lang/src/host.ts` has been C7 0.1.0 since
+  task 4 (its CHANGELOG line is under C7). `packages/compiler/CLAUDE.md`'s contract table is updated to the current
+  versions.
+
 ## Next
 
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).
