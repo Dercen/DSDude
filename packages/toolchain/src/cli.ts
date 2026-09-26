@@ -208,7 +208,7 @@ export function makeCliCommands(opts: ToolchainCliOptions = {}): CliCommand[] {
   const play: CliCommand = {
     name: "play",
     summary:
-      "play <project> [build flags] [--no-build] [--emulator melonds|desmume] [--seconds N] [--json]: build and run",
+      "play <project> [build flags] [--no-build] [--emulator melonds|desmume] [--debug] [--seconds N] [--json]: build and run",
     run: guard(async (argv) => {
       const { values, positionals } = parseArgs({
         args: argv,
@@ -217,6 +217,7 @@ export function makeCliCommands(opts: ToolchainCliOptions = {}): CliCommand[] {
           "no-build": { type: "boolean" },
           emulator: { type: "string" },
           seconds: { type: "string" },
+          debug: { type: "boolean" },
         },
         allowPositionals: true,
       });
@@ -238,7 +239,7 @@ export function makeCliCommands(opts: ToolchainCliOptions = {}): CliCommand[] {
             toolchainDiagnostic("E609", { dir: path.resolve(projectDir) }),
           ]);
         }
-        result = await svc.launchRom(rom, kind);
+        result = await svc.launchRom(rom, { kind, debug: values.debug });
       } else {
         result = await svc.play({
           projectDir,
@@ -248,6 +249,7 @@ export function makeCliCommands(opts: ToolchainCliOptions = {}): CliCommand[] {
           skipAssets: values["skip-assets"],
           jobs: positiveInt(values.jobs, "--jobs"),
           seed: positiveInt(values.seed, "--seed"),
+          debug: values.debug,
         });
       }
       const emu = result.emulator;

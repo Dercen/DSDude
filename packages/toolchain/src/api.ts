@@ -11,7 +11,7 @@
  */
 import type { Diagnostic, Project } from "@dsdude/project-format";
 
-export const CONTRACT_VERSION = "0.2.0";
+export const CONTRACT_VERSION = "0.3.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Tools
@@ -143,6 +143,8 @@ export type EmulatorKind = "melonds" | "desmume";
 export interface LaunchOptions {
   /** Extra environment for the emulator process. Emulators spawn WITHOUT windowsHide and with stdio 'pipe'. */
   env?: Record<string, string>;
+  /** Debug: melonDS starts its GDB stub on 3333 (ARM9) / 3334 (ARM7); DeSmuME has none (E623). 0.3.0. */
+  debug?: boolean;
 }
 
 /**
@@ -165,6 +167,11 @@ export interface EmulatorManager {
   /** Unpacks/copies the emulator into <DSDUDE_HOME>\emulators\ if needed; returns its exe. */
   ensureInstalled(kind: EmulatorKind): Promise<string>;
   launch(romPath: string, opts: LaunchOptions & { kind: EmulatorKind }): Promise<EmulatorHandle>;
+  /**
+   * Kills an emulator an earlier process left running (PID + exe + start time persisted under DSDUDE_HOME), with
+   * taskkill /F /T; the IDE calls it at startup and before quit. Resolves true when it killed one. 0.3.0.
+   */
+  reconcile?(): Promise<boolean>;
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -253,6 +260,8 @@ export interface BuildRequest {
   skipAssets?: boolean;
   /** Runtime build parallelism (C10 --jobs). */
   jobs?: number;
+  /** play only: launch with the emulator's GDB stub (C10 --debug; melonDS only, else E623). 0.3.0. */
+  debug?: boolean;
 }
 
 export interface BuildResult {

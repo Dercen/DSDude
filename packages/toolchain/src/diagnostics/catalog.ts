@@ -103,6 +103,18 @@ export const TOOLCHAIN_CATALOG = {
     "The {emulator} download does not match its checksum.",
     "Delete {path} and download it again.",
   ),
+  E623: e(
+    "E623",
+    "Debugging needs melonDS",
+    "DeSmuME has no debugger connection, so Debug can't start it.",
+    "Choose melonDS as the emulator to debug.",
+  ),
+  E624: e(
+    "E624",
+    "Emulator download failed",
+    "{emulator} could not be downloaded from {url}: {detail}",
+    "Check the internet connection and try again.",
+  ),
   E630: e(
     "E630",
     "Screenshot tool missing",

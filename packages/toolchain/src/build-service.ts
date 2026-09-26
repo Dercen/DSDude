@@ -97,13 +97,13 @@ export class LocalBuildService implements BuildService {
   async play(req: BuildRequest): Promise<PlayResult> {
     const result = await this.#request(req, "build");
     if (!result.ok || result.ndsPath === null) return { ...result, emulator: null };
-    return this.launchRom(result.ndsPath, req.emulator ?? "melonds", result);
+    return this.launchRom(result.ndsPath, { kind: req.emulator ?? "melonds", debug: req.debug }, result);
   }
 
   /** Launches an already built ROM (`dsdude play --no-build`). */
   async launchRom(
     ndsPath: string,
-    kind: EmulatorKind,
+    launch: { kind: EmulatorKind; debug?: boolean },
     prior: BuildResult = { ok: true, ndsPath, diagnostics: [], timings: {} },
   ): Promise<PlayResult> {
     const timings = { ...prior.timings };
@@ -111,7 +111,7 @@ export class LocalBuildService implements BuildService {
     this.#emit({ phase: "launch", progress: 1, diagnostics: prior.diagnostics, log: [], timings });
     try {
       await this.stop();
-      const emulator = await this.emulators.launch(ndsPath, { kind });
+      const emulator = await this.emulators.launch(ndsPath, launch);
       this.#running = emulator;
       timings.launch = Date.now() - t0;
       emulator.onLine((line) =>

@@ -1,6 +1,6 @@
 # C4: Toolchain driver API and BuildService
 
-Version: 0.2.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+Version: 0.3.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
 
 The types live in `packages/toolchain/src/api.ts` (exported from `@dsdude/toolchain`); this file states the rules
 the implementation follows. `BuildService` is confirmed at CP-A. Sources: PLAN.md sections 2.6, 3.2 and 6 WS1;
@@ -83,24 +83,41 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
 - Emulators live in `<DSDUDE_HOME>\emulators\melonDS-1.1\melonDS.exe` and
   `<DSDUDE_HOME>\emulators\desmume-0.9.13\DeSmuME_0.9.13_x64.exe`. Their configs sit beside the exes, so each
   worktree keeps its own.
+- `ensureInstalled("melonds")` installs melonDS 1.1 when it is missing (0.3.0):
+  - it reads a local copy of the release zip (`melonDsZip`, the installer's bundled copy), else downloads
+    `https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-windows-x86_64.zip`
+    (10-minute limit; a failure is E624);
+  - before anything is written, the zip must be 19,484,283 bytes with SHA-256
+    `9F3F8A244103BE20B5B657AF5B0ED1B2A66BB20A7181476A6D294C9A53D4F8C8` (else E622);
+  - it is unpacked with `%SystemRoot%\System32\tar.exe -xf` (hidden, 2-minute limit), the zip is deleted, and a
+    missing `melonDS.exe` afterwards is E621.
 - `ensureInstalled("desmume")` copies the exe from `%USERPROFILE%\Downloads\desmume-0.9.13-win64\` when it is
-  missing. Otherwise a missing emulator is E620 (the melonDS download and SHA-256 check come in the next version).
-- `launch(rom, {kind})`, in order:
+  missing; otherwise it is E620.
+- `launch(rom, {kind, debug})`, in order:
+  0. `debug` with DeSmuME is E623: it has no GDB stub.
   1. Stop this manager's previous emulator and wait for it to exit.
   2. Reconcile `running.json`.
   3. For melonDS, patch `melonDS.toml` in place: the Controls key map (Qt codes A=88, B=90, X=83, Y=65, L=81,
      R=87, Start=16777220, Select=16777248, Up=16777235, Down=16777237, Left=16777234, Right=16777236),
      `IntegerScaling=true`, `ShowOSD=false`, `[3D] Renderer=0`, `[Screen] UseGL=false` and
-     `[Instance0.Gdb] Enabled=false` (true only for Debug; ports 3333/3334). Every other key is kept (window
+     `[Instance0.Gdb] Enabled` = `debug` with ports 3333 (ARM9) and 3334 (ARM7). melonDS binds the stub on
+     `0.0.0.0`, so it is only on while Debug runs. Every other key is kept (window
      geometry, recent ROMs), and melonDS keeps these when it rewrites the file on exit.
   4. Spawn `exe <absolute rom>` with cwd = the emulator folder, and record
-     `{pid, kind, rom, startedAt}` in `<DSDUDE_HOME>\emulators\running.json`.
+     `{pid, kind, exe, rom, startedAt}` in `<DSDUDE_HOME>\emulators\running.json` (`startedAt` is taken right
+     after the spawn).
 - `onLine` receives every stdout/stderr line (decoded as latin1, `\r\n` accepted, `DSD|PAD|` lines dropped).
   A new listener first receives the lines printed so far (up to 5000).
 - `stop()` sends `taskkill /PID`, waits up to 2 s for the exit (which flushes the emulator's stdout), then sends
   `taskkill /F /T /PID`. It resolves once the process has exited.
-- `reconcile()` kills the PID in `running.json` with `/F /T` only while that PID's image is still the recorded
-  emulator's exe, because Windows reuses PIDs. The record is removed when its process exits.
+- `reconcile()` (optional in the interface, 0.3.0) kills an emulator an earlier process left running: the PID in
+  `running.json`, with `/F /T`. Because Windows reuses PIDs, it kills only while that PID's image path (from
+  `Get-Process`) is the recorded exe, which is this worktree's copy, and its start time is within 10 s of
+  `startedAt`. It removes the record either way, and resolves true when it killed something. `launch()` calls it,
+  and the IDE calls it at startup and before quit. The record is also removed when its process exits.
+  - Measured: a detached melonDS was killed by a matching record and left alone by one with a wrong start time. A
+    launcher that exits without `stop()` takes melonDS down with it (the closed stdout pipe ends it within 2 s),
+    so a stale record then points at no process.
 
 ## `BuildService` (`LocalBuildService`)
 
@@ -139,7 +156,7 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
 | E608 | not a DSDude project (needs both skip flags) |
 | E609 | not built yet |
 | E610-E614 | pack and header failures |
-| E620-E622 | emulator missing, would not start, bad download |
+| E620-E624 | emulator missing, would not start, bad download checksum, Debug needs melonDS, download failed |
 | E630, E631 | Python/py-desmume missing, screenshot failed |
 | E640 | runtime `make` failed |
 
@@ -156,3 +173,4 @@ Every E6xx is an error with `source: "toolchain"`, and the CLI exits 2 on any of
 
 - 0.2.0 (WS1, 2026-09-25, T1): `ToolPaths.arm7Elf`, `icon` and `gcc`; `RomHeaderInfo` and `RomInfo.header`; the
   `BuildResult.ndsPath` comment names `game.nds` (PLAN.md 3.2). No field was removed or retyped.
+- 0.3.0 (WS1, 2026-09-26, T1): `LaunchOptions.debug`, `BuildRequest.debug`, optional `EmulatorManager.reconcile()`; melonDS download + SHA-256 in `ensureInstalled`; reconcile by exe path and start time; E623, E624.
