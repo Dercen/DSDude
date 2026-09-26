@@ -1,8 +1,9 @@
 // game.c: the core's top level (game.h): load game.dsdb, print DSD|READY, seed the RNG, run a program-form __main.
-// Room games (OBJS/ROOM, the frame loop of contracts/events.md) arrive with the engine (WS2 task 6).
+// Room games (OBJS/ROOM) run in the engine (engine.c), one dsd_game_frame per frame.
 #include "game.h"
 
 #include "dsd_log.h"
+#include "engine.h"
 #include "dsd_platform.h"
 #include "dsd_random.h"
 #include "errors.h"
@@ -14,6 +15,7 @@
 // The DSDB image: 4-byte aligned, because the loader reads its records in place.
 static _Alignas(4) uint8_t g_dsdb[DSD_C13_DSDB_MAX_BYTES];
 static DsdProgram g_prog;
+static DsdWorld g_world;
 static DsdVm g_vm;
 // The 4 KB register stack (DTCM on the DS, PLAN.md 3.3).
 DSD_DTCM_BSS static DsdValue g_regs[DSD_RT_REG_STACK_CELLS];
@@ -42,13 +44,17 @@ int32_t dsd_game_boot(void) {
     DsdLoadError err;
     if (dsd_load(&g_prog, g_dsdb, (uint32_t)size, &err) != DSD_R_NONE) return fail_load(err.code, err.detail);
     if (g_prog.glob_count > DSD_RT_GLOBALS_MAX) return fail_load(DSD_R_FILE_TOO_BIG, "globals");
+    if (dsd_world_load(&g_world, &g_prog, &err) != DSD_R_NONE) return fail_load(err.code, err.detail);
 
     dsd_log_ready();
     // A non-zero header seed (a build with --seed N) always wins over the platform's (C2, C11).
     dsd_rng_seed(g_prog.seed != 0 ? g_prog.seed : dsd_plat_rng_seed());
     dsd_vm_init(&g_vm, &g_prog, g_regs);
 
-    if (g_prog.first_room != DSDB_NONE) return fail_load(DSD_R_UNSUPPORTED, "rooms");
+    if (g_prog.first_room != DSDB_NONE) {
+        g_state = dsd_engine_boot(&g_vm, &g_prog, &g_world);
+        return g_state == DSD_GAME_FAILED ? fail_vm() : g_state;
+    }
 
     // Program form: __main once, then DSD|EXIT|0 (C2, C8).
     DsdValue result;
@@ -59,6 +65,10 @@ int32_t dsd_game_boot(void) {
     return g_state;
 }
 
-int32_t dsd_game_frame(void) { return g_state; }
+int32_t dsd_game_frame(void) {
+    if (g_state != DSD_GAME_RUNNING) return g_state;
+    g_state = dsd_engine_frame();
+    return g_state == DSD_GAME_FAILED ? fail_vm() : g_state;
+}
 
 const DsdVm *dsd_game_vm(void) { return &g_vm; }

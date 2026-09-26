@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "builtins.h"
+#include "dsd_limits.h"
 #include "errors.h"
 #include "opcodes.h"
 #include "textbuf.h"
@@ -179,6 +180,11 @@ static int32_t load_dbg(DsdProgram *p, DsdLoadError *err) {
 #define V_LABEL 3 // a jump target inside the current function (sBx)
 #define V_GLOB 4  // a GLOB index (Bx)
 #define V_FUNC 5  // a FUNC index (Bx)
+#define V_SYM 6   // a SYMS index (C, 8 bits; WS4's ADR-0003 operand kind `sym`)
+#define V_BIVAR 7 // a built-in variable that is not an array (8 bits; ADR-0003 kind `bivar`)
+#define V_BIVARX 8 // a built-in array variable (alarm, view_x, view_y; 8 bits)
+#define V_BIVARW 9 // a built-in variable that is not an array, in Bx (GETBI/SETBI)
+#define V_SLOT 10 // a user slot index (< C13 userSlotsPerObject)
 
 // Operand checks per implemented opcode: A, then B (or Bx/sBx), then C. `impl` = 0 for opcodes this runtime does
 // not implement yet (R582). Wide-field opcodes put their Bx/sBx check in b and leave c at V_NONE.
@@ -229,7 +235,27 @@ static const OpCheck OP_CHECKS[DSD_OPCODE_COUNT] = {
     [DSD_OP_LEN] = {1, V_REG, V_REG, V_NONE},
     [DSD_OP_TOINT] = {1, V_REG, V_REG, V_NONE},
     [DSD_OP_TOFIXED] = {1, V_REG, V_REG, V_NONE},
+    [DSD_OP_GETSLOT] = {1, V_REG, V_SLOT, V_NONE},
+    [DSD_OP_SETSLOT] = {1, V_REG, V_SLOT, V_NONE},
+    [DSD_OP_GETSLOTO] = {1, V_REG, V_SLOT, V_NONE},
+    [DSD_OP_SETSLOTO] = {1, V_REG, V_SLOT, V_NONE},
+    [DSD_OP_GETDYN] = {1, V_REG, V_REG, V_SYM},
+    [DSD_OP_SETDYN] = {1, V_REG, V_REG, V_SYM},
+    [DSD_OP_GETBI] = {1, V_REG, V_BIVARW, V_NONE},
+    [DSD_OP_SETBI] = {1, V_REG, V_BIVARW, V_NONE},
+    [DSD_OP_GETBIX] = {1, V_REG, V_BIVARX, V_REG},
+    [DSD_OP_SETBIX] = {1, V_REG, V_BIVARX, V_REG},
+    [DSD_OP_GETBIO] = {1, V_REG, V_REG, V_BIVAR},
+    [DSD_OP_SETBIO] = {1, V_REG, V_REG, V_BIVAR},
+    [DSD_OP_WITHBEGIN] = {1, V_REG, V_LABEL, V_NONE},
+    [DSD_OP_WITHNEXT] = {1, V_REG, V_LABEL, V_NONE},
+    [DSD_OP_WITHEND] = {1, V_REG, V_NONE, V_NONE},
 };
+
+// Array length of each built-in variable (0 = not an array), from the generated table.
+#define DSD_BV_LEN_(index, name, global, readonly, array_len) [index] = array_len,
+static const uint8_t BIVAR_ARRAY_LEN[DSD_BUILTIN_VAR_COUNT] = {DSD_BUILTIN_VARS(DSD_BV_LEN_)};
+#undef DSD_BV_LEN_
 
 // Checks one operand field value against its kind. next_pc is the index after the instruction (jump base).
 static bool operand_ok(const DsdProgram *p, const DsdFuncRec *fn, uint8_t kind, uint32_t value, int32_t svalue,
@@ -243,6 +269,15 @@ static bool operand_ok(const DsdProgram *p, const DsdFuncRec *fn, uint8_t kind, 
         return value < p->glob_count;
     case V_FUNC:
         return value < p->func_count;
+    case V_SYM:
+        return value < p->sym_count;
+    case V_BIVAR:
+    case V_BIVARW:
+        return value < DSD_BUILTIN_VAR_COUNT && BIVAR_ARRAY_LEN[value] == 0;
+    case V_BIVARX:
+        return value < DSD_BUILTIN_VAR_COUNT && BIVAR_ARRAY_LEN[value] != 0;
+    case V_SLOT:
+        return value < DSD_C13_USER_SLOTS_PER_OBJECT;
     case V_LABEL: {
         int64_t target = (int64_t)next_pc + svalue;
         return target >= fn->code_start && target < (int64_t)fn->code_start + fn->code_length;
@@ -261,7 +296,7 @@ static int32_t verify_function(const DsdProgram *p, uint32_t index, DsdLoadError
         uint32_t op = DSD_OP(ins);
         if (op >= DSD_OPCODE_COUNT || !OP_CHECKS[op].impl) return fail(err, DSD_R_UNSUPPORTED, "bytecode", op);
         const OpCheck *ck = &OP_CHECKS[op];
-        bool wide = ck->b == V_K || ck->b == V_LABEL || ck->b == V_GLOB || ck->b == V_FUNC;
+        bool wide = ck->b == V_K || ck->b == V_LABEL || ck->b == V_GLOB || ck->b == V_FUNC || ck->b == V_BIVARW;
         uint32_t b = wide ? DSD_BX(ins) : DSD_B(ins);
         bool ok = operand_ok(p, fn, ck->a, DSD_A(ins), 0, pc + 1) &&
                   operand_ok(p, fn, ck->b, b, DSD_SBX(ins), pc + 1) &&

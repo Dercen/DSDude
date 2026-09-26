@@ -14,6 +14,7 @@
 #include "builtins.h"
 #include "dsd_arrays.h"
 #include "dsd_strings.h"
+#include "engine.h"
 #include "dsd_log.h"
 #include "dsd_platform.h"
 #include "errors.h"
@@ -31,8 +32,11 @@ void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack) {
     memset(vm->globals, 0, sizeof vm->globals); // UNDEF cells
     memset(vm->global_set, 0, sizeof vm->global_set);
     vm->budget = DSD_RT_WATCHDOG_STEPS;
-    vm->self = DSD_INST_NOONE;
-    vm->other = DSD_INST_NOONE;
+    vm->self = DSD_VM_NO_INST;
+    vm->other = DSD_VM_NO_INST;
+    vm->world = 0;
+    vm->ev_id = DSD_VM_NO_EVENT;
+    vm->ev_owner = 0;
     vm->debug = true;
     vm->halted = false;
     vm->err_code = DSD_R_NONE;
@@ -40,6 +44,7 @@ void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack) {
     vm->err_msg[0] = '\0';
     vm->pc = 0;
     dsd_heap_reset(&vm->heap);
+    vm->mark_extra = 0;
 }
 
 void dsd_vm_frame_reset(DsdVm *vm) { vm->budget = DSD_RT_WATCHDOG_STEPS; }
@@ -295,6 +300,119 @@ static bool convert(DsdVm *vm, bool to_fixed, DsdValue v, DsdValue *out) {
     return dsd_vm_number_status(vm, dsd_fits32(q) ? DSD_NUM_OK : DSD_NUM_OVERFLOW, *out);
 }
 
+// ---- Instances (slow paths of GETSLOT.. SETBIO, WITH*) ---------------------------------------------------------
+
+// Targets of SETDYN/SETBIO (an object's instances); never used re-entrantly (setting runs no script).
+static uint16_t g_targets[DSD_C13_INSTANCES_MAX];
+
+static const char *sym_name(const DsdVm *vm, uint32_t sym) {
+    uint32_t len;
+    return dsd_prog_str(vm->prog, vm->prog->sym_names[sym], &len);
+}
+
+// Raises R500: variable `name` of instance idx was never given a value.
+static void unset_var(DsdVm *vm, uint32_t idx, const char *name) {
+    uint32_t len;
+    DsdText t = dsd_vm_error_begin(vm, DSD_R_UNSET_VAR);
+    dsd_text_str(&t, name);
+    dsd_text_str(&t, " was never given a value in ");
+    dsd_text_str(&t, dsd_prog_str(vm->prog, vm->world->objects[dsd_inst_at(idx)->object].name_str, &len));
+}
+
+// Raises R502 for self/other slot access with no instance (the compiler never emits it in program form).
+static void no_instance(DsdVm *vm) { dsd_vm_error(vm, DSD_R_NO_INSTANCE, "There is no instance here to hold that variable"); }
+
+// The symbol that has slot `slot` in instance idx's object layout (for messages), or "a variable".
+static const char *slot_name(const DsdVm *vm, uint32_t idx, uint32_t slot) {
+    const DsdObject *o = &vm->world->objects[dsd_inst_at(idx)->object];
+    for (uint32_t k = 0; k < o->slot_count; k++) {
+        if (o->slots[2 * k + 1] == slot) return sym_name(vm, o->slots[2 * k]);
+    }
+    return "a variable";
+}
+
+// GETSLOT/GETSLOTO after the fast path missed: no instance, or a slot never assigned.
+static bool get_slot(DsdVm *vm, uint32_t idx, uint32_t slot, DsdValue *out) {
+    if (idx == DSD_VM_NO_INST) {
+        no_instance(vm);
+        return false;
+    }
+    DsdValue v = dsd_inst_at(idx)->slots[slot];
+    if (v.tag == DSD_TAG_UNSET) {
+        unset_var(vm, idx, slot_name(vm, idx, slot));
+        return false;
+    }
+    *out = v;
+    return true;
+}
+
+// The cell of variable `sym` in instance idx: its slot, or its overflow entry (created when `create`).
+static DsdValue *dyn_cell(const DsdVm *vm, uint32_t idx, uint32_t sym, bool create) {
+    int32_t slot = dsd_world_slot(vm->world, dsd_inst_at(idx)->object, sym);
+    return slot >= 0 ? &dsd_inst_at(idx)->slots[slot] : dsd_inst_overflow(idx, sym, create);
+}
+
+// GETDYN: rA = variable `sym` of the instance a target names.
+static bool get_dyn(DsdVm *vm, DsdValue target, uint32_t sym, DsdValue *out) {
+    uint32_t idx = dsd_engine_target_one(target, sym_name(vm, sym));
+    if (idx == DSD_NO_INST) return false;
+    const DsdValue *cell = dyn_cell(vm, idx, sym, false);
+    if (cell == 0 || cell->tag == DSD_TAG_UNSET) {
+        unset_var(vm, idx, sym_name(vm, sym));
+        return false;
+    }
+    *out = *cell;
+    return true;
+}
+
+// The instances a write goes to: an object writes every instance of it (none is fine); an id or self/other that
+// names nothing is R502.
+static uint32_t write_targets(DsdValue target, const char *name) {
+    uint32_t n = dsd_engine_targets(target, g_targets, DSD_C13_INSTANCES_MAX);
+    if (n == 0 && target.tag != DSD_TAG_ASSET) dsd_engine_target_one(target, name); // raises R502
+    return n;
+}
+
+// SETDYN: variable `sym` = v on every instance the target names.
+static bool set_dyn(DsdVm *vm, DsdValue target, uint32_t sym, DsdValue v) {
+    uint32_t n = write_targets(target, sym_name(vm, sym));
+    if (n == 0) return vm->err_code == DSD_R_NONE || target.tag == DSD_TAG_ASSET;
+    for (uint32_t i = 0; i < n; i++) {
+        DsdValue *cell = dyn_cell(vm, g_targets[i], sym, true);
+        if (cell == 0) {
+            uint32_t len;
+            DsdText t = dsd_vm_error_begin(vm, DSD_R_TOO_MANY_VARS);
+            dsd_text_str(&t, dsd_prog_str(vm->prog, vm->world->objects[dsd_inst_at(g_targets[i])->object].name_str, &len));
+            dsd_text_str(&t, " got more than 8 variables from outside its own code");
+            return false;
+        }
+        *cell = v;
+    }
+    return true;
+}
+
+// Built-in variable names (for messages), from the generated table.
+#define DSD_BV_NAME_(index, name, global, readonly, array_len) [index] = #name,
+static const char *const BIVAR_NAMES[DSD_BUILTIN_VAR_COUNT] = {DSD_BUILTIN_VARS(DSD_BV_NAME_)};
+#undef DSD_BV_NAME_
+
+// SETBIO: built-in variable `var` = v on every instance the target names.
+static bool set_bio(DsdValue target, uint32_t var, DsdValue v) {
+    uint32_t n = write_targets(target, BIVAR_NAMES[var]);
+    for (uint32_t i = 0; i < n; i++) {
+        if (!dsd_bivar_set(g_targets[i], var, 0, v)) return false;
+    }
+    return n != 0 || target.tag == DSD_TAG_ASSET;
+}
+
+// The element index of GETBIX/SETBIX: a number, floored.
+static bool element(DsdVm *vm, DsdValue v, int32_t *out) {
+    int64_t i;
+    if (!list_index(vm, v, &i)) return false;
+    *out = (int32_t)i;
+    return true;
+}
+
 // Sets up the frame of `func` at register `base`: parameters already in place, the other registers cleared to
 // undefined so no stale value leaks into `var` declarations. False (R511) when the frame does not fit.
 static bool enter_frame(DsdVm *vm, uint32_t func, uint32_t base) {
@@ -328,6 +446,11 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
         [DSD_OP_ADDI] = &&op_ARITHI,     [DSD_OP_SUBI] = &&op_ARITHI,     [DSD_OP_MULI] = &&op_ARITHI,
         [DSD_OP_NEWARR] = &&op_NEWARR,   [DSD_OP_GETIDX] = &&op_GETIDX,   [DSD_OP_SETIDX] = &&op_SETIDX,
         [DSD_OP_LEN] = &&op_LEN,         [DSD_OP_TOINT] = &&op_TOINT,     [DSD_OP_TOFIXED] = &&op_TOFIXED,
+        [DSD_OP_GETSLOT] = &&op_GETSLOT, [DSD_OP_SETSLOT] = &&op_SETSLOT, [DSD_OP_GETSLOTO] = &&op_GETSLOTO,
+        [DSD_OP_SETSLOTO] = &&op_SETSLOTO, [DSD_OP_GETDYN] = &&op_GETDYN, [DSD_OP_SETDYN] = &&op_SETDYN,
+        [DSD_OP_GETBI] = &&op_GETBI,     [DSD_OP_SETBI] = &&op_SETBI,     [DSD_OP_GETBIX] = &&op_GETBIX,
+        [DSD_OP_SETBIX] = &&op_SETBIX,   [DSD_OP_GETBIO] = &&op_GETBIO,   [DSD_OP_SETBIO] = &&op_SETBIO,
+        [DSD_OP_WITHBEGIN] = &&op_WITHBEGIN, [DSD_OP_WITHNEXT] = &&op_WITHNEXT, [DSD_OP_WITHEND] = &&op_WITHEND,
     };
     const DsdProgram *prog = vm->prog;
     const uint32_t *const code = prog->code;
@@ -608,6 +731,105 @@ op_TOINT:
 op_TOFIXED:
     SYNC_PC();
     if (!convert(vm, true, RB, &RA)) goto failed;
+    DISPATCH();
+
+// User variables of self/other by slot: the hot path reads the cell straight from the instance block.
+op_GETSLOT:
+    if (vm->self != DSD_VM_NO_INST) {
+        a = dsd_instances.pool[vm->self].slots[DSD_B(ins)];
+        if (a.tag != DSD_TAG_UNSET) {
+            RA = a;
+            DISPATCH();
+        }
+    }
+    SYNC_PC();
+    if (!get_slot(vm, vm->self, DSD_B(ins), &RA)) goto failed;
+    DISPATCH();
+
+op_SETSLOT:
+    if (vm->self == DSD_VM_NO_INST) {
+        SYNC_PC();
+        no_instance(vm);
+        goto failed;
+    }
+    dsd_instances.pool[vm->self].slots[DSD_B(ins)] = RA;
+    DISPATCH();
+
+op_GETSLOTO:
+    SYNC_PC();
+    if (!get_slot(vm, vm->other, DSD_B(ins), &RA)) goto failed;
+    DISPATCH();
+
+op_SETSLOTO:
+    if (vm->other == DSD_VM_NO_INST) {
+        SYNC_PC();
+        no_instance(vm);
+        goto failed;
+    }
+    dsd_instances.pool[vm->other].slots[DSD_B(ins)] = RA;
+    DISPATCH();
+
+op_GETDYN:
+    SYNC_PC();
+    if (!get_dyn(vm, RB, DSD_C(ins), &RA)) goto failed;
+    DISPATCH();
+
+op_SETDYN:
+    SYNC_PC();
+    if (!set_dyn(vm, RB, DSD_C(ins), RA)) goto failed;
+    DISPATCH();
+
+op_GETBI:
+    SYNC_PC();
+    if (!dsd_bivar_get(vm->self, DSD_BX(ins), 0, &RA)) goto failed;
+    DISPATCH();
+
+op_SETBI:
+    SYNC_PC();
+    if (!dsd_bivar_set(vm->self, DSD_BX(ins), 0, RA)) goto failed;
+    DISPATCH();
+
+op_GETBIX: {
+    int32_t i;
+    SYNC_PC();
+    if (!element(vm, RC, &i) || !dsd_bivar_get(vm->self, DSD_B(ins), i, &RA)) goto failed;
+    DISPATCH();
+}
+
+op_SETBIX: {
+    int32_t i;
+    SYNC_PC();
+    if (!element(vm, RC, &i) || !dsd_bivar_set(vm->self, DSD_B(ins), i, RA)) goto failed;
+    DISPATCH();
+}
+
+op_GETBIO: {
+    SYNC_PC();
+    uint32_t idx = dsd_engine_target_one(RB, BIVAR_NAMES[DSD_C(ins)]);
+    if (idx == DSD_NO_INST || !dsd_bivar_get(idx, DSD_C(ins), 0, &RA)) goto failed;
+    DISPATCH();
+}
+
+op_SETBIO:
+    SYNC_PC();
+    if (!set_bio(RB, DSD_C(ins), RA)) goto failed;
+    DISPATCH();
+
+// `with` (WS4's ADR-0003 shape): rA holds the target, then the loop's state until WITHEND.
+op_WITHBEGIN: {
+    bool empty;
+    SYNC_PC();
+    if (!dsd_with_begin(RA, &RA, &empty)) goto failed;
+    if (empty) ip += DSD_SBX(ins);
+    DISPATCH();
+}
+
+op_WITHNEXT:
+    if (dsd_with_next(RA)) ip += DSD_SBX(ins);
+    DISPATCH();
+
+op_WITHEND:
+    dsd_with_end(RA);
     DISPATCH();
 
 watchdog_fired:

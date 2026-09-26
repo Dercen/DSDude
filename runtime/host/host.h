@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "dsd_platform.h"
 
@@ -49,5 +50,10 @@ void host_configure(const HostConfig *cfg);
 bool host_fatal_seen(void);
 // Frames completed (dsd_plat_frame_end calls).
 uint32_t host_frame_count(void);
+
+// ---- Traces (--trace; schema in contracts/log-protocol.md "Traces") ---------------------------------------------
+
+// Writes frame `frame`'s JSON line (engine state at the end of the frame) to f. Returns false on a write error.
+bool host_trace_frame(FILE *f, uint32_t frame);
 
 #endif // DSD_HOST_H

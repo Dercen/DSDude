@@ -18,6 +18,10 @@
 #define DSD_INST_ALL (-3)
 #define DSD_INST_NOONE (-4)
 
+#define DSD_VM_NO_INST 0xFFFFFFFFu   // self/other when there is no instance
+#define DSD_VM_NO_EVENT 0xFFFFFFFFu  // ev_id outside events
+#define DSD_VM_NO_PC 0xFFFFFFFFu     // err_pc of an error not raised by script code (asset loading)
+
 // Longest runtime error message (the ERR line's last field).
 #define DSD_ERR_MSG_MAX 256
 
@@ -28,7 +32,8 @@ typedef struct DsdCallFrame {
     uint32_t base;   // the caller's frame base in the register stack
 } DsdCallFrame;
 
-typedef struct DsdVm {
+typedef struct DsdVm DsdVm;
+struct DsdVm {
     const DsdProgram *prog;
     DsdValue *regs;           // the register stack: DSD_RT_REG_STACK_CELLS cells (DTCM on the DS)
     uint32_t top;             // first register above the running frame; nested entries start here
@@ -40,8 +45,12 @@ typedef struct DsdVm {
     uint8_t global_set[DSD_RT_GLOBALS_MAX / 8]; // bit per global: assigned at least once (R501 otherwise)
 
     uint32_t budget;          // VM steps left in this frame (watchdog, R510)
-    int32_t self;             // running instance id, DSD_INST_NOONE in program form
-    int32_t other;
+    uint32_t self;            // running instance: pool index (instances.h), DSD_VM_NO_INST in program form
+    uint32_t other;           // `other`: pool index or DSD_VM_NO_INST
+    // What is running, for event_inherited and for the object/event fields of DSD|ERR (engine.c sets them).
+    const struct DsdWorld *world; // NULL in program form
+    uint32_t ev_id;           // event id running (world.h), or DSD_VM_NO_EVENT
+    uint32_t ev_owner;        // object whose handler runs (the event may be inherited)
     bool debug;               // debug build: int32 / Q20.12 overflow raises R52x instead of wrapping
     bool halted;              // HALT ran: the game stops
 
@@ -52,7 +61,8 @@ typedef struct DsdVm {
     uint32_t pc;              // code index of the running instruction, kept current around builtin calls
 
     DsdHeap heap;             // dynamic strings and arrays (heap.h)
-} DsdVm;
+    void (*mark_extra)(DsdVm *vm); // the engine's extra collector roots (instance variables); NULL in program form
+};
 
 // Resets the VM for a loaded program: empty stack, all globals unset, the heap emptied.
 void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack);
