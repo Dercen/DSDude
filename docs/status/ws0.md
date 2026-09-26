@@ -167,6 +167,14 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   option; C10 `--release` waits for WS1/WS8. Twilight Menu++ offers no 67 MHz in DSi mode, so the hardware M1 figure
   waits for WS3's NitroFS-independent bench ROM run in DS mode.
 
+## CP-A prep (2026-09-28)
+
+- WS6 e2e: `npm run test:e2e -w apps/ide` (builds with electron-vite, 1 worker, 14 tests, ~1.5 min; screenshots in
+  `apps/ide/test-results/`). `room-editor.spec.ts` enforces >= 55 fps (GPU; 60 measured): run on mains power with no
+  make/emulator running; if it fails just under 55, rerun alone (`npx playwright test room-editor`) before reporting.
+  play/smoke now wait up to 60 s for the first compile. Task 7 done (checkpoint-22); the status bar no longer counts
+  invisible sprite-bearing objects (walls) as sprites, which goes in the CP-A report.
+
 ## Hardware results (2026-09-26, user: original 3DS, TWiLight Menu++ default settings)
 
 ROMs from WS3's hardware set, built ~11:54 from `runtime/dist` near main `0e67e27` (DTCM dispatch table and the
