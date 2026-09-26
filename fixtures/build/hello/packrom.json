@@ -2,7 +2,7 @@
   "rom": "game.nds",
   "title": "hello",
   "sizeBytes": 145408,
-  "sha256": "73f8bb7ef994259b1cf7f145eb99557cc589dcc9c02ca28396fc4638baa97b6e",
+  "sha256": "2b2eb01c6f03e24af7f5f380ffd3d65a928b5e9663aa9f89d73dd18bfae49804",
   "nitrofsFiles": 1,
   "header": {
     "fntOffset": 132096,
