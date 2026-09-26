@@ -1,0 +1,24 @@
+{
+  "width": 256,
+  "height": 192,
+  "layout": "separate",
+  "screens": {
+    "top": {
+      "background": null,
+      "viewX": 0,
+      "viewY": 0
+    },
+    "bottom": {
+      "background": null,
+      "viewX": 0,
+      "viewY": 0
+    }
+  },
+  "instances": [
+    {
+      "object": "obj_dj",
+      "x": 0,
+      "y": 0
+    }
+  ]
+}

@@ -180,6 +180,20 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Not covered: an alias inside a user function's default parameter value (`function f(k = vk_left)`) is still an
     unknown name; rare, left until someone hits it.
 
+- **Conformance programs 11-12 (the last two open rules), 2026-09-26:**
+  - `fixtures/conformance/v1/11-random.dss` (the RNG seed rule), compiled with header seed 20260926. On
+    `dsdude-host` it prints `true` x7 then `187911 259387 735161 824918 980883`, identical for `--seed` 1, 7 and 99;
+    the same program with header seed 0 follows `--seed` instead (checked both ways).
+  - `fixtures/conformance/v4/12-music/` (rule 8): one invisible `obj_dj` whose Room Start plays, re-plays, stops
+    (twice) and plays `mus_tune` (a copy of `fixtures/assets/tune.xm`), logging `audio_is_playing` after each step.
+    Intended output `true true false false true`, then `DSD|EXIT|0`.
+  - Goldens: `fixtures/compiler/conformance/v1/11-random.*`, `v4/12-music.*`.
+  - **For WS2:** please write `fixtures/conformance/expected/v1/11-random.log` and `v4/12-music.log` and add both to
+    the `programs` suite. On the host, 12-music prints `false` five times today: `runtime/host/platform.c`'s
+    `dsd_plat_music_active()` is a stub returning false. The rule only shows if the host models music: active after
+    `dsd_plat_music_play` until `dsd_plat_music_stop`, ideally counting starts, so a test can see exactly two
+    (the second `audio_play_music` must not restart the tune; README.md in the folder says so).
+
 ## Next
 
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).

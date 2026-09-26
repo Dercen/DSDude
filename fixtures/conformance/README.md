@@ -20,5 +20,11 @@ The conformance corpus (contract C6, `contracts/language.md`). Programs are WS4'
     `event_inherited()` (rule 2), user events (rule 4).
   - `v3/09-with/`: `with` snapshots, destroy mid-loop, nesting, `other`, `break` (rule 3); an alarm; a collision.
   - `v4/10-rooms/`: globals across `room_goto`/`room_restart` (rule 7), the room load order, Room End, Draw.
-  - Not yet covered: rule 8 (music; needs a tracker module) and the RNG seed rule (its values are WS2's).
+- 11-12 (WS4, 2026-09-26):
+  - `v1/11-random.dss`: the RNG seed rule. Compiled with header seed 20260926 (`PROGRAM_SEEDS` in
+    `packages/compiler/src/program.test.ts`), so its output is the same whatever `dsdude-host --seed` says: range and
+    step checks for `irandom`, `random`, `irandom_range`, `random_range`, `choose`, `randomize()` as a no-op, then five
+    numbers the seed fixes (WS2's expected log gives their values).
+  - `v4/12-music/`: rule 8 (`audio_play_music` is a no-op while that music plays; `audio_stop_music` first
+    restarts it), with `fixtures/assets/tune.xm` as the module.
 - The compiler's disassembly goldens for every program are in `fixtures/compiler/conformance/`.

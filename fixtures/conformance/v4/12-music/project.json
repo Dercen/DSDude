@@ -1,0 +1,13 @@
+{
+  "formatVersion": 0,
+  "name": "music",
+  "title": "Music",
+  "subtitle": "DSDude conformance",
+  "author": "DSDude",
+  "gamecode": "####",
+  "icon": "icon.png",
+  "firstRoom": "rm_music",
+  "rooms": [
+    "rm_music"
+  ]
+}

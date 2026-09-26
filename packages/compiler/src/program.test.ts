@@ -9,6 +9,12 @@ import { compileProgram, MAIN_FUNCTION } from "./program.ts";
 /** Lints a conformance program triggers on purpose (the rule it pins). */
 const EXPECTED_WARNINGS: Readonly<Record<string, string[]>> = { "v1/07-arrays.dss": ["W041"] };
 
+/**
+ * Header seeds for programs that pin the RNG seed rule (language.md section 7): a non-zero header seed wins over the
+ * platform's, so their random numbers are the same on every run. Every other program keeps seed 0.
+ */
+const PROGRAM_SEEDS: Readonly<Record<string, number>> = { "v1/11-random.dss": 20260926 };
+
 /** Program-form conformance tiers (language.md section 1); v2+ are projects. */
 const PROGRAM_TIERS = ["v0", "v1"];
 
@@ -46,7 +52,7 @@ describe("program form: the conformance corpus", () => {
     const golden = `fixtures/compiler/conformance/${tier}/${stem}.dsda`;
     it(`compiles ${tier}/${name} to its golden and round-trips through the disassembler`, () => {
       const text = readFileSync(join(REPO_ROOT, "fixtures", "conformance", tier, name), "utf8").replace(/\r/g, "");
-      const r = compileProgram(text, { file: `${tier}/${name}` });
+      const r = compileProgram(text, { file: `${tier}/${name}`, seed: PROGRAM_SEEDS[`${tier}/${name}`] });
       // Programs may exercise a lint on purpose (v1/07's fractional index is W041), never an error.
       expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
       expect(r.diagnostics.map((d) => d.code)).toEqual(EXPECTED_WARNINGS[`${tier}/${name}`] ?? []);
