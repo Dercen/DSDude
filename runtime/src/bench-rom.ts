@@ -9,7 +9,7 @@ import { assembleToBytes } from "@dsdude/dsdb";
 import { loadBuiltinsEnv } from "@dsdude/dsdb/node";
 import { dsdudeHome, formatDiagnostic, runMake, type ToolPaths, takeScreenshot } from "@dsdude/toolchain";
 import { run } from "./artifact.ts";
-import { baselineDsda, loopDsda, MIX, stepVariant } from "./bench-line.ts";
+import { baselineDsda, loopDsda, MIX, rewriteToII, stepVariant } from "./bench-line.ts";
 
 export const runtimeDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const repoRoot = path.dirname(runtimeDir);
@@ -24,6 +24,9 @@ export interface Workloads {
   full: Uint8Array;
   base: Uint8Array;
   loop: Uint8Array;
+  /** full and loop with ADD/SUB/MUL/CMPJ as ADDII/SUBII/MULII/CMPJII (the M1 fallback; rewriteToII). */
+  fullII: Uint8Array;
+  loopII: Uint8Array;
   mix: Record<string, Uint8Array>;
 }
 
@@ -33,10 +36,18 @@ export function workloads(): Workloads {
   const env = loadBuiltinsEnv(repoRoot);
   const mix: Record<string, Uint8Array> = {};
   for (const [op, body] of Object.entries(MIX)) mix[op] = assembleToBytes(stepVariant(dsda, body), env);
+  // The II forms of the arithmetic and compare rows.
+  mix.ADDII = rewriteToII(mix.ADD).bytes;
+  mix.MULII = rewriteToII(mix.MUL).bytes;
+  mix["CMPJII+JMP"] = rewriteToII(mix["CMPJ+JMP"]).bytes;
+  const full = readFileSync(`${BENCH}.dsdb`);
+  const loop = assembleToBytes(loopDsda(dsda), env);
   return {
-    full: readFileSync(`${BENCH}.dsdb`),
+    full,
     base: assembleToBytes(baselineDsda(dsda), env),
-    loop: assembleToBytes(loopDsda(dsda), env),
+    loop,
+    fullII: rewriteToII(full).bytes,
+    loopII: rewriteToII(loop).bytes,
     mix,
   };
 }

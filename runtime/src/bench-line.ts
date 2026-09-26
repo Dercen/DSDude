@@ -133,6 +133,41 @@ export function baselineDsda(benchDsda: string): string {
   return stepVariant(benchDsda, [], false);
 }
 
+// DSDB layout (contracts/dsdb.md): the section table at byte 32, 12-byte entries {tag, offset, size}; CODE is entry
+// 3 and starts with a u32 word count, then one little-endian word per instruction, opcode in the low byte.
+const SECTION_TABLE = 32;
+const SECTION_ENTRY = 12;
+const CODE_SECTION = 3;
+/** Opcode numbers (runtime/gen/opcodes.h): ADD, SUB, MUL, CMPJ and their int-specialised forms (reserved 51-54). */
+export const II_REWRITE: ReadonlyMap<number, number> = new Map([
+  [6, 51],
+  [7, 52],
+  [8, 53],
+  [33, 54],
+]);
+
+/**
+ * The int-specialised variant of a DSDB, as WS2's test_programs.c builds it (ADDII/SUBII/MULII/CMPJII take
+ * ADD/SUB/MUL/CMPJ's operands; WS4's assembler cannot write them before its T1): every ADD/SUB/MUL/CMPJ in CODE gets
+ * its II opcode. Only valid when every such instruction works on ints, as in bench.dsda. Returns a copy.
+ */
+export function rewriteToII(dsdb: Uint8Array): { bytes: Uint8Array; changed: number } {
+  const bytes = new Uint8Array(dsdb);
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const off = dv.getUint32(SECTION_TABLE + CODE_SECTION * SECTION_ENTRY + 4, true);
+  const count = dv.getUint32(off, true);
+  let changed = 0;
+  for (let i = 0; i < count; i++) {
+    const at = off + 4 + i * 4;
+    const to = II_REWRITE.get(bytes[at]);
+    if (to !== undefined) {
+      bytes[at] = to;
+      changed++;
+    }
+  }
+  return { bytes, changed };
+}
+
 /**
  * Single-opcode workloads for a per-opcode breakdown (`npm run bench -- --mix`): each repeats one op of the M1 mix
  * after the bench prologue (r0-r7 = 1..8, r8, r9, r11 = 0, r15 = -3). Values stay small, so no overflow trap fires.
