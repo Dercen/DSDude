@@ -70,9 +70,14 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     `src/project-index.ts` (passes 1-3 shared by compileProject and the host).
   - **For WS0:** `contracts/README.md` still lists C7 as owed; it is 0.1.0 now (CHANGELOG line added).
 
+- **Task 5, conformance programs 6-10: done** (2026-09-26): `fixtures/conformance/v1/06-strings.dss`,
+  `v1/07-arrays.dss`, `v2/08-instances/`, `v3/09-with/`, `v4/10-rooms/` (rules 1-7 and the fractional-index rule;
+  rule 8 music and the RNG seed rule not yet). Intended outputs are in each file's comments / README.md for WS2's
+  `expected/`. All compile with zero diagnostics to goldens in `fixtures/compiler/conformance/`.
+
 ## Next
 
-- Task 5: conformance programs 6-10; task 6: the 20 beginner mistakes; task 7: peephole passes (formatter done).
+- Task 6: the 20 beginner mistakes (checker); task 7: peephole passes (formatter done).
 - Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
   child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
 
@@ -80,6 +85,8 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 
 - `fixtures/compiler/conformance/v0/*.dsda` + `.dsdb` (all five v0 programs): disassembly snapshots; they execute
   once WS2's VM lands v0 (**WS2: these can replace hand-assembling v0 02-05**).
+- `fixtures/compiler/conformance/v1..v4/*.dsda` + `.dsdb` (programs 06-10): disassembly snapshots until each
+  tier's runtime lands.
 - `fixtures/compiler/samples/{minimal,flappy}.dsda` + `.dsdb` + `.roomsets.json`: disassembly snapshots (tier v2-v4
   features: slots, `with`, alarms, collisions, draw). Flappy compiles in ~6 ms warm (budget 100 ms).
 - Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.

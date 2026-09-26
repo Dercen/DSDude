@@ -1,0 +1,9 @@
+var k = instance_create(0, 0, obj_kid);
+var l = instance_create(0, 0, obj_leaf);   // no events of its own: inherits them all
+show_debug_message(k.hp);               // a slot read through an instance id (GETDYN)
+k.hp = 3;
+show_debug_message(k.hp);
+k.bonus = 7;                            // not in obj_kid's layout: the overflow map
+show_debug_message(k.bonus);
+show_debug_message(instance_number(obj_base));   // a parent counts its descendants
+if (l.object_index == obj_leaf) show_debug_message("leaf");

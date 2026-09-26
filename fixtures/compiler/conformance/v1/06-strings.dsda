@@ -1,0 +1,99 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 6
+    .loc "v1/06-strings.dss" 5
+    LOADK r0, "Hello"
+    .loc "v1/06-strings.dss" 6
+    LOADK r2, ", "
+    ADD r1, r0, r2
+    LOADK r2, "DS"
+    ADD r1, r1, r2
+    .loc "v1/06-strings.dss" 7
+    MOV r2, r1
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 8
+    MOV r2, r1
+    CALLN r2, 1, string_length
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 9
+    MOV r2, r1
+    LOADI r3, 1
+    CALLN r2, 2, string_char_at
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 10
+    LOADK r2, "abc"
+    CALLN r2, 1, string_upper
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 11
+    LOADK r2, "DeF"
+    CALLN r2, 1, string_lower
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 12
+    LOADK r2, "ab"
+    LOADI r3, 3
+    CALLN r2, 2, string_repeat
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 13
+    LOADI r2, 65
+    CALLN r2, 1, chr
+    LOADK r3, "B"
+    CALLN r3, 1, ord
+    CALLN r3, 1, string
+    CONCAT r2, r2, r3
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 14
+    LOADK r2, "n = "
+    LOADK r3, 2.5
+    CALLN r3, 1, string
+    CONCAT r2, r2, r3
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 15
+    LOADK r2, "12"
+    CALLN r2, 1, real
+    LOADI r3, 1
+    ADD r2, r2, r3
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 16
+    LOADK r2, "a\"b\\c"
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 17
+    LOADI r2, 1
+    LOADI r3, 3
+    DIV r2, r2, r3
+    CALLN r2, 1, string
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 18
+    LOADK r2, "x"
+    LOADK r3, "x"
+    EQ r2, r2, r3
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 19
+    LOADK r2, "abc"
+    LOADK r3, "abd"
+    LT r2, r2, r3
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 20
+    LOADUNDEF r2
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 21
+    LOADI r2, 1
+    LOADK r3, "two"
+    LOADI r4, 3
+    LOADK r5, 4.5
+    NEWARR r4, 2
+    LOADB r5, true
+    NEWARR r2, 4
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 22
+    LOADK r2, 1234567
+    CALLN r2, 1, string
+    CALLN r2, 1, string_length
+    CALLN r2, 1, show_debug_message
+    .loc "v1/06-strings.dss" 23
+    LOADI r2, -1
+    LOADI r3, 2
+    DIV r2, r2, r3
+    CALLN r2, 1, show_debug_message
+    RET r0, 0
+.end

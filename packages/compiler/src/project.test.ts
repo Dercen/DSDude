@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { assemble, decode, disassemble, encode } from "@dsdude/dsdb";
 import type { ObjectResource, Project, RoomResource } from "@dsdude/project-format";
@@ -120,6 +121,32 @@ describe("compileProject: the samples", () => {
     compileProject(project, MANIFEST);
     expect(performance.now() - start).toBeLessThan(FLAPPY_WARM_MS);
   });
+});
+
+/** Project-form conformance programs (tiers v2-v4, language.md section 1): every folder with a project.json. */
+const PROJECT_TIERS = ["v2", "v3", "v4"];
+const conformanceProjects: [string, string][] = PROJECT_TIERS.flatMap((tier) => {
+  const dir = join(REPO_ROOT, "fixtures", "conformance", tier);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((n) => existsSync(join(dir, n, "project.json")))
+    .sort()
+    .map((n): [string, string] => [tier, n]);
+});
+
+describe("compileProject: the conformance projects", () => {
+  for (const [tier, name] of conformanceProjects)
+    it(`compiles ${tier}/${name} with zero diagnostics to its golden`, async () => {
+      const loaded = await loadProject(join(REPO_ROOT, "fixtures", "conformance", tier, name));
+      expect(loaded.diagnostics).toEqual([]);
+      const r = compileProjectModule(loaded.project as Project, MANIFEST);
+      expect(r.diagnostics).toEqual([]);
+      const dsda = disassemble(r.module as NonNullable<typeof r.module>);
+      const golden = `fixtures/compiler/conformance/${tier}/${name}.dsda`;
+      expect(dsda).toBe(goldenText(golden, dsda));
+      expect(disassemble(decode(r.dsdb, COMPILER_BUILTINS_ENV))).toBe(dsda);
+      if (!UPDATING_GOLDENS) expect(r.dsdb).toEqual(readBytes(golden.replace(/\.dsda$/, ".dsdb")));
+    });
 });
 
 describe("compileProject: instance variables", () => {

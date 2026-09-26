@@ -35,6 +35,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).
 - 0.1.0 T0 (2026-09-26, WS4): language.md clarifications pinned by the parser: a string closes on the line it starts on; a `return` value starts on the `return`'s line.
+- 0.1.0 (2026-09-26, WS4, C14 producer): conformance programs 06-10 (v1 strings and arrays, v2 instances, v3 with, v4 rooms), each with its intended output for WS2's expected logs.
 
 ## C7 Language-service host API (`packages/lang/src/host.ts`)
 - owed: WS4, by CP-B.

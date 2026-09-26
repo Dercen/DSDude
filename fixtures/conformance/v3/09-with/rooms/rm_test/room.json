@@ -1,0 +1,29 @@
+{
+  "width": 256,
+  "height": 192,
+  "layout": "separate",
+  "screens": {
+    "top": {
+      "background": null,
+      "viewX": 0,
+      "viewY": 0
+    },
+    "bottom": {
+      "background": null,
+      "viewX": 0,
+      "viewY": 0
+    }
+  },
+  "instances": [
+    {
+      "object": "obj_ctrl",
+      "x": 0,
+      "y": 100
+    },
+    {
+      "object": "obj_wall",
+      "x": 32,
+      "y": 0
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+global.visits = 0;
+show_debug_message("game start");
