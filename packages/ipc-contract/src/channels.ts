@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.3.0";
+export const CONTRACT_VERSION = "0.4.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -93,10 +93,13 @@ export const ProjectSchema = z.object({
   scripts: z.array(z.object({ name: NameSchema, source: z.string() })),
 });
 
-/** C12 `SpritePreview`; `indices` is the one Uint8Array in the channel map. */
+/** Binary payloads (`assets.preview` indices, `project.readFile`/`writeFile` bytes). */
+const Bytes = z.custom<Uint8Array>((v) => v instanceof Uint8Array, "expected a Uint8Array");
+
+/** C12 `SpritePreview`. */
 export const SpritePreviewSchema = z.object({
   palette: z.array(z.int()),
-  indices: z.custom<Uint8Array>((v) => v instanceof Uint8Array, "expected a Uint8Array"),
+  indices: Bytes,
   colorCount: z.int().min(0),
   colorMode: z.enum(["16", "256"]),
   frames: z.array(z.object({ offset: z.int().min(0), paddedWidth: z.int().min(1), paddedHeight: z.int().min(1) })),
@@ -107,6 +110,39 @@ export const PreviewSpriteOptionsSchema = z.object({
   frameHeight: z.int().min(1),
   colorMode: z.enum(["auto", "16", "256"]),
   transparent: z.union([z.literal("alpha"), z.templateLiteral(["#", z.string()])]),
+});
+
+/**
+ * A safe relative path: "/" separators, no leading "/", no drive or ":" , no "." or ".." segment, no backslash.
+ * Main resolves it inside the project (or docs) folder only.
+ */
+export function isSafeRelativePath(path: string): boolean {
+  if (path === "" || path.length > 240 || path.startsWith("/") || /[\\:]/.test(path) || path.includes("\0"))
+    return false;
+  return path.split("/").every((seg) => seg !== "" && seg !== "." && seg !== "..");
+}
+
+/** Asset files editors read and write (0.4.0); JSON and DSS files go through `project.save` (C1) instead. */
+export const ASSET_FILE_EXTENSIONS = ["png", "wav", "mp3", "xm", "mod", "it", "s3m"] as const;
+export const AssetPathSchema = z
+  .string()
+  .refine(isSafeRelativePath, "expected a project-relative path without '..'")
+  .refine(
+    (p) => (ASSET_FILE_EXTENSIONS as readonly string[]).includes(p.slice(p.lastIndexOf(".") + 1).toLowerCase()),
+    `expected a .${ASSET_FILE_EXTENSIONS.join("/.")} file`,
+  );
+
+/** Learn documents: repo-relative markdown under docs/tutorial, docs/manual or docs/reference (0.4.0). */
+export const LEARN_SECTIONS = ["tutorial", "manual", "reference"] as const;
+export const LearnPathSchema = z
+  .string()
+  .refine(isSafeRelativePath, "expected a relative docs path")
+  .regex(/^docs\/(tutorial|manual|reference)\/.+\.md$/, "expected docs/<tutorial|manual|reference>/....md");
+export const LearnDocSchema = z.object({
+  path: LearnPathSchema,
+  /** The first "# " heading, else the file name. */
+  title: z.string(),
+  section: z.enum(LEARN_SECTIONS),
 });
 
 /** Emulator key names per DS button (KeyboardEvent.key values); defaults are PLAN.md 6 WS6 "Controls card". */
@@ -134,6 +170,8 @@ export const SettingsSchema = z.object({
   recentProjects: z.array(z.string()).max(10).default([]),
   /** The first-run wizard finished (the Learn panel opens on first launch until then). */
   firstRunDone: z.boolean().default(false),
+  /** The Learn panel has opened once (it opens on first launch). 0.4.0. */
+  learnOpened: z.boolean().default(false),
   controls: ControlsSchema.default(ControlsSchema.parse({})),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
@@ -223,6 +261,30 @@ export const invokeChannels = {
   "doctor.run": {
     request: z.object({}),
     response: z.object({ checks: z.array(z.object({ name: z.string(), ok: z.boolean(), detail: z.string() })) }),
+  },
+  /** (0.4.0) Reads an asset file of the project (sprite sheets, background images, sounds). */
+  "project.readFile": {
+    request: z.object({ dir: z.string().min(1), path: AssetPathSchema }),
+    response: z.object({ bytes: Bytes }),
+  },
+  /** (0.4.0) Writes an asset file of the project (creating its folder); editors save images and sounds this way. */
+  "project.writeFile": {
+    request: z.object({ dir: z.string().min(1), path: AssetPathSchema, bytes: Bytes }),
+    response: Ok,
+  },
+  /** (0.4.0) The Learn documents that exist, tutorial first, then manual, then reference. */
+  "learn.list": { request: z.object({}), response: z.object({ docs: z.array(LearnDocSchema) }) },
+  /**
+   * (0.4.0) One Learn document. `images` maps each relative image path the markdown uses (as written) to a data:
+   * URL, so the renderer shows local images under its CSP (img-src 'self' data:) and never loads remote ones.
+   */
+  "learn.read": {
+    request: z.object({ path: LearnPathSchema }),
+    response: z.object({
+      path: LearnPathSchema,
+      markdown: z.string(),
+      images: z.record(z.string(), z.string().regex(/^data:image\/(png|jpeg|gif|webp);base64,/)),
+    }),
   },
   /** (0.2.0) Native open dialog; `paths` is empty when the user cancels. */
   "dialog.open": {

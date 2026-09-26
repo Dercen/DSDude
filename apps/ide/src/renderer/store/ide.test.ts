@@ -55,6 +55,7 @@ function setup(opts: { diagnostics?: Diagnostic[]; emulatorLines?: string[] } = 
   service.onEvent(play.onBuildEvent);
   const local = createLocalBridge({
     ...createCoreHandlers({
+      learnRoot: tmp,
       settings,
       dialog: { showOpenDialog: async () => ({ canceled: false, filePaths: [projectDir] }) },
     }),
@@ -89,6 +90,7 @@ describe("IDE store", () => {
     const b = createIde(
       createLocalBridge(
         createCoreHandlers({
+          learnRoot: a.projectDir,
           settings: a.settings,
           dialog: { showOpenDialog: async () => ({ canceled: true, filePaths: [] }) },
         }),

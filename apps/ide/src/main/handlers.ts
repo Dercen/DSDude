@@ -6,6 +6,8 @@ import type { InvokeHandlers, SettingKey } from "@dsdude/ipc-contract";
 import { loadProject, saveProject } from "@dsdude/project-format/node";
 import type { IdeEmulatorManager } from "./build/modes.ts";
 import type { PlayController } from "./build/play.ts";
+import { readProjectFile, writeProjectFile } from "./files.ts";
+import { listLearnDocs, readLearnDoc } from "./learn.ts";
 import type { SettingsStore } from "./settings.ts";
 
 export interface DialogLike {
@@ -21,6 +23,8 @@ export interface DialogLike {
 export interface CoreHandlerDeps {
   settings: SettingsStore;
   dialog: DialogLike;
+  /** The folder that contains docs/ (Learn documents). */
+  learnRoot: string;
 }
 
 /** build.* and emulator.* over the PlayController (worker + EmulatorManager). */
@@ -42,8 +46,15 @@ export function createBuildHandlers(play: PlayController, emulators: IdeEmulator
   };
 }
 
-export function createCoreHandlers({ settings, dialog }: CoreHandlerDeps): InvokeHandlers {
+export function createCoreHandlers({ settings, dialog, learnRoot }: CoreHandlerDeps): InvokeHandlers {
   return {
+    "project.readFile": async ({ dir, path }) => ({ bytes: await readProjectFile(dir, path) }),
+    "project.writeFile": async ({ dir, path, bytes }) => {
+      await writeProjectFile(dir, path, bytes);
+      return { ok: true };
+    },
+    "learn.list": async () => ({ docs: await listLearnDocs(learnRoot) }),
+    "learn.read": ({ path }) => readLearnDoc(learnRoot, path),
     "project.open": async ({ dir }) => loadProject(dir),
     "project.save": async ({ dir, project }) => {
       await saveProject(dir, project);

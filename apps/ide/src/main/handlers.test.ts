@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createCoreHandlers, type DialogLike } from "./handlers.ts";
 import { SettingsStore } from "./settings.ts";
 
-const flappy = resolve(import.meta.dirname, "../../../../samples/flappy");
+const repo = resolve(import.meta.dirname, "../../../..");
+const flappy = resolve(repo, "samples/flappy");
 const dirs: string[] = [];
 function temp(): string {
   const d = mkdtempSync(join(tmpdir(), "dsdude-handlers-"));
@@ -26,7 +27,7 @@ function setup(dialogResult = { canceled: false, filePaths: ["C:/picked"] }) {
     },
   };
   const settings = new SettingsStore(join(temp(), "settings.json"));
-  return { ...createLocalBridge(createCoreHandlers({ settings, dialog })), calls };
+  return { ...createLocalBridge(createCoreHandlers({ settings, dialog, learnRoot: repo })), calls };
 }
 
 describe("core handlers over the C5 validation path", () => {

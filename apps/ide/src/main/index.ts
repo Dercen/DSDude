@@ -2,7 +2,7 @@
  * DSDude IDE main process (PLAN.md 2.5, 6 WS6). Built as CJS by electron-vite; the renderer is sandboxed, isolated
  * and served over `app://` (dev: the electron-vite dev server; `DSDUDE_RENDERER_FILE=1`: the file:// fallback).
  */
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { dsdudeHome } from "@dsdude/toolchain";
 import {
@@ -85,6 +85,12 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
+/** The folder holding docs/: DSDUDE_DOCS_DIR's parent, resources/ when packaged (WS8), else the repo. */
+function learnRoot(): string {
+  if (process.env.DSDUDE_DOCS_DIR) return dirname(resolve(process.env.DSDUDE_DOCS_DIR));
+  return app.isPackaged ? process.resourcesPath : resolve(app.getAppPath(), "../..");
+}
+
 /** Forks the build worker (out/main/build-worker.js) with main's env unchanged; its output goes to main's stdout. */
 function forkWorker(): WorkerChild {
   const child = utilityProcess.fork(join(__dirname, "build-worker.js"), [], {
@@ -139,7 +145,7 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   registerIpc(
     ipcMain,
-    { ...createCoreHandlers({ settings, dialog }), ...createBuildHandlers(play, emulators) },
+    { ...createCoreHandlers({ settings, dialog, learnRoot: learnRoot() }), ...createBuildHandlers(play, emulators) },
     (event: IpcMainInvokeEvent) => ({
       url: event.senderFrame?.url ?? null,
       isMainFrame: !!event.senderFrame && event.senderFrame.parent === null,

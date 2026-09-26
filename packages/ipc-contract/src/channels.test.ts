@@ -3,12 +3,15 @@ import type { Diagnostic } from "@dsdude/project-format";
 import { loadProject } from "@dsdude/project-format/node";
 import { describe, expect, it } from "vitest";
 import {
+  AssetPathSchema,
   EVENT_CHANNELS,
   type EventChannel,
   eventChannels,
   INVOKE_CHANNELS,
   type InvokeChannel,
   invokeChannels,
+  isSafeRelativePath,
+  LearnPathSchema,
   ProjectSchema,
   SettingsSchema,
 } from "./channels.ts";
@@ -96,6 +99,30 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
   },
   "toolchain.install": { req: {}, res: { installed: true, diagnostics: [] }, badReq: "x" },
   "doctor.run": { req: {}, res: { checks: [{ name: "BlocksDS", ok: true, detail: "1.24.0" }] }, badReq: false },
+  "project.readFile": {
+    req: { dir: "C:/p", path: "sprites/spr_bird/sheet.png" },
+    res: { bytes: new Uint8Array([137, 80, 78, 71]) },
+    badReq: { dir: "C:/p", path: "../secrets/sheet.png" },
+  },
+  "project.writeFile": {
+    req: { dir: "C:/p", path: "sprites/spr_bird/sheet.png", bytes: new Uint8Array(4) },
+    res: { ok: true },
+    badReq: { dir: "C:/p", path: "objects/obj_bird/step.dss", bytes: new Uint8Array(4) },
+  },
+  "learn.list": {
+    req: {},
+    res: { docs: [{ path: "docs/tutorial/flappy-bird.md", title: "Flappy Bird", section: "tutorial" }] },
+    badReq: 1,
+  },
+  "learn.read": {
+    req: { path: "docs/manual/sprites.md" },
+    res: {
+      path: "docs/manual/sprites.md",
+      markdown: "# Sprites\n![bird](assets/bird.png)\n",
+      images: { "assets/bird.png": "data:image/png;base64,iVBORw0KGgo=" },
+    },
+    badReq: { path: "C:/Windows/win.ini" },
+  },
   "dialog.open": {
     req: { kind: "file", filters: [{ name: "Images", extensions: ["png"] }] },
     res: { paths: [] },
@@ -113,7 +140,7 @@ const EVENT_SAMPLES: { [C in EventChannel]: { ok: unknown; bad: unknown } } = {
 };
 
 describe("C5 channel map", () => {
-  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0 additions", () => {
+  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0 and 0.4.0 additions", () => {
     expect(INVOKE_CHANNELS).toEqual([
       "project.open",
       "project.save",
@@ -133,6 +160,10 @@ describe("C5 channel map", () => {
       "toolchain.status",
       "toolchain.install",
       "doctor.run",
+      "project.readFile",
+      "project.writeFile",
+      "learn.list",
+      "learn.read",
       "dialog.open",
     ]);
     expect(EVENT_CHANNELS).toEqual([
@@ -186,6 +217,20 @@ describe("payload schemas", () => {
     expect(req.safeParse({ projectDir: "C:/p", sprite: "spr_a" }).success).toBe(true);
     expect(req.safeParse({ projectDir: "C:/p" }).success).toBe(false);
     expect(req.safeParse({ projectDir: "C:/p", sourcePath: "C:/x.png" }).success).toBe(false);
+  });
+
+  it("accepts only safe relative asset and docs paths", () => {
+    for (const bad of ["", "/abs.png", "C:/x.png", "a\\b.png", "a/../b.png", "./a.png", "a//b.png", "a/b.png\u0000"])
+      expect(isSafeRelativePath(bad), bad).toBe(false);
+    expect(isSafeRelativePath("sprites/spr_bird/sheet.png")).toBe(true);
+    expect(AssetPathSchema.safeParse("sounds/snd_flap/flap.WAV").success).toBe(true);
+    expect(AssetPathSchema.safeParse("project.json").success).toBe(false);
+    expect(LearnPathSchema.safeParse("docs/reference/errors.md").success).toBe(true);
+    expect(LearnPathSchema.safeParse("docs/status/ws6.md").success).toBe(false);
+    expect(LearnPathSchema.safeParse("docs/manual/../../PLAN.md").success).toBe(false);
+    const images = invokeChannels["learn.read"].response.shape.images;
+    expect(images.safeParse({ a: "https://example.com/x.png" }).success).toBe(false);
+    expect(images.safeParse({ a: "data:image/svg+xml;base64,PHN2Zz4=" }).success).toBe(false);
   });
 
   it("settings.set refuses undefined values and unknown keys", () => {
