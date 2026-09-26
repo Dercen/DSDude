@@ -3,11 +3,14 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  DESMUME_KEYS,
+  desmumeOverrides,
   LineSplitter,
   LocalEmulatorManager,
   MELONDS_KEYS,
   melonDsOverrides,
   type ProcessInfo,
+  patchIni,
   patchToml,
   RECONCILE_TOLERANCE_MS,
 } from "./emulator.ts";
@@ -48,8 +51,15 @@ describe("melonDS.toml", () => {
     "",
   ].join("\r\n");
 
-  it("sets DSDude's keys and keeps everything else", () => {
-    const out = patchToml(existing, melonDsOverrides());
+  it("sets DSDude's keys, keeps everything else and keeps the file's CRLF line endings", () => {
+    const crlf = patchToml(existing, melonDsOverrides());
+    expect(
+      crlf
+        .split("\r\n")
+        .slice(0, -1)
+        .every((l) => !l.includes("\n")),
+    ).toBe(true);
+    const out = crlf.replace(/\r\n/g, "\n");
     expect(out).toContain('RecentROM = [\n    "C:\\\\a.nds",\n]');
     expect(out).toContain('Geometry = "AdnQ"');
     expect(out).toContain("HK_Lid = -1");
@@ -60,7 +70,6 @@ describe("melonDS.toml", () => {
     expect(out).toContain("Renderer = 0");
     expect(out).toMatch(/\[Screen\]\nUseGL = false/);
     expect(out).toMatch(/\[Instance0\.Gdb\]\nEnabled = false/);
-    expect(out).not.toContain("\r");
     expect(out.match(/^A = /gm)).toHaveLength(1);
   });
 
@@ -68,6 +77,27 @@ describe("melonDS.toml", () => {
     const once = patchToml(null, melonDsOverrides());
     expect(patchToml(once, melonDsOverrides())).toBe(once);
     expect(once.startsWith("[Instance0.Keyboard]\n")).toBe(true);
+  });
+
+  it("desmume.ini gets the same mapping as Windows virtual-key codes under [Controls]", () => {
+    const ini = patchIni("[Video]\nWidth=256\n[Controls]\nA=1\n", desmumeOverrides());
+    expect(ini).toMatch(/^\[Video\]\nWidth=256\n\[Controls\]\nA=88\n/);
+    for (const line of [
+      "B=90",
+      "X=83",
+      "Y=65",
+      "L=81",
+      "R=87",
+      "Start=13",
+      "Select=16",
+      "Up=38",
+      "Down=40",
+      "Left=37",
+      "Right=39",
+    ]) {
+      expect(ini).toContain(`${line}\n`);
+    }
+    expect(Object.keys(DESMUME_KEYS)).toEqual(Object.keys(MELONDS_KEYS));
   });
 
   it("enables the GDB stub only when asked", () => {

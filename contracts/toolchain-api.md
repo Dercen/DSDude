@@ -1,6 +1,6 @@
 # C4: Toolchain driver API and BuildService
 
-Version: 0.3.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+Version: 0.4.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
 
 The types live in `packages/toolchain/src/api.ts` (exported from `@dsdude/toolchain`); this file states the rules
 the implementation follows. `BuildService` is confirmed at CP-A. Sources: PLAN.md sections 2.6, 3.2 and 6 WS1;
@@ -12,7 +12,8 @@ the implementation follows. `BuildService` is confirmed at CP-A. Sources: PLAN.m
 - `@dsdude/toolchain` never imports `@dsdude/compiler` or `@dsdude/asset-pipeline`. `BuildService` receives
   `CompileFn`, `PackAssetsFn` and `CheckRoomBudgetsFn` (`BuildServiceDeps`) from its composition root
   (`packages/cli`, the IDE build worker).
-- `MockBuildService` (Phase 0) stays for consumers that want no tools at all.
+- `MockBuildService` (Phase 0) stays for consumers that want no tools at all; `createFakeToolchain()` runs the real
+  service with fake tools (see "Fakes for tests").
 
 ## Tools and `detectToolchain()`
 
@@ -103,6 +104,10 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
      `[Instance0.Gdb] Enabled` = `debug` with ports 3333 (ARM9) and 3334 (ARM7). melonDS binds the stub on
      `0.0.0.0`, so it is only on while Debug runs. Every other key is kept (window
      geometry, recent ROMs), and melonDS keeps these when it rewrites the file on exit.
+     For DeSmuME, patch `desmume.ini` beside the exe (0.4.0): `[Controls]` gets the same mapping as Windows
+     virtual-key codes (A=88, B=90, X=83, Y=65, L=81, R=87, Start=13, Select=16, Up=38, Down=40, Left=37, Right=39;
+     key names from the exe's `inputdx.cpp` strings). DeSmuME keeps the section when it rewrites the file, but
+     whether it reads those keys is not verified, because no key-press test was run against a real window.
   4. Spawn `exe <absolute rom>` with cwd = the emulator folder, and record
      `{pid, kind, exe, rom, startedAt}` in `<DSDUDE_HOME>\emulators\running.json` (`startedAt` is taken right
      after the spawn).
@@ -121,27 +126,73 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
 
 ## `BuildService` (`LocalBuildService`)
 
-- Output goes to `<DSDUDE_HOME>\build\<project-hash>\`, never into the project.
+- **Output** goes to `<DSDUDE_HOME>\build\<project-hash>\`, never into the project.
   - `<project-hash>` is the first 16 hex digits of the SHA-256 of the lower-cased absolute project path.
   - `DSDUDE_HOME` defaults to `%LOCALAPPDATA%\DSDude`.
-  - The folder holds `nitrofs\` (the NitroFS root), `game.nds` and `packrom.json`
-    (`{rom, title, sizeBytes, sha256, nitrofsFiles, header}`).
-- Phases, in order: `load`, `assets`, `runtime`, `pack` (plus `compile` and `budgets` for DSDude projects), then
-  `done`, `failed` or `cancelled`. `play` adds `launch` and then `running`, whose events carry each emulator line
-  in `log`.
+
+  | Path in the build folder | Written by |
+  |---|---|
+  | `nitrofs\` | the NitroFS root: `game.dsdb` (BuildService, from the compiler), `gfx\`, `bg\`, `soundbank.bin` (packAssets) |
+  | `icon.png` | packAssets, optional; it becomes ndstool's `-b` icon, else `core\sys\icon.bmp` |
+  | `cache\` | packAssets' conversion cache |
+  | `assets.manifest.json` | packAssets (docs/kickoff/ws5.md), then rewritten by BuildService with checkRoomBudgets' figures |
+  | `game.nds` | packRom |
+  | `packrom.json` | BuildService: `{rom, title, sizeBytes, sha256, nitrofsFiles, header}` |
+
+- **Phases**, in order: `load`, `assets`, `compile`, `budgets`, `runtime`, `pack`, then `done`, `failed` or
+  `cancelled`.
+  - `play` adds `launch` and then `running`, whose events carry each emulator line in `log`.
+  - Each phase emits one event when it starts and one per log line. `progress` reaches 1 at `done`.
+- **DSDude projects** (`project.json`), 0.4.0:
+  1. `load`: `@dsdude/project-format/node` `loadProject()`; its E29x diagnostics are kept.
+  2. `assets`: `packAssets(project, toolPaths, buildDir)`. With `skipAssets`, the saved `assets.manifest.json` is
+     reused instead (E609 if there is none).
+  3. `compile`: `compile(project, manifest)`; `dsdb` is written to `nitrofs\game.dsdb`. With `skipCompile`, the
+     existing `game.dsdb` is reused (E609 if there is none).
+  4. `budgets`: `checkRoomBudgets(manifest, roomSets)`, whose manifest is then saved (skipped with `skipCompile`,
+     which has no room sets).
+  5. `runtime` and `pack`: the banner is `project.json`'s title, subtitle and author, with its game code.
+
+  Any error diagnostic stops the build after its phase: a compile error never reaches the runtime or pack.
+- **`seed`** (`--seed N`) is written into the DSDB header's RNG seed (C2: u32 LE at offset 12), also into a reused
+  `game.dsdb` under `skipCompile`.
+- **Without the compiler and asset pipeline** (`deps` null, until WS4 and WS5 land): a project builds only with both
+  skip flags. Otherwise the result is E641.
+- **`compileOnly`** needs `deps`, spawns nothing and writes nothing. It compiles against the saved
+  `assets.manifest.json`, or, when nothing was built yet, against a provisional manifest built from the project
+  files (ids in name order, sprite geometry from `sprite.json`, background sizes 0), then runs `checkRoomBudgets`.
 - **Plain BlocksDS folders** (no `project.json`, e.g. `samples/hello`) build only with `skipCompile` and
   `skipAssets`; otherwise the result is E608.
   - `<dir>\nitrofs\` is copied to the build folder's `nitrofs\`.
   - The folder name is the title, the subtitle and author are `DSDude`, and the icon is `core\sys\icon.bmp`.
 - **The runtime ELF** is `runtime`, else `runtime\dist\arm9.elf`, which `buildRuntime()` makes when it is missing.
   A missing `runtime` file is E607.
-- **DSDude projects** (`project.json`): with `skipCompile` and `skipAssets`, the existing build folder's `nitrofs\`
-  is reused (E609 if it does not exist). Compile and assets are wired when WS4 and WS5 land (by CP-B); until then
-  a project build without both skip flags reports E605.
-- `cancel()` aborts the running request: running processes are tree-killed, and the result is `ok: false` with a
-  `cancelled` event.
-- `launchRom(ndsPath, kind)` (not in the interface) launches an already built ROM for `dsdude play --no-build`.
+- `cancel()` aborts the running request: running processes are tree-killed, the next phase does not start, and
+  the result is `ok: false` with a `cancelled` event.
+- `debug` (0.3.0) starts melonDS with its GDB stub; with DeSmuME it is E623.
+- `launchRom(ndsPath, {kind, debug})` (not in the interface) launches an already built ROM for
+  `dsdude play --no-build`.
 
+## Fakes for tests: `MockBuildService` and `createFakeToolchain()`
+
+Both use the same default emulator output, `MOCK_EMULATOR_LINES` (`DSD|READY|0.1.0|00000000`, `DSD|LOG|hello`), and
+the same phase order, `BUILD_PHASES`.
+
+- **`MockBuildService`** needs no files at all. It emits every phase with a `mock <phase>` log line, reports the
+  diagnostics it was given, and returns `<projectDir>/build/game.nds` as the ROM path (0.4.0: the phases and the
+  ROM name now match the real service).
+- **`createFakeToolchain({home, deps?, emulatorLines?, rom?, packFailure?})`** (0.4.0) returns
+  `{service, status, packs, launches}`: the **real** `LocalBuildService`, with fake tools. Everything else is the
+  real code: project loading, the injected functions, the build folder, events, cancellation, `packrom.json` and
+  the seed. It runs anywhere, Linux included:
+  - `detect` reports an installed BlocksDS 1.24.0 with placeholder Windows paths (`FAKE_TOOL_PATHS`);
+  - `make` returns `fixtures/runtime/hello/arm9.elf`;
+  - `packRom` checks its inputs (E607), fails with `packFailure` if given, writes `rom` or
+    `fixtures/build/hello/game.nds`, and runs the real header check. A hex-patched `rom` therefore fails exactly as
+    with ndstool (E611-E614);
+  - the emulator manager returns `fakeEmulator()` handles printing `emulatorLines` and records every launch in
+    `launches` (Debug with DeSmuME is E623, as for real).
+- The fixture paths are exported as `FIXTURE_ROM`, `FIXTURE_PACKROM`, `FIXTURE_NITROFS` and `FIXTURE_ELF`.
 ## E6xx catalog
 
 `packages/toolchain/src/diagnostics/catalog.ts`:
@@ -150,7 +201,7 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
 |---|---|
 | E600, E601 | BlocksDS or one tool missing |
 | E602, E603, E604 | a tool is missing a DLL, failed, or timed out |
-| E605 | needs Windows (or not wired yet) |
+| E605 | needs Windows |
 | E606 | path of 250 characters or more |
 | E607 | missing input file |
 | E608 | not a DSDude project (needs both skip flags) |
@@ -159,6 +210,7 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
 | E620-E624 | emulator missing, would not start, bad download checksum, Debug needs melonDS, download failed |
 | E630, E631 | Python/py-desmume missing, screenshot failed |
 | E640 | runtime `make` failed |
+| E641 | a DSDude project needs the compiler and asset pipeline, which are not injected yet |
 
 Every E6xx is an error with `source: "toolchain"`, and the CLI exits 2 on any of them (C10).
 
@@ -174,3 +226,4 @@ Every E6xx is an error with `source: "toolchain"`, and the CLI exits 2 on any of
 - 0.2.0 (WS1, 2026-09-25, T1): `ToolPaths.arm7Elf`, `icon` and `gcc`; `RomHeaderInfo` and `RomInfo.header`; the
   `BuildResult.ndsPath` comment names `game.nds` (PLAN.md 3.2). No field was removed or retyped.
 - 0.3.0 (WS1, 2026-09-26, T1): `LaunchOptions.debug`, `BuildRequest.debug`, optional `EmulatorManager.reconcile()`; melonDS download + SHA-256 in `ensureInstalled`; reconcile by exe path and start time; E623, E624.
+- 0.4.0 (WS1, 2026-09-26, T1): `PackAssetsFn` gets `outDir` (the build folder) and the build-folder layout is fixed; the `project.json` build path (assets, compile, budgets, seed patch, reuse under the skip flags); `compileOnly` with a provisional manifest; `createFakeToolchain()`; `MockBuildService` phases and ROM name match the real service; the DeSmuME `[Controls]` key map; E641.

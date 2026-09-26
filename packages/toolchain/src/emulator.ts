@@ -79,6 +79,20 @@ export function melonDsOverrides(settings: MelonDsSettings = {}): [string, strin
  * ROMs). melonDS writes a flat file: section headers, `key = value` lines and top-level multi-line arrays.
  */
 export function patchToml(text: string | null, overrides: readonly [string, string, string][]): string {
+  return patchConfig(text, overrides, " = ");
+}
+
+/** Sets `[section] Key=Value` pairs in a desmume.ini text (Windows profile format) and keeps everything else. */
+export function patchIni(text: string | null, overrides: readonly [string, string, string][]): string {
+  return patchConfig(text, overrides, "=");
+}
+
+/**
+ * The shared patcher for flat `[section]` + `key<sep>value` files. It keeps the file's own line ending (CRLF if it
+ * has any) and every line it does not set.
+ */
+export function patchConfig(text: string | null, overrides: readonly [string, string, string][], sep: string): string {
+  const eol = text?.includes("\r\n") ? "\r\n" : "\n";
   const lines = text === null || text === "" ? [] : text.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
   const sectionOf = (line: string) => /^\[([^\][]+)\]\s*$/.exec(line)?.[1] ?? null;
   for (const [section, key, value] of overrides) {
@@ -86,7 +100,7 @@ export function patchToml(text: string | null, overrides: readonly [string, stri
     for (let i = 0; i < lines.length; i++) if (sectionOf(lines[i] ?? "") === section) start = i;
     if (start === -1) {
       if (lines.length > 0) lines.push("");
-      lines.push(`[${section}]`, `${key} = ${value}`);
+      lines.push(`[${section}]`, `${key}${sep}${value}`);
       continue;
     }
     let end = start + 1;
@@ -94,14 +108,37 @@ export function patchToml(text: string | null, overrides: readonly [string, stri
     const keyRe = new RegExp(`^\\s*${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*=`);
     const at = lines.slice(start + 1, end).findIndex((l) => keyRe.test(l));
     if (at >= 0) {
-      lines[start + 1 + at] = `${key} = ${value}`;
+      lines[start + 1 + at] = `${key}${sep}${value}`;
     } else {
       let insert = end;
       while (insert > start + 1 && (lines[insert - 1] ?? "").trim() === "") insert--;
-      lines.splice(insert, 0, `${key} = ${value}`);
+      lines.splice(insert, 0, `${key}${sep}${value}`);
     }
   }
-  return `${lines.join("\n")}\n`;
+  return `${lines.join(eol)}${eol}`;
+}
+
+/**
+ * The same Controls mapping for DeSmuME 0.9.13: `[Controls]` in desmume.ini (beside the exe) takes Windows
+ * virtual-key codes. Key names from the exe's own strings (frontend/windows/inputdx.cpp).
+ */
+export const DESMUME_KEYS: Readonly<Record<string, number>> = {
+  A: 0x58, // X
+  B: 0x5a, // Z
+  X: 0x53, // S
+  Y: 0x41, // A
+  L: 0x51, // Q
+  R: 0x57, // W
+  Start: 0x0d, // VK_RETURN
+  Select: 0x10, // VK_SHIFT
+  Up: 0x26,
+  Down: 0x28,
+  Left: 0x25,
+  Right: 0x27,
+};
+
+export function desmumeOverrides(): [string, string, string][] {
+  return Object.entries(DESMUME_KEYS).map(([key, vk]) => ["Controls", key, String(vk)]);
 }
 
 export type SpawnEmulatorFn = (
@@ -212,6 +249,14 @@ export class LocalEmulatorManager implements EmulatorManager {
     throw new ToolchainError([toolchainDiagnostic("E620", { emulator: "DeSmuME 0.9.13", path: exe, kind })]);
   }
 
+  /** desmume.ini beside the DeSmuME exe, patched before every launch (the Controls mapping). */
+  writeDesmumeConfig(): string {
+    const file = path.join(path.dirname(this.exePath("desmume")), "desmume.ini");
+    const current = existsSync(file) ? readFileSync(file, "utf8") : null;
+    writeFileSync(file, patchIni(current, desmumeOverrides()));
+    return file;
+  }
+
   /** melonDS.toml beside melonDS.exe (a portable build), rewritten before every launch. */
   writeMelonDsConfig(settings: MelonDsSettings = {}): string {
     const file = path.join(path.dirname(this.exePath("melonds")), "melonDS.toml");
@@ -230,6 +275,7 @@ export class LocalEmulatorManager implements EmulatorManager {
       throw new ToolchainError([toolchainDiagnostic("E607", { what: "The ROM", path: romPath })]);
     }
     if (opts.kind === "melonds") this.writeMelonDsConfig({ gdb: opts.debug === true });
+    else this.writeDesmumeConfig();
     const spawnFn = this.#opts.spawn ?? spawnEmulator;
     const child = spawnFn(exe, [path.resolve(romPath)], {
       cwd: path.dirname(exe),

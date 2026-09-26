@@ -17,6 +17,14 @@ export {
 } from "./diagnostics/catalog.ts";
 export { LineSplitter, LocalEmulatorManager, patchToml } from "./emulator.ts";
 export {
+  createFakeToolchain,
+  FAKE_TOOL_PATHS,
+  type FakeLaunch,
+  type FakeToolchain,
+  type FakeToolchainOptions,
+} from "./fake-toolchain.ts";
+export { FIXTURE_ELF, FIXTURE_NITROFS, FIXTURE_PACKROM, FIXTURE_ROM } from "./fixtures.ts";
+export {
   bashEnv,
   dsdudeHome,
   projectBuildDir,
@@ -25,7 +33,14 @@ export {
   type WonderfulLayout,
   wonderfulLayout,
 } from "./layout.ts";
-export { fakeEmulator, type MockBuildOptions, MockBuildService } from "./mock-build-service.ts";
+export {
+  BUILD_PHASES,
+  fakeEmulator,
+  MOCK_EMULATOR_LINES,
+  type MockBuildOptions,
+  MockBuildService,
+} from "./mock-build-service.ts";
+export { MANIFEST_JSON, provisionalManifest, withDsdbSeed } from "./project-build.ts";
 export { checkRom, packRom, readRomHeader, verifyRom } from "./rom.ts";
 export { buildRuntime, runMake } from "./runtime.ts";
 export { takeScreenshot } from "./screenshot.ts";

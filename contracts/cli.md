@@ -29,7 +29,10 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 
 ## Projects and plain BlocksDS folders
 
-- A **DSDude project** is a folder with `project.json` (C1).
+- A **DSDude project** is a folder with `project.json` (C1). `build` and `play` run assets, compile and budgets
+  (C4), which need `@dsdude/compiler` and `@dsdude/asset-pipeline` to export `compileProject`, `packAssets` and
+  `checkRoomBudgets`. Until they do, a project builds only with `--skip-compile --skip-assets`, which repacks the
+  last build; otherwise the result is E641, exit 2.
 - A folder without it is a **plain BlocksDS C project**, such as `samples/hello`. `build` and `play` accept it only
   with `--skip-compile --skip-assets` (otherwise E608, exit 2). Then:
   - `<dir>/nitrofs/` is copied to the build folder's `nitrofs/` and packed as the NitroFS root;
@@ -51,7 +54,7 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 | `--emulator melonds\|desmume` | play | Default `melonds`. |
 | `--seconds N` | play | Stop the emulator gracefully after N seconds (for scripts and tests; 0.2.0). |
 | `--debug` | play | Start melonDS with its GDB stub on ports 3333 (ARM9) and 3334 (ARM7); DeSmuME has none (E623). 0.3.0. |
-| `--seed N` | compile, build, play | DSDB header RNG seed (C2); 0 = the runtime picks. |
+| `--seed N` | compile, build, play | DSDB header RNG seed (C2); 0 = the runtime picks. `build`/`play` write it into `game.dsdb`, also into a reused one under `--skip-compile`. |
 | `--jobs N` | build, play | Runtime build parallelism; default `DSDUDE_MAKE_JOBS`, else 8. |
 | `--frames N`, `--keys file`, `--out dir` | screenshot | Frame count; key script; output folder. |
 
@@ -113,3 +116,4 @@ The folder holds `nitrofs\`, `game.nds` and `packrom.json` (C4).
 - 0.2.0 (WS1, 2026-09-25, T1): `play --seconds N`; the plain BlocksDS folder rules; the `--json` fields per
   command; `screenshot.json`; the provisional key-script format. `toolchain install` points to the script for now.
 - 0.3.0 (WS1, 2026-09-26, T1): `play --debug`; the `--keys` format of ADR-0003 (adds `TOUCH`); `emulator install melonds` downloads and SHA-256-checks.
+- 0.3.0 T0 (WS1, 2026-09-26): `--seed` is written into `game.dsdb`; DSDude projects need the injected compiler and asset pipeline (E641).

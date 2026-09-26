@@ -2,6 +2,12 @@
 import type { Diagnostic } from "@dsdude/project-format";
 import type { BuildEvent, BuildRequest, BuildResult, BuildService, EmulatorHandle, PlayResult } from "./api.ts";
 
+/** The phases of a build, in LocalBuildService's order (play adds "launch", then "running"). */
+export const BUILD_PHASES: BuildEvent["phase"][] = ["load", "assets", "compile", "budgets", "runtime", "pack"];
+
+/** What the fake emulators print unless told otherwise; shared by MockBuildService and createFakeToolchain(). */
+export const MOCK_EMULATOR_LINES: readonly string[] = ["DSD|READY|0.1.0|00000000", "DSD|LOG|hello"];
+
 export interface MockBuildOptions {
   /** Diagnostics every request reports; any error makes the build fail. */
   diagnostics?: Diagnostic[];
@@ -25,18 +31,19 @@ export class MockBuildService implements BuildService {
   }
 
   async compileOnly(req: BuildRequest): Promise<BuildResult> {
-    return this.#run(req, ["compile"], false);
+    return this.#run(req, ["load", "compile", "budgets"], false);
   }
 
   async build(req: BuildRequest): Promise<BuildResult> {
-    return this.#run(req, ["compile", "assets", "pack"], true);
+    return this.#run(req, BUILD_PHASES, true);
   }
 
   async play(req: BuildRequest): Promise<PlayResult> {
     const result = await this.build(req);
     if (!result.ok) return { ...result, emulator: null };
     await this.stop();
-    this.#running = fakeEmulator(this.opts.emulatorLines ?? ["DSD|READY|0.1.0|00000000", "DSD|LOG|hello"]);
+    this.#emit({ phase: "launch", progress: 1, diagnostics: result.diagnostics, log: [], timings: result.timings });
+    this.#running = fakeEmulator(this.opts.emulatorLines ?? [...MOCK_EMULATOR_LINES]);
     this.#emit({ phase: "running", progress: 1, diagnostics: result.diagnostics, log: [], timings: result.timings });
     return { ...result, emulator: this.#running };
   }
@@ -66,7 +73,7 @@ export class MockBuildService implements BuildService {
     }
     const ok = !diagnostics.some((d) => d.severity === "error");
     this.#emit({ phase: ok ? "done" : "failed", progress: 1, diagnostics, log: [], timings });
-    return { ok, ndsPath: ok && rom ? `${req.projectDir}/build/mock.nds` : null, diagnostics, timings };
+    return { ok, ndsPath: ok && rom ? `${req.projectDir}/build/game.nds` : null, diagnostics, timings };
   }
 
   #emit(e: BuildEvent): void {

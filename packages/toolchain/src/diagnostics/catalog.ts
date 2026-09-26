@@ -128,6 +128,12 @@ export const TOOLCHAIN_CATALOG = {
     "make in {dir} stopped with exit code {code}: {detail}",
     "Read the build log above for the first error.",
   ),
+  E641: e(
+    "E641",
+    "Compiler not connected",
+    "{what} needs the compiler and the asset pipeline, and this copy of DSDude doesn't have them yet.",
+    "Add --skip-compile --skip-assets to pack the last build again.",
+  ),
 } as const satisfies Record<string, CatalogEntry>;
 
 export type ToolchainCode = keyof typeof TOOLCHAIN_CATALOG;
