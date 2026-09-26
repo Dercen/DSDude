@@ -15,13 +15,13 @@ D is the date of the `phase0` tag (see the CLAUDE.md Status block). Versions are
 | C1 | Project format | `contracts/project-format.md`, `packages/project-format` | WS0 | 0.1.0 | at the tag |
 | C2 | DSDB container, opcodes, builtins | `contracts/dsdb.md` (WS2 + WS4); `contracts/opcodes.json` + `packages/dsdb` (WS4, WS2 co-signs); `contracts/builtins.json` (WS0, append-only; WS7 fills doc/example) | see files | 0.1.0 | container and stable opcodes at the tag; provisional opcodes and new builtins by T1 |
 | C3 | Asset pack layout + manifest | `contracts/assetpack.md` | WS5 | **owed** | WS5 writes it on its first day (CP-A, D+3); T1 afterwards |
-| C4 | Toolchain API + BuildService | `packages/toolchain/src/api.ts` (+ `MockBuildService`), `contracts/toolchain-api.md` | WS1 (WS8 from `start-ws8`) | `api.ts` 0.1.0; `toolchain-api.md` **owed** | `BuildService` confirmed by WS1 at CP-A (D+3) |
+| C4 | Toolchain API + BuildService | `packages/toolchain/src/api.ts` (+ `MockBuildService`), `contracts/toolchain-api.md` | WS1 (WS8 from `start-ws8`) | 0.2.0 (`api.ts` and `toolchain-api.md`) | `BuildService` confirmed by WS1 at CP-A (D+3) |
 | C5 | IPC channel map | `contracts/ipc.md`, `packages/ipc-contract` | WS6 | 0.1.0 (stubs) | completed by WS6 |
 | C6 | Language, events, conformance | `contracts/language.md`, `contracts/events.md` (WS2 co-signs), `fixtures/conformance/` (expected outputs: WS2) | WS4 | 0.1.0 | v0.1 at the tag |
 | C7 | Language-service host API | `packages/lang/src/host.ts` | WS4 | **owed** | CP-B (D+7) |
 | C8 | Runtime log protocol + runtime artifact | `contracts/log-protocol.md` (WS2), `contracts/runtime-artifact.md` (WS3) | WS2, WS3 | protocol 0.1.0; artifact **owed** | protocol at the tag; artifact with WS3's first `runtime/dist` build |
 | C9 | Diagnostics | `contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts` | WS0 (shape); each producer its range and catalog | 0.1.0 | at the tag |
-| C10 | CLI | `contracts/cli.md`, `packages/cli` | WS1 (WS8 from `start-ws8`) | 0.1.0 (draft) | final by WS1 |
+| C10 | CLI | `contracts/cli.md`, `packages/cli` | WS1 (WS8 from `start-ws8`) | 0.2.0 | final by WS1 |
 | C11 | Platform seam | `runtime/core/include/dsd_platform.h` | WS2 | **owed** | CP-A (D+3) |
 | C12 | EditorPanel host API + asset preview API | `apps/ide/src/renderer/panels/api.ts` + `fixtures/ide/mock-host` (WS6); `packages/asset-pipeline/src/preview.ts` (WS5) | WS6, WS5 | preview types 0.1.0; panel API **owed** | panel API + mock-host at CP-A (D+3); preview API at CP-B (D+7) |
 | C13 | Runtime limits | `contracts/runtime-limits.json` | WS2 (seeded by WS0) | 0.1.0 | values change by T1 |
@@ -35,7 +35,6 @@ C14 from the streams: conformance programs 6-10 (WS4), `fixtures/bytecode/bench.
 against the Phase-0 types and mocks):
 - C3 `contracts/assetpack.md`: WS5, on its first day (CP-A, D+3). Until then `AssetManifest` and `RoomAssetSet` in
   `api.ts` are provisional.
-- C4 `contracts/toolchain-api.md`: WS1, CP-A (D+3).
 - C7 `packages/lang/src/host.ts`: WS4, CP-B (D+7). WS7 uses builtins-only completion until then.
 - C8 `contracts/runtime-artifact.md`: WS3, with its first `runtime/dist` build (by M0, D+7).
 - C11 `runtime/core/include/dsd_platform.h`: WS2, CP-A (D+3).

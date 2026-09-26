@@ -195,3 +195,5 @@ Each variant was repacked from a different `nitrofs/hello.txt` with the same ELF
 - **DeSmuME `--slot1 R4 --slot1-fat-dir <dir>`:** FAIL. It prints `slot1 fat not successfully mounted` for an empty folder and for the ROM's own folder alike, and the ROM logs `nitroFSInit failed`. See `docs/adr/0002-desmume-r4-slot1-profile.md` (proposed: default slot 1 only).
 
 ### Spike 5: todo (task 5, else a WS8 leftover)
+
+## Integration feedback

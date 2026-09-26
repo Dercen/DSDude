@@ -46,7 +46,12 @@ Legend: todo / in progress / done (<sha>).
   - `contracts/dsdb.md` (container, cells, sections, calling convention, event ids, `.dsda` grammar, ABI hash), `contracts/opcodes.json` (29 stable + 22 provisional + 4 reserved), `contracts/builtins.json` (85 functions, 40 variables, 18 constants; 30 documented; ABI hash 0x0dd9987a): done
   - `tools/gen-opcodes.ts`, `tools/gen-builtins.ts`, `tools/gen-dsdb.ts` (all with `--check`, run by `npm run check`): done
   - `packages/dsdb` (encode/decode/assemble/disassemble, bins `dsdb-asm`/`dsdb-dis`), `fixtures/bytecode/hello.dsda` -> `hello.dsdb` (round-trips byte for byte): done
-- Task 7. Fixtures, conformance v0, contracts README/CHANGELOG, kickoff files, Status block, tag: todo
+- Task 7. Fixtures, conformance v0, contracts README/CHANGELOG, kickoff files, Status block, tag: done
+  - `tools/phase0/make-fixtures.ts` -> `fixtures/assets/`; conformance v0 (5 programs + expected logs); `fixtures/bytecode/conformance/v0-01.dsda` (stable opcodes only): done (8a2eb9f)
+  - `contracts/README.md` (C1-C14 index, owed list, tiers, events) and `contracts/CHANGELOG.md`; contract versions in every kickoff; briefs regenerated: done (995ff06)
+  - WS1 merged (`19c3ce8`, see `docs/status/checkpoint-0.md`); its T1 changes to C4/C10 (0.2.0) accepted; `## Integration feedback` appended to `docs/status/ws1.md`: done
+  - CLAUDE.md Status block, `pacman`/`wf-pacman` deny rules, `docs/status/checkpoint-0.md`: done (tag commit)
+  - Definition-of-done run on a clean clone, then `phase0` and `toolchain-ok` tags: see "Definition of done" below
 
 ## Spike results
 
@@ -58,7 +63,7 @@ Legend: todo / in progress / done (<sha>).
   5. Merges bringing a lockfile change and `runtime/core/*.c`: pass without a conflict and with a resolved conflict; the merge commit gets the trailer.
   6. pre-push: clean `main` pushes; a `vendor/probe.txt` commit (the one `--no-verify`) is refused, and still refused after `git rm --cached` + commit.
   7. A second detached worktree checks out the Makefile and all three hooks as `i/lf w/lf`, with no CR bytes.
-  - Permissions: `npm ci --help` is denied by `.claude/settings.json` ("Permission to use PowerShell with command npm ci --help has been denied"); `git status` runs without a prompt. The embedded `bash.exe -lc '... wf-pacman ...'` form is checked in the tag commit, when the pacman deny rules are added.
+  - Permissions: `npm ci --help` is denied by `.claude/settings.json` ("Permission to use PowerShell with command npm ci --help has been denied"); `git status` runs without a prompt. The embedded form is caught too: with the tag commit's deny rules (`PowerShell(*pacman*)`, `Bash(*pacman*)` and the plain forms), `C:\msys64\usr\bin\bash.exe -lc 'echo wf-pacman --version'` was refused ("Permission to use PowerShell with command ... has been denied").
 - **Spike 13 (WS0 part), 2026-09-25: PASS.** Throwaway worktree `..\DSDude-spike13` (detached at `a0a259d`), removed afterwards:
   - `npm install`: exit 0 in 47 s, 531 packages, postinstall ran `install-electron`; `node_modules/electron/path.txt` = `electron.exe`; `git status` clean (lockfile not rewritten).
   - `npx tsc -b` clean: exit 0. With `export const broken: number = "not a number";` appended to `packages/dsdb/src/index.ts`: `error TS2322`, exit 2.
@@ -102,10 +107,24 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 ## Open ADRs
 
 - ADR-0001 Flappy pipe geometry: **accepted** by the user (2026-09-25) and applied to `samples/flappy` (two 128-px pipes around the 48-px gap).
+- ADR-0002 DeSmuME R4 slot-1 profile does not mount NitroFS (proposed by WS1): WS0 recommends **accept** (launch
+  DeSmuME only with its default slot-1 device; flashcart-style boots wait for hardware, spike 15). The user decides.
 
 ## Open questions for the user
 
-- After the cloud probe: did the claude.ai/code branch selector offer branches other than `main` (P8)?
+- ADR-0002: accept?
+- The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
+  passes (2432 MB). When to launch WS6 and WS3 locally (see the Day-2 report).
+- P8 (branch selector): only `main` existed at the probe; answered at the first cloud launch.
+
+## Notes for PLAN.md (fold in at CP-A)
+
+- From WS1: BlocksDS 1.24.0's `examples/graphics_2d/bg_regular_nitrofs` has no Makefile (it uses `build.py`), so the
+  7.1 Day-0 line and spike 6 should name `graphics_2d/bg_regular_8bit`, `filesystem/nitrofs` and `maxmod/nitrofs`;
+  tool versions print as `v1.24.0-dirty`; `arm-none-eabi-gcc` lives under `C:\msys64\opt\wonderful\toolchain\gcc-arm-none-eabi\bin`;
+  the install takes ~70 s, not ~30 min.
+- A workspace package's new `bin` needs `npm install` twice in an existing tree: the first run records it in the
+  lockfile, the second links it (fresh installs link it at once).
 
 ## End-of-day report: Day 1 (2026-09-25)
 

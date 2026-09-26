@@ -143,7 +143,17 @@
       "Bash(npm ci)",
       "Bash(npm ci *)",
       "PowerShell(npm ci)",
-      "PowerShell(npm ci *)"
+      "PowerShell(npm ci *)",
+      "Bash(pacman)",
+      "Bash(pacman *)",
+      "Bash(wf-pacman)",
+      "Bash(wf-pacman *)",
+      "Bash(*pacman*)",
+      "PowerShell(pacman)",
+      "PowerShell(pacman *)",
+      "PowerShell(wf-pacman)",
+      "PowerShell(wf-pacman *)",
+      "PowerShell(*pacman*)"
     ]
   },
   "hooks": {

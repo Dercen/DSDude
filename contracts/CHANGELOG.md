@@ -21,6 +21,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C4 Toolchain API (`packages/toolchain/src/api.ts`, `contracts/toolchain-api.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): api.ts types (BuildService, BuildEvent, ToolPaths, EmulatorHandle/Manager, provisional AssetManifest and RoomAssetSet, CompileFn, PackAssetsFn, CheckRoomBudgetsFn, CliCommand) and MockBuildService. toolchain-api.md owed by WS1 (CP-A).
+- 0.2.0 (2026-09-25, WS1, T1; line appended by WS0 at the merge of 4ddccb5): ToolPaths.arm7Elf/icon/gcc, RomHeaderInfo and RomInfo.header (all optional); contracts/toolchain-api.md 0.2.0 written. Reviewed and accepted by WS0 2026-09-25.
 
 ## C5 IPC (`contracts/ipc.md`, `packages/ipc-contract`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): channel list and zod stubs.
@@ -42,6 +43,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
+- 0.2.0 (2026-09-25, WS1, T1; line appended by WS0 at the merge of 4ddccb5): WS1's revision (see contracts/cli.md). Reviewed and accepted by WS0 2026-09-25.
 
 ## C11 Platform seam (`runtime/core/include/dsd_platform.h`)
 - owed: WS2, by CP-A.

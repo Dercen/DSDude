@@ -42,7 +42,7 @@ Give the first `npm install` a 10-minute tool timeout. The root postinstall (`to
 
 ## 4. Owned paths and contracts
 
-**Contract versions at the `phase0` tag** (the index with owners and freeze points is `contracts/README.md`; the history is `contracts/CHANGELOG.md`): every Phase-0 contract is **0.1.0** — C1 project format, C2 `dsdb.md` + `opcodes.json` + `builtins.json` (ABI hash `0x0dd9987a`), C4 `api.ts`, C5 `ipc.md` stubs, C6 `language.md` + `events.md`, C8 `log-protocol.md`, C9 `diagnostics.md`, C10 `cli.md` draft, C12 `preview.ts` types, C13 `runtime-limits.json`. Owed, each by its owner: C3 `assetpack.md` (WS5, first day), C4 `toolchain-api.md` (WS1, CP-A), C7 `host.ts` (WS4, CP-B), C8 `runtime-artifact.md` (WS3, first `runtime/dist` build), C11 `dsd_platform.h` (WS2, CP-A), C12 panel API + mock-host (WS6, CP-A).
+**Contract versions at the `phase0` tag** (the index with owners and freeze points is `contracts/README.md`; the history is `contracts/CHANGELOG.md`): every Phase-0 contract is **0.1.0** — C1 project format, C2 `dsdb.md` + `opcodes.json` + `builtins.json` (ABI hash `0x0dd9987a`), C5 `ipc.md` stubs, C6 `language.md` + `events.md`, C8 `log-protocol.md`, C9 `diagnostics.md`, C12 `preview.ts` types, C13 `runtime-limits.json`; WS1 has already taken C4 (`api.ts` + `toolchain-api.md`) and C10 `cli.md` to **0.2.0** (T1). Owed, each by its owner: C3 `assetpack.md` (WS5, first day), C7 `host.ts` (WS4, CP-B), C8 `runtime-artifact.md` (WS3, first `runtime/dist` build), C11 `dsd_platform.h` (WS2, CP-A), C12 panel API + mock-host (WS6, CP-A).
 
 **You own** (`tools/ownership.json`):
 - `apps/ide/**` except `src/renderer/editors/**` and `electron-builder.yml`
