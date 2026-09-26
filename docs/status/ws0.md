@@ -41,7 +41,7 @@ Legend: todo / in progress / done (<sha>).
   - `samples/minimal`, `samples/flappy` v0 (PNGs/WAVs from `tools/phase0/make-samples.ts`), ADR-0001: done
 
 ### Day 2 (2026-09-25/26)
-- Task 5. `contracts/language.md` v0.1, `contracts/events.md`: todo
+- Task 5. `contracts/language.md` v0.1 (EBNF, precedence, numbers, printing, scopes, the 8 pinned rules + 3 small rules, program form, omissions) and `contracts/events.md` (24 event kinds in dsdb.md order, frame order, room load/change, Outside Room, same-screen collisions): done (see git log)
 - Task 6. Minimal C2: done (see git log)
   - `contracts/dsdb.md` (container, cells, sections, calling convention, event ids, `.dsda` grammar, ABI hash), `contracts/opcodes.json` (29 stable + 22 provisional + 4 reserved), `contracts/builtins.json` (85 functions, 40 variables, 18 constants; 30 documented; ABI hash 0x0dd9987a): done
   - `tools/gen-opcodes.ts`, `tools/gen-builtins.ts`, `tools/gen-dsdb.ts` (all with `--check`, run by `npm run check`): done
