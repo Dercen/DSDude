@@ -109,6 +109,12 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   trace check until `fixtures/runtime-core/flappy-trace.fnv` is refreshed; please also re-check that
   `flappy-keys.txt` still scores with the wider bird bbox. Host tests green here (115,765 checks).
 
+- **Helper overrides (events.md section 3) fixed, 2026-09-26:** a call to an object function that a descendant
+  overrides now dispatches on `object_index` (GETBI + LOADK @obj + EQ + JMPT per overriding object, then the right
+  `CALL`, each branch filling its own defaults). No per-object code copies, so `event_inherited()` keeps its meaning;
+  calls with no override are unchanged (no golden moved). **For WS2:** relies on `GETBI object_index` giving an
+  object ASSET value that `EQ` compares equal to `LOADK @obj` (language.md: ids compare by numeric value).
+
 ## Next
 
 - Task 7 (formatter done): the peephole passes wait on purpose.
@@ -119,8 +125,7 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Constant folding must not apply to the conformance programs, which exist to test the VM's arithmetic (v0/02's
     `0.25 + 0.25`); it will be an option of `compileProject` (on for games), with folding that matches the runtime's
     int32/Q20.12 rules exactly.
-- Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
-  child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
+- Leftovers: constant folding (task 7).
 
 ## Goldens (tier status)
 

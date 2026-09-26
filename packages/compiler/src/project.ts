@@ -25,7 +25,7 @@ import type { AssetManifest, CompileOutput, RoomAssetSet } from "@dsdude/toolcha
 import { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./codegen/builtins.ts";
 import { declareFunction } from "./codegen/declare.ts";
-import type { AssetNameKind, CodegenEnv } from "./codegen/env.ts";
+import type { AssetNameKind, CodegenEnv, FunctionOverride } from "./codegen/env.ts";
 import { compileFunction } from "./codegen/function.ts";
 import { finishModule } from "./codegen/module.ts";
 import type { CompilerCode } from "./diagnostics/catalog.ts";
@@ -494,8 +494,30 @@ class ProjectCompiler {
         for (const o of this.objects.values()) if (o.functions.has(name)) return o.res.name;
         return null;
       },
+      overridesOf: (name) => this.overridesOf(owner, name),
     };
     return compileFunction(env, { name: u.funcName, params: u.params, body: u.body });
+  }
+
+  /**
+   * The descendants of `owner` that call a different version of object function `name` than `owner` does, grouped
+   * by that version (events.md section 3). Each descendant resolves the name itself, so a grandchild that does not
+   * override it again joins its parent's group.
+   */
+  private overridesOf(owner: ObjectEntry | null, name: string): FunctionOverride[] {
+    if (owner === null) return [];
+    const base = this.lookupObjectFunction(owner.res.name, name);
+    if (base === null) return [];
+    const groups = new Map<DeclaredFunction, string[]>();
+    for (const d of this.objects.values()) {
+      if (d === owner || !this.ancestors(d).includes(owner)) continue;
+      const f = this.lookupObjectFunction(d.res.name, name);
+      if (f === null || f === base) continue;
+      const list = groups.get(f) ?? [];
+      list.push(d.res.name);
+      groups.set(f, list);
+    }
+    return [...groups].map(([fn, objects]) => ({ fn, objects: objects.sort() }));
   }
 
   // ---- Pass 5: the module ----------------------------------------------------------------------------------------

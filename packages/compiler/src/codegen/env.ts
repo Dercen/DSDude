@@ -58,4 +58,16 @@ export interface CodegenEnv {
   isInstanceVariableName(name: string): boolean;
   /** The object whose functions.dss defines `name` when this code can't call it (E205), or null. */
   helperOwner?(name: string): string | null;
+  /**
+   * The versions of object function `name` that descendants of self's object use instead of the one
+   * `lookupFunction` finds (they override it), each with the objects that use it. Empty when nothing overrides it.
+   */
+  overridesOf?(name: string): FunctionOverride[];
+}
+
+/** One overriding version of an object function, and the objects whose instances call it. */
+export interface FunctionOverride {
+  fn: UserFunction;
+  /** Object names, sorted: an instance whose object_index is one of these calls `fn`. */
+  objects: string[];
 }
