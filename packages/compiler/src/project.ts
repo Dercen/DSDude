@@ -61,6 +61,11 @@ const TOUCH_EVENT = /^touch_(pressed|released|held)$/;
 export interface CompileProjectOptions {
   /** DSDB header RNG seed (`--seed N`); 0 lets the runtime choose (contracts/dsdb.md section 2). */
   seed?: number;
+  /**
+   * Evaluate constant expressions at compile time (codegen/fold.ts). compileProject and `dsdude compile` turn it on;
+   * the conformance goldens leave it off so the VM runs every operation they test. Default off.
+   */
+  fold?: boolean;
 }
 
 /** compileProject's result plus the symbolic module (for goldens and `dsdb-dis`), null on errors. */
@@ -68,9 +73,9 @@ export interface CompileProjectResult extends CompileOutput {
   module: DsdbModule | null;
 }
 
-/** C4 `CompileFn`: compiles a loaded project. */
+/** C4 `CompileFn`: compiles a loaded project, as a game (constant folding on). */
 export function compileProject(project: Project, manifest: AssetManifest): CompileOutput {
-  const { dsdb, roomSets, diagnostics } = compileProjectModule(project, manifest);
+  const { dsdb, roomSets, diagnostics } = compileProjectModule(project, manifest, { fold: true });
   return { dsdb, roomSets, diagnostics };
 }
 
@@ -495,6 +500,7 @@ class ProjectCompiler {
         return null;
       },
       overridesOf: (name) => this.overridesOf(owner, name),
+      fold: this.options.fold === true,
     };
     return compileFunction(env, { name: u.funcName, params: u.params, body: u.body });
   }

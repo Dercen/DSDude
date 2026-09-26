@@ -29,7 +29,8 @@ describe("compileProject: the samples", () => {
     it(`compiles samples/${name} with zero diagnostics to its goldens`, async () => {
       const loaded = await loadProject(join(REPO_ROOT, "samples", name));
       expect(loaded.diagnostics).toEqual([]);
-      const r = compileProjectModule(loaded.project as Project, MANIFEST);
+      // Games compile with constant folding, as compileProject does.
+      const r = compileProjectModule(loaded.project as Project, MANIFEST, { fold: true });
       expect(r.diagnostics).toEqual([]);
       const dsda = disassemble(r.module as NonNullable<typeof r.module>);
       const golden = `fixtures/compiler/samples/${name}.dsda`;

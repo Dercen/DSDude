@@ -56,6 +56,11 @@ export interface CodegenEnv {
    * bodies, and a parent's code reading a variable only its children assign.
    */
   isInstanceVariableName(name: string): boolean;
+  /**
+   * Evaluate constant expressions at compile time (codegen/fold.ts). On for games; off for the conformance goldens,
+   * which exist to test the VM's own arithmetic. Absent means off.
+   */
+  fold?: boolean;
   /** The object whose functions.dss defines `name` when this code can't call it (E205), or null. */
   helperOwner?(name: string): string | null;
   /**

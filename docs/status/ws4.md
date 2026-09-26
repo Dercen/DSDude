@@ -138,13 +138,30 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - **For WS2:** `flappy.dsdb` changed again: dsdb fingerprint `0xf4c83269`, trace `0x84a71faf` over 165,966 steps
     (from the host test's note), so `fixtures/runtime-core/flappy-trace.fnv` needs refreshing.
 
+- **Checkpoint-12 relay (WS0, main b47cd2c), 2026-09-26:** merged `origin/main`, no open IF entries.
+  - Reviewed WS2's expected logs for programs 06-10 (`fixtures/conformance/expected/v1..v4`, ea6a609): each matches
+    the program's intended output line for line; WS2's host test runs all ten compiled programs against them.
+  - **Task 7 constant folding done** (`packages/compiler/src/codegen/fold.ts`). It evaluates literal-only
+    expressions (and builtin constants a local doesn't shadow) with the runtime's exact rules: int `+ - * div mod`,
+    int `/` (int when exact, else Q20.12 truncated, else the int quotient), fixed `+ - *` (truncating), exact int/fixed
+    comparisons, string `+ == !=`, bool `! && || == !=`, and `?:` when all three parts fold. It declines everything
+    the runtime reports or wraps (int32 overflow, results outside Q20.12, division by zero, `INT_MIN / -1`) and
+    anything it would have to re-implement loosely (fixed `/ div mod`, string ordering), so debug builds still raise
+    their errors and no checker diagnostic depends on folding. Folded right operands feed ADDI/SUBI/MULI; constant
+    conditions become a JMP or nothing.
+  - Switch: `fold` in `CompileProjectOptions`/`ProgramOptions`, default off. `compileProject` (C4) and
+    `dsdude compile` turn it on; the conformance goldens stay unfolded so the VM runs every operation they test. No
+    contract change (C4's `CompileFn` and C10's flags are unchanged). The samples have no constant expressions, so
+    no golden moved.
+  - Verified against WS2's VM: 6,800 random constant expressions compiled unfolded and folded, both run in
+    `dsdude-host --seed 1`, printed identical `DSD|LOG` lines (0 mismatches); the folded build had no arithmetic left.
+    Unit tests in `src/fold.test.ts`.
+
 ## Next
 
-- Task 7 leftover: constant folding, deliberately not done yet. It must not apply to the conformance programs, which
-  exist to test the VM's arithmetic (v0/02's `0.25 + 0.25`); it will be an option of `compileProject` (on for
-  games), with folding that matches the runtime's int32/Q20.12 rules exactly.
 - Possible further peepholes (not started): assigning straight into a local's register when the value reads that
   local only as its first operand (`a = a * 3` is `MULI t, a, 3` + `MOV a, t` today, to stay safe with calls).
+- Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).
 - Blocked on WS0: `alias`/`unsupported` builtins.json entries (E207 for unsupported GameMaker names).
 
 ## Goldens (tier status)
