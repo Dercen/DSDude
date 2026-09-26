@@ -1,0 +1,15 @@
+# Written by runtime/selftest/make_assets.py; do not edit.
+# mmutil -V: mmutil v1.24.0-dirty
+# big.bin: 1048576 bytes, byte sum (u32) = 133693440
+(cwd fixtures/runtime/selftest/nitrofs/gfx) grit.exe fixtures/runtime/selftest/src/spr16.png -gB8 -gt -gTFF00FF -m! -ftr -fh! -W1 -ospr16
+  -> exit 0
+(cwd fixtures/runtime/selftest/nitrofs/gfx) grit.exe fixtures/runtime/selftest/src/spr8x8.png -gB4 -pn16 -gt -gTFF00FF -m! -ftr -fh! -W1 -ospr8x8
+  -> exit 0
+(cwd fixtures/runtime/selftest/nitrofs/gfx) grit.exe fixtures/runtime/selftest/src/spr64.png -gB8 -gt -gTFF00FF -m! -ftr -fh! -W1 -ospr64
+  -> exit 0
+(cwd fixtures/runtime/selftest/nitrofs/bg) grit.exe fixtures/runtime/selftest/src/bg.png -gB8 -gt -m -mLs -mRtf -gTFF00FF -ftr -fh! -W1 -obg
+  -> exit 0
+(cwd fixtures/runtime/selftest/mmwork) mmutil.exe fixtures/runtime/selftest/src/blip.wav fixtures/runtime/selftest/src/loop.wav fixtures/runtime/selftest/src/selftest.xm -d -ofixtures/runtime/selftest/nitrofs/soundbank.bin -hruntime/selftest/source/soundbank.h
+  -> exit 0
+(cwd fixtures/runtime/selftest) mmutil.exe -V
+  -> exit 0

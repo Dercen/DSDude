@@ -1,0 +1,4 @@
+# D-pad RIGHT for 3 frames, a stylus tap at (200, 150), then A (the blip effect).
+50-52 RIGHT
+60-64 TOUCH 200 150
+80-81 A

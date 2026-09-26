@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Zlib
 //
-// DS platform init and fatal errors (PLAN.md 3.3 "Audio"; docs/kickoff/ws3.md task 2).
+// DS platform init and fatal errors (PLAN.md 3.3 "Audio", "Errors and console"; docs/kickoff/ws3.md task 2).
 
 #include <errno.h>
 #include <stdio.h>
@@ -12,19 +12,48 @@
 
 #include "ds_log.h"
 #include "ds_platform.h"
+#include "ds_ui.h"
+#include "ds_video.h"
 
 #define DSD_SOUNDBANK_PATH "nitro:/soundbank.bin"
 
 bool ds_sound_ready = false;
+jmp_buf ds_restart_point;
+bool ds_restart_armed = false;
 
 static char ds_msg[256];
+
+void ds_error_screen(const char *code, const char *where, const char *message)
+{
+    if (ds_sound_ready)
+        mmStop();
+    for (int s = 0; s < DS_SCREENS; s++)
+    {
+        oamClear(ds_oam(s), 0, 128);
+        oamUpdate(ds_oam(s));
+    }
+    ds_ui_error_box(code, where, message);
+    swiWaitForVBlank();
+    ds_ui_commit();
+
+    // Wait until START is released, then pressed, so a held START does not restart at once.
+    for (;;)
+    {
+        swiWaitForVBlank();
+        scanKeys();
+        if (keysDown() & KEY_START)
+            break;
+    }
+    if (ds_restart_armed)
+        longjmp(ds_restart_point, 1);
+    for (;;)
+        swiWaitForVBlank();
+}
 
 void ds_fatal(const char *code, const char *message)
 {
     ds_log_linef("DSD|ERR|%s||||0|%s", code, message);
-    // TODO(WS3 task 4): the red error box on the bottom screen with START to restart.
-    for (;;)
-        swiWaitForVBlank();
+    ds_error_screen(code, "", message);
 }
 
 static bool ds_file_exists(const char *path)
