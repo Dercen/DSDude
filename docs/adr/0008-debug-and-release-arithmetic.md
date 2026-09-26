@@ -1,6 +1,9 @@
 # ADR-0008: debug and release arithmetic (a DSDB header flag)
 
-- Status: proposed (WS2, 2026-09-26). Number chosen by WS2 as the next free one; WS0 renumbers if needed.
+- Status: **accepted** (user, 2026-09-26); proposed by WS2 (number kept). WS4 lands the C2 T1 change (dsdb.md
+  flags bit 0, the compiler's `release` option, a `.release` line in `.dsda`, folding per point 4); WS2 then drops
+  its `ADR-pending ADR-0008` markers. The C10 `--release` flag for `dsdude compile`/`build` (WS1's paths) waits for
+  a WS1 short session or WS8 at CP-C; Play stays debug meanwhile, so nothing is blocked before M2.
 - Affects: C2 `contracts/dsdb.md` (WS4 + WS2), the compiler (WS4), C10 `contracts/cli.md` (WS1), the runtime
   core (WS2). Needs WS4's and WS1's co-signatures.
 

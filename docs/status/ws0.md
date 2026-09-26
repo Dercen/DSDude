@@ -163,6 +163,10 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   checks (spike 15, the scanline limits, the M1 hardware figure) run there in DS mode; results come back as on-screen
   output that the user reports.
 
+- **ADR-0008 accepted** (debug/release arithmetic as DSDB header flags bit 0). WS4 implements C2 T1 + the compiler
+  option; C10 `--release` waits for WS1/WS8. Twilight Menu++ offers no 67 MHz in DSi mode, so the hardware M1 figure
+  waits for WS3's NitroFS-independent bench ROM run in DS mode.
+
 ## Hardware results (2026-09-26, user: original 3DS, TWiLight Menu++ default settings)
 
 ROMs from WS3's hardware set, built ~11:54 from `runtime/dist` near main `0e67e27` (DTCM dispatch table and the
@@ -185,6 +189,12 @@ cheaper CALLN; not yet the watchdog change or the int ops). Read from the user's
   232 ms (4401 KB/s) ok; maxmod load=0 blip=0 loop=0 and bad id=1 handle=1 active=1, as expected; cstack
   3068/11200 B; heap free 16,184 KB (DSi mode, above).
 - Relayed to WS3 (spike 15, page 4, bench) and WS2 (the bench figure, provisional).
+- **DS-mode re-run (same ROMs, TWiLight per-game "Run in: DS mode"): the ROMs stop at start-up with R584.** A game
+  ROM shows "The game file could not be read (file system) game.dsdb"; 1-selftest shows "NitroFS or the soundbank
+  did not start: selftest". The error box itself works. So in TWiLight's DS mode on the 3DS, NitroFS cannot open
+  the ROM from the SD card (no DSi SD access; DLDI or argv presumably missing). This matters beyond the bench:
+  DS-mode setups (flashcards on a DS or DS Lite) are target hardware. Sent to WS3 to diagnose; meanwhile the
+  calibration run uses "Run in: DSi mode" with "ARM9 CPU speed: 67 MHz (NTR)".
 
 ## Open questions for the user
 

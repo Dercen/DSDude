@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `6057408`, checkpoint-15). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `d50546c`, checkpoint-16). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -131,6 +131,16 @@ Legend: todo / in progress / done (<sha>).
     cycles/op** (equal within 1 %: melonDS does not model the data cache); py-desmume **47.71 vs 57.62** (the loop
     17 % cheaper there). What the D-cache is worth on hardware needs spike 15 (a flashcart run). `npm run bench`
     now reports it every run (`LOOP` lines).
+  - **Re-run after WS2's 82488bc (CALLN budget), c29babf (cached slot pointer), ae8daf7 (ADDII/SUBII/MULII/CMPJII),
+    main d50546c:** melonDS, gate mix as bench.dsdb has it (tag-checked): VM **31.76 cycles/op = 35,266 ops/frame**;
+    the same mix with ADD/SUB/MUL/CMPJ as the II forms (opcode bytes rewritten as WS2's tests do, `rewriteToII`):
+    **28.27 = 39,629**. Both FAIL melonDS's 44,000 (both pass the hardware bar 35,000, the tag-checked one barely).
+    Loop 31.62 / 28.22; BL = long (31.76). Per-opcode: LOADI 15.0, MOV 18.0, SETSLOT 24.0 (was 31.9), GETSLOT 27.0
+    (was 35.9), ADD 31.9 / ADDII 25.0, MUL 32.9 / MULII 27.0, CMPJ+JMP 34.4 / CMPJII+JMP 30.5, CALLN 62.8 (was 69.7).
+  - **Derating reference for the hardware run:** the `2-bench.nds` the user has (built at main 0e67e27, before the
+    last two VM changes) is byte-identical to `.dsdude/build/a31d213c5f10ff6f/game.nds`, which gives **35.05 VM
+    cycles/op (31,958 ops/frame), loop 34.80, memprobe main 3.51 / dtcm 1.57** on melonDS. The melonDS derating =
+    the hardware's VM cycles/op for that ROM / 35.05.
   - **Re-run after WS2's f22071e (watchdog settled at control transfers) + cd2e295, main 6057408:** melonDS VM
     **33.20 cycles/op = 33,744 ops/frame: still FAIL** (gate 44,000); loop 32.95; per-frame overhead 16,552; BL
     33.30. Per-opcode (before -> now): LOADI 18.1 -> 15.0, MOV 21.0 -> 18.0, ADD 34.9 -> 31.9, MUL 35.9 -> 32.9,
