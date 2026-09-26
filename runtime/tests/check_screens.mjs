@@ -2,7 +2,9 @@
 // It decodes the selftest source PNGs the GRFs were made from (fixtures/runtime/selftest/src) with pngjs and
 // compares them, in RGB555, with dsdude-host's --png-dir output. Run from the repo root after building:
 //     runtime/build-host/dsdude-host fixtures/runtime-core/v4-screens --frames 1 --seed 1 --png-dir <dir>
-//     node runtime/tests/check_screens.mjs <dir>
+//     node runtime/tests/check_screens.mjs <dir> [<dir5>]
+// <dir5>, optional, holds the screens after --frames 5: the game has moved to rm_pan (room_goto at the end of
+// frame 3), whose view pans 3 pixels right and 1 down per Step.
 // Exits 1 when a pixel differs. The C tests pin the same renders by hash (test_programs.c, test_screens).
 import { readFileSync } from "node:fs";
 import { PNG } from "pngjs";
@@ -146,6 +148,31 @@ for (let y = AFFINE.y0; y < AFFINE.y1; y++) {
     if (rgb555(px(top, x, y)) === rgb555(p)) agree++;
   }
 }
+// Frame 5 in rm_pan: view (6, 2) on top, obj_big (spr64) at room (120, 100) -> screen (114, 98); the bottom screen
+// has no background, no sprites and an empty UI layer: all backdrop.
+const dir5 = process.argv[3];
+if (dir5) {
+  const top5 = load(`${dir5}/top.png`);
+  const bot5 = load(`${dir5}/bottom.png`);
+  const PAN_VIEW = [6, 2];
+  const big = new Set();
+  for (let j = 0; j < 64; j++) {
+    for (let i = 0; i < 64; i++) {
+      const p = px(s64, i, j);
+      if (opaque(p)) expect(top5, 114 + i, 98 + j, rgb555(p), "rm_pan obj_big");
+      big.add(`${114 + i},${98 + j}`);
+    }
+  }
+  for (let y = 0; y < SCREEN_H; y++) {
+    for (let x = 0; x < SCREEN_W; x++) {
+      const by = y + PAN_VIEW[1];
+      const want = by < BG_H ? colour(px(bg, (x + PAN_VIEW[0]) % SCREEN_W, by)) : 0;
+      if (!big.has(`${x},${y}`)) expect(top5, x, y, want, "rm_pan bg top");
+      expect(bot5, x, y, 0, "rm_pan bottom");
+    }
+  }
+}
+
 const ratio = agree / total;
 if (ratio < AFFINE_MIN_AGREEMENT) bad++;
 console.log(`${checked} pixels checked, ${bad} wrong; affine agreement ${agree}/${total} (${ratio.toFixed(2)})`);

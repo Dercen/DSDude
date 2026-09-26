@@ -4,6 +4,7 @@
 .asset sprite spr8x8 "gfx/spr8x8.grf" 1 origin=0,0 size=8,8 bbox=0,0,7,7
 .asset sprite spr64 "gfx/spr64.grf" 1 origin=0,0 size=64,64 bbox=0,0,63,63
 .asset background bg_room "bg/bg.grf" 0
+.global frames
 
 .func still_create 0 1
     .loc "objects/obj_still/create.dss" 1
@@ -58,6 +59,41 @@
     RET r0, 0
 .end
 
+.func hud_create 0 1
+    .loc "objects/obj_hud/create.dss" 1
+    LOADI r0, 0
+    SETGLOB r0, frames
+    RET r0, 0
+.end
+
+.func hud_step 0 2
+    .loc "objects/obj_hud/step.dss" 1
+    GETGLOB r0, frames
+    ADDI r0, r0, 1
+    SETGLOB r0, frames
+    .loc "objects/obj_hud/step.dss" 2
+    LOADI r1, 3
+    EQ r0, r0, r1
+    JMPF r0, L0
+    LOADK r0, @rm_pan
+    CALLN r0, 1, room_goto
+  L0:
+    RET r0, 0
+.end
+
+.func pan_step 0 3
+    .loc "objects/obj_pan/step.dss" 1
+    LOADI r2, 0
+    GETBIX r0, view_x, r2
+    ADDI r0, r0, 3
+    SETBIX r0, view_x, r2
+    .loc "objects/obj_pan/step.dss" 2
+    GETBIX r0, view_y, r2
+    ADDI r0, r0, 1
+    SETBIX r0, view_y, r2
+    RET r0, 0
+.end
+
 .object obj_still sprite=spr16 parent=- visible=1 screen=top depth=0
     .event create still_create
 .end
@@ -77,7 +113,13 @@
 .end
 
 .object obj_hud sprite=- parent=- visible=1 screen=top depth=0
+    .event create hud_create
+    .event step hud_step
     .event draw hud_draw
+.end
+
+.object obj_pan sprite=- parent=- visible=0 screen=top depth=0
+    .event step pan_step
 .end
 
 .room rm_screens 512 384
@@ -91,6 +133,16 @@
     .instance obj_hud 0 0 top -
     .set top spr16+spr8x8 bg_room
     .set bottom spr64 bg_room
+    .sounds -
+.end
+
+.room rm_pan 512 384
+    .screen top bg_room 0 0
+    .screen bottom - 0 0
+    .instance obj_pan 0 0 top -
+    .instance obj_big 120 100 top -
+    .set top spr64 bg_room
+    .set bottom - -
     .sounds -
 .end
 

@@ -178,6 +178,9 @@ static const ProgramCase CASES[] = {
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-draw-not-loaded.dsdb", "fixtures/bytecode/runtime/err-draw-not-loaded.out", false,
      DSD_GAME_FAILED, 1, NULL},
+    // Spike 12's numeric harness: the same lines from every host build (-O2, trap, -O0) and from the DS.
+    {"fixtures/bytecode/runtime/numeric-hashes.dsdb", "fixtures/bytecode/runtime/numeric-hashes.out", false,
+     DSD_GAME_EXITED, 0, NULL},
     {"fixtures/bytecode/runtime/err-overflow.dsdb", "fixtures/bytecode/runtime/err-overflow.out", false,
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-recursion.dsdb", "fixtures/bytecode/runtime/err-recursion.out", false,
@@ -394,6 +397,9 @@ static void test_draw_oam(void) {
 // checked against the source PNGs by runtime/tests/check_screens.mjs (81,820 pixels exact, the rotated sprite
 // within the DS's corner sampling); re-check with it before re-pinning.
 #define SCREENS_TOP_FNV 0xee384e63u
+#define SCREENS_PAN_FRAMES 5         // v4-screens in its second room, rm_pan
+#define SCREENS_PAN_TOP_FNV 0x53d4e2d1u
+#define SCREENS_PAN_BOTTOM_FNV 0xccea9dc5u
 #define SCREENS_BOTTOM_FNV 0xa6e26ecdu
 // A 256x192 RGB PNG from host_png_write: signature 8, IHDR 12 + 13, IDAT 12 + 2 + 192 * 769 + 3 stored-block
 // headers of 5 + Adler-32 4, IEND 12.
@@ -435,6 +441,17 @@ static void test_screens(void) {
     static char png[SCREEN_PNG_BYTES + 1];
     CHECK_EQ(dsd_test_read_file(SCREENS_DIR "/top.png", png, sizeof png), SCREEN_PNG_BYTES);
     CHECK(memcmp(png + 1, "PNG", 3) == 0 && memcmp(png + SCREEN_PNG_BYTES - 8, "IEND", 4) == 0);
+
+    // Frame 5: room_goto at the end of frame 3 loaded rm_pan (a new asset set), whose Step pans the top view.
+    CHECK_EQ(run_frames(SCREENS_ROOT, SCREENS_PAN_FRAMES, NULL), DSD_GAME_RUNNING);
+    CHECK_EQ(dsd_engine.view_x[DSD_SCREEN_TOP], 6);
+    CHECK_EQ(dsd_engine.view_y[DSD_SCREEN_TOP], 2);
+    uint32_t pan_top = screen_hash(DSD_SCREEN_TOP);
+    uint32_t pan_bottom = screen_hash(DSD_SCREEN_BOTTOM);
+    CHECK_EQ(g_screen[0][0], 0); // the bottom screen has no background, sprites or UI left: all backdrop
+    pinned = CHECK_EQ(pan_top, SCREENS_PAN_TOP_FNV);
+    pinned = CHECK_EQ(pan_bottom, SCREENS_PAN_BOTTOM_FNV) && pinned;
+    if (!pinned) fprintf(stderr, "  v4-screens frame 5: top 0x%08x, bottom 0x%08x\n", pan_top, pan_bottom);
 
     // Without GRFs (a .dsdb root) sprites draw as outlines of their boxes: v4-01's obj_plain at (16, 42).
     CHECK_EQ(run_frames("fixtures/bytecode/v4-01-draw.dsdb", 1, NULL), DSD_GAME_RUNNING);

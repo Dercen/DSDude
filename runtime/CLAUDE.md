@@ -33,7 +33,7 @@ Changes follow the tiers in `contracts/README.md` (T0 doc, T1 additive + CHANGEL
 ```
 make -f runtime/Makefile.host test
 ```
-Builds `dsdude-host` and runs the tests at -O2 and with the UBSan trap. WS0 also runs it on Windows at integration.
+Builds `dsdude-host` and runs the tests at -O2, with the UBSan trap and at -O0 (spike 12). WS0 also runs it on Windows at integration.
 Cloud session: see the Cloud setup block in docs/kickoff/ws2.md.
 
 ## Isolation
