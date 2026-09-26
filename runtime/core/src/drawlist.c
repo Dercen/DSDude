@@ -22,11 +22,6 @@
 #define SCALE_MAX (2 * DSD_FX_ONE)   // largest affine scale magnitude (DS sprites grow at most 2x)
 #define AFFINE_ONE 256               // 1.0 in the OAM's 8.8 affine parameters
 #define SPRITE_PRIORITY 1            // BG priority of sprites in 0.1 (UI layer 0, room background 2)
-#define OBJ_SIZES 12                 // hardware OBJ shapes x sizes (3 x 4)
-
-// The 12 OBJ sizes, smallest area first (C3 section 3 lists the containment order).
-static const uint8_t OBJ_W[OBJ_SIZES] = {8, 16, 8, 16, 32, 8, 32, 16, 32, 64, 32, 64};
-static const uint8_t OBJ_H[OBJ_SIZES] = {8, 8, 16, 16, 8, 32, 16, 32, 32, 32, 64, 64};
 
 typedef struct DrawEntry {
     int32_t depth;
@@ -129,20 +124,6 @@ static void sort_entries(DrawEntry *v, uint32_t n) {
 
 // ---- Building OAM -------------------------------------------------------------------------------------------------
 
-// The OBJ box of a width x height frame: the smallest of the 12 OBJ sizes that contains it (64x64 for larger ones,
-// which C3 refuses).
-static void obj_box(uint32_t width, uint32_t height, int32_t *w, int32_t *h) {
-    for (uint32_t k = 0; k < OBJ_SIZES; k++) {
-        if (OBJ_W[k] >= width && OBJ_H[k] >= height) {
-            *w = OBJ_W[k];
-            *h = OBJ_H[k];
-            return;
-        }
-    }
-    *w = OBJ_W[OBJ_SIZES - 1];
-    *h = OBJ_H[OBJ_SIZES - 1];
-}
-
 // A scale clamped to [1/16, 2] in magnitude, keeping its sign (0 counts as positive).
 static int32_t clamp_scale(int32_t s) {
     int32_t m = s < 0 ? -s : s;
@@ -174,9 +155,11 @@ static bool build(const DrawEntry *d, uint32_t screen, bool plain, bool may_affi
     const DsdEngine *e = &dsd_engine;
     DsdSpriteGeom g;
     dsd_geom_sprite(e->world, d->sprite, &g);
-    int32_t bw;
-    int32_t bh;
-    obj_box(g.width, g.height, &bw, &bh);
+    uint32_t box_w;
+    uint32_t box_h;
+    dsd_geom_obj_box(g.width, g.height, &box_w, &box_h);
+    int32_t bw = (int32_t)box_w;
+    int32_t bh = (int32_t)box_h;
     int64_t vx = (int64_t)e->view_x[screen] * DSD_FX_ONE;
     int64_t vy = (int64_t)e->view_y[screen] * DSD_FX_ONE;
     o->sprite = (uint16_t)e->sprite_handle[screen][d->sprite];

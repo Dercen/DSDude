@@ -488,7 +488,13 @@ static bool load_assets(uint32_t r) {
     for (uint32_t s = 0; s < DSD_SCREEN_COUNT; s++) {
         for (uint32_t k = 0; k < rm->sprite_count[s]; k++) {
             uint32_t a = rm->set[s][k];
-            dsd_sprite_info info;
+            // C11: the core supplies the frame's OBJ box (from SPRG) and the frame count (from ASET).
+            DsdSpriteGeom g;
+            dsd_geom_sprite(w, a, &g);
+            uint32_t box_w;
+            uint32_t box_h;
+            dsd_geom_obj_box(g.width, g.height, &box_w, &box_h);
+            dsd_sprite_info info = {(uint16_t)box_w, (uint16_t)box_h, (uint16_t)w->assets[a].aux, 0};
             int32_t h = dsd_plat_sprite_load(s, str_at(w->assets[a].path_str), &info);
             if (h < 0) return asset_failed(DSD_R_SPRITE_LOAD, a);
             e->sprite_handle[s][a] = (int16_t)h;

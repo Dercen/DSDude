@@ -32,6 +32,9 @@ typedef struct DsdBox {
     int64_t bottom;
 } DsdBox;
 
+// The OBJ box of a width x height frame: the smallest of the 12 hardware OBJ sizes that contains it (C3 section 3,
+// "Padding"; 64x64 for larger frames, which C3 refuses). The GRF holds frames padded to this box, and OAM draws it.
+void dsd_geom_obj_box(uint32_t width, uint32_t height, uint32_t *box_w, uint32_t *box_h);
 // Geometry of sprite asset `asset`.
 void dsd_geom_sprite(const DsdWorld *w, uint32_t asset, DsdSpriteGeom *out);
 // An instance's bbox at its position, or at (x, y) (Q20.12) when `at` is set; false when it has no sprite.
