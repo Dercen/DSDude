@@ -72,10 +72,41 @@ export async function buildElf(paths: ToolPaths, vars: Record<string, string>, e
   return built.arm9Elf;
 }
 
-export function buildBenchElf(paths: ToolPaths, bl: boolean): Promise<string> {
+/** Where bench-rom.ts writes the workloads the bench ELF links in (runtime/Makefile DSD_BENCH=1, BINDIRS). */
+export const BENCH_DATA = path.join(runtimeDir, "build", "bench-data");
+
+/**
+ * Builds the bench ELF with the workloads linked in (bench.c): bench.dsdb, the baseline, the loop and the II forms
+ * of both, so the ROM needs no NitroFS.
+ */
+export function buildBenchElf(paths: ToolPaths, bl: boolean, w: Workloads): Promise<string> {
+  mkdirSync(BENCH_DATA, { recursive: true });
+  const files: Record<string, Uint8Array> = {
+    bench_full: w.full,
+    bench_base: w.base,
+    bench_loop: w.loop,
+    bench_fullii: w.fullII,
+    bench_loopii: w.loopII,
+  };
+  for (const [name, bytes] of Object.entries(files)) {
+    const file = path.join(BENCH_DATA, `${name}.bin`);
+    // Only rewrite changed files, so make relinks only when a workload changed.
+    let same = false;
+    try {
+      same = Buffer.compare(readFileSync(file), Buffer.from(bytes)) === 0;
+    } catch {
+      same = false;
+    }
+    if (!same) writeFileSync(file, bytes);
+  }
   const name = bl ? "dsdude_bench_bl" : "dsdude_bench";
   return buildElf(paths, { DSD_BENCH: "1", DSD_VM_BL: bl ? "1" : "0" }, path.join("build", `${name}.elf`));
 }
+
+/** NitroFS content for a bench ROM whose workloads are linked in (dsdude build packs no empty folder). */
+export const BENCH_NITROFS: Record<string, Uint8Array> = {
+  "bench.txt": new TextEncoder().encode("DSDude M1 bench: the workloads are linked into the ROM.\n"),
+};
 
 /** A packed ROM: the plain BlocksDS folder (C10) and the ROM `dsdude build` made from it. */
 export interface Packed {

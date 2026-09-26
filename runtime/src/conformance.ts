@@ -187,3 +187,12 @@ export function placeholderGrf(w: number, h: number, frames: number): Uint8Array
   }
   return out;
 }
+
+/**
+ * Whether a .dsda declares sound effects or music (`.asset sound|music`). Their ids index the soundbank, which WS2
+ * ships none of (the host accepts every sound load); the harness then packs fixtures/runtime/conformance/soundbank.bin
+ * (8 effects and 8 modules, ids 0-7), so the DS's mmLoad/mmLoadEffect find them.
+ */
+export function declaresSound(dsda: string): boolean {
+  return /^\.asset\s+(sound|music)\s/m.test(dsda);
+}

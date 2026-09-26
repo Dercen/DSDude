@@ -2,7 +2,8 @@
  * `npm run hardware -w runtime`: the hardware ROM set (spike 15; the user's original Nintendo 3DS loads .nds files
  * through TWiLight Menu++). Hardware has no stdout, so every ROM shows its result on screen:
  *   1-selftest.nds  runtime/selftest (page 4: boot figures; page 2: the scanline limit)
- *   2-bench.nds     the M1 timer harness: VM cycles/op and ops/frame, loop variant, memory probe (top screen)
+ *   2-bench.nds     the M1 timer harness (no NitroFS needed): VM cycles/op and ops/frame for the gate mix as
+ *                   tag-checked and as int-specialised ops, the loop variant, the memory probe (top screen)
  *   3-hello.nds     fixtures/bytecode/hello.dsdb on the screen-log runtime (DSD_SCREENLOG: the log on screen)
  *   4-numeric.nds   spike 12's numeric-hashes.dsdb on the screen-log runtime
  *   5-flappy.nds    samples/flappy built end to end with the shipped runtime/dist/arm9.elf
@@ -14,6 +15,7 @@ import * as path from "node:path";
 import { detectToolchain, dsdudeHome, formatDiagnostic } from "@dsdude/toolchain";
 import { parseSummaryLine } from "./bench-line.ts";
 import {
+  BENCH_NITROFS,
   buildBenchElf,
   buildElf,
   cli,
@@ -59,19 +61,17 @@ async function main(): Promise<number> {
     check: (log) => (has(log, /^DSD\|LOG\|nitrofs: read 1048576 B sum=133693440 ok/) ? null : "no 1 MB read line"),
   });
 
-  // 2. The M1 bench: full, baseline and loop in one ROM.
+  // 2. The M1 bench: its workloads (tag-checked and II) are linked in, so it needs no NitroFS.
   const w = workloads();
-  const benchElf = await buildBenchElf(status.paths, false);
+  const benchElf = await buildBenchElf(status.paths, false, w);
   roms.push({
     file: "2-bench.nds",
-    packed: await packBench(
-      "bench",
-      benchElf,
-      { "game.dsdb": w.full, "base.dsdb": w.base, "loop.dsdb": w.loop },
-      "hardware-work",
-    ),
-    frames: 400,
-    check: (log) => (log.map(parseSummaryLine).some((s) => s && s.vmOpsPerFrame > 0) ? null : "no summary line"),
+    packed: await packBench("bench", benchElf, BENCH_NITROFS, "hardware-work"),
+    frames: 700,
+    check: (log) => {
+      const sets = log.map(parseSummaryLine).filter((s) => s && s.vmOpsPerFrame > 0);
+      return sets.length === 2 ? null : `${sets.length} summary lines (want tagged and ii)`;
+    },
   });
 
   // 3 and 4. The screen-log runtime around WS2's fixtures.

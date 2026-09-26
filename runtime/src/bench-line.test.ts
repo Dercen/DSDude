@@ -13,7 +13,7 @@ const LINE =
   "DSD|LOG|bench: calls=long emulator=melonDS 1.1 workload=full frames=600 ops=691800 ticks=18854404 " +
   "cycles=37708808 cycles_per_op=54.50 ops_per_frame=20554 gate=44000 FAIL";
 const SUMMARY =
-  "DSD|LOG|bench: summary calls=long vm_cycles_per_op=35.06 vm_ops_per_frame=31957 loop_cycles_per_op=34.81 " +
+  "DSD|LOG|bench: summary set=tagged calls=long vm_cycles_per_op=35.06 vm_ops_per_frame=31957 loop_cycles_per_op=34.81 " +
   "loop_ops_per_frame=32186 overhead_per_frame=16577 gate=44000 FAIL";
 
 describe("bench lines", () => {
@@ -35,6 +35,7 @@ describe("bench lines", () => {
 
   it("parse the ROM's VM-only summary", () => {
     expect(parseSummaryLine(SUMMARY)).toEqual({
+      set: "tagged",
       calls: "long",
       vmCyclesPerOp: 35.06,
       vmOpsPerFrame: 31957,
