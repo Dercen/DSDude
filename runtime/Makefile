@@ -7,6 +7,8 @@
 #   make -j4 DSD_VM_BL=1      the M1 switch: vm.arm.c without -mlong-calls (plain BL to builtins)
 #   make -j4 DSD_SELFTEST=1   the selftest ROM dsdude_selftest.nds (runtime/selftest/, no core; NitroFS from
 #                             fixtures/runtime/selftest/nitrofs, made by runtime/selftest/make_assets.py)
+#   make -j4 DSD_BENCH=1      the M1 timer harness ELF build/dsdude_bench.elf (build/dsdude_bench_bl.elf with
+#                             DSD_VM_BL=1): the core + platform + runtime/selftest/bench; `npm run bench -w runtime`
 #   make clean
 #
 # `npm run build:runtime -w runtime` runs this through buildRuntime(), then writes dist/VERSION and prints the
@@ -40,6 +42,19 @@ SOURCES_S	:= $(wildcard platform/ds/src/*.s)
 NITROFSDIR	:= ../fixtures/runtime/selftest/nitrofs
 endif
 
+# The M1 timer harness: the core and the platform layer with runtime/selftest/bench/bench.c as main(). The BL variant
+# gets its own NAME, so the two builds never share objects.
+DSD_VM_BL	?= 0
+DSD_BENCH	?= 0
+ifeq ($(DSD_BENCH),1)
+NAME		:= dsdude_bench$(if $(filter 1,$(DSD_VM_BL)),_bl)
+GAME_TITLE	:= DSDude bench
+SOURCEDIRS	:= core/src selftest/bench
+INCLUDEDIRS	:= core/include gen platform/ds/src
+SOURCES_C	:= $(filter-out platform/ds/src/main.c,$(wildcard platform/ds/src/*.c))
+SOURCES_S	:= $(wildcard platform/ds/src/*.s)
+endif
+
 LIBS		:= -lmm9 -lnds9
 # maxmod9.h and -lmm9; the default Makefile appends $(BLOCKSDS)/libs/libnds and -lc itself.
 LIBDIRS		:= $(BLOCKSDS)/libs/maxmod
@@ -51,6 +66,9 @@ DSD_SRCROOT	:= $(shell cygpath -m "$(CURDIR)" 2>/dev/null || echo "$(CURDIR)")
 CFLAGS		:= -std=c11 -fwrapv -fno-strict-aliasing -funsigned-char -Wextra \
 		   -ffile-prefix-map=$(DSD_SRCROOT)/= -ffile-prefix-map=$(CURDIR)/=
 DEFINES		:= -DDSD_RUNTIME_VERSION=\"$(DSD_RUNTIME_VERSION)\"
+ifeq ($(DSD_VM_BL),1)
+DEFINES		+= -DDSD_VM_CALLS_BL
+endif
 
 # ---- DTCM layout (PLAN.md 3.3; $(BLOCKSDS)/sys/crts/ds_arm9.ld) ------------------------------------------------
 # DTCM is 16 KB at 0x02FF4000. With __dtcm_data_size > 0 the linker puts .dtcm/.sbss at the top (below the IRQ and
@@ -73,7 +91,6 @@ $(BUILDDIR)/selftest/%.o: CFLAGS += -std=gnu11
 # ---- M1 switch: builtin calls from the dispatch loop by -mlong-calls (default) or plain BL ---------------------
 # The BlocksDS *.arm.c rule compiles ARM code with -marm -mlong-calls. BL from ITCM (0x01000000) reaches main RAM,
 # so DSD_VM_BL=1 drops -mlong-calls for vm.arm.c only; the M1 benchmark keeps the faster one (PLAN.md 6 WS3).
-DSD_VM_BL	?= 0
 ifeq ($(DSD_VM_BL),1)
 $(BUILDDIR)/core/src/vm.arm.c.o : core/src/vm.arm.c
 	@echo "  CC      $< (BL)"
@@ -87,6 +104,8 @@ DIST		:= dist
 
 ifeq ($(DSD_SELFTEST),1)
 .DEFAULT_GOAL	:= $(ROM)
+else ifeq ($(DSD_BENCH),1)
+.DEFAULT_GOAL	:= $(ELF)
 else
 .DEFAULT_GOAL	:= runtime
 endif

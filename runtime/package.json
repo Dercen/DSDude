@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "bench": "node src/bench.ts",
     "build:runtime": "node src/build-runtime.ts",
     "check:dist": "node src/check-dist.ts",
     "conformance:ds": "node src/ds-conformance.ts",
@@ -15,6 +16,7 @@
     "test": "vitest run --pool=threads --maxWorkers=2"
   },
   "dependencies": {
+    "@dsdude/dsdb": "0.1.0",
     "@dsdude/toolchain": "0.1.0"
   }
 }

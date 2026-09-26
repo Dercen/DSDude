@@ -17,6 +17,10 @@ extern bool ds_sound_ready;
 extern jmp_buf ds_restart_point;
 extern bool ds_restart_armed;
 
+// The M1 timer harness sets this: dsd_plat_frame_end then does the frame's CPU work (building OAM) but neither
+// waits for VBlank nor commits to the hardware, so a timed run measures computation only.
+extern bool ds_frame_nowait;
+
 // The first call runs the boot order of PLAN.md 3.3, nitroFSInit -> soundEnable() -> mmInitDefault
 // ("nitro:/soundbank.bin", only when that file exists), and returns DSD_PLAT_OK, DSD_PLAT_ENOENT (NitroFS not
 // mounted; errno is logged as a DSD|LOG line) or DSD_PLAT_ELOAD (the soundbank did not load). Later calls return the

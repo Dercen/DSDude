@@ -24,6 +24,10 @@ ds_log_protocol ds_log_init(void);
 // "raw" (0x04FFFA10) or "legacy" (the RAM stub): the protocol ds_log_init picked.
 const char *ds_log_protocol_name(void);
 
+// While muted, every line (pads included) is dropped: the M1 timer harness mutes the log so that writes to the
+// emulator's debug port stay out of the timed run.
+void ds_log_set_muted(bool muted);
+
 // The emulator ID read at boot (up to 16 printable characters; empty on hardware).
 const char *ds_log_emulator_id(void);
 
