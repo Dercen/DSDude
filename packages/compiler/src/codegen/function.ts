@@ -14,7 +14,7 @@
  * which report E492 instead.
  *
  * Instances (slots, builtin variables of other instances, `with`) use provisional opcodes whose operands are
- * proposed in docs/adr/0003-provisional-opcode-operands.md.
+ * set by docs/adr/0005-provisional-opcode-operands.md (accepted; still provisional until WS2 implements them).
  */
 import type { Const, Func, Instr, Loc, Operand } from "@dsdude/dsdb";
 import type { CompilerCode } from "../diagnostics/catalog.ts";
@@ -459,7 +459,7 @@ class FunctionCompiler {
     const body = this.newLabel();
     const next = this.newLabel();
     const end = this.newLabel();
-    // ADR-pending ADR-0005: WITHBEGIN/WITHNEXT/WITHEND operands and loop shape.
+    // ADR-0005: WITHBEGIN/WITHNEXT/WITHEND operands and loop shape.
     this.jump("WITHBEGIN", end, reg);
     this.place(body);
     const depth = this.withRegs.length;
@@ -654,7 +654,7 @@ class FunctionCompiler {
       this.unknownName(name, at, known);
       return null;
     }
-    // ADR-pending ADR-0005: GETDYN/SETDYN take the symbol by name (operand kind `sym`).
+    // ADR-0005: GETDYN/SETDYN take the symbol by name (operand kind `sym`).
     const reg = this.targetReg(target);
     return {
       load: (dst) => void this.emit("GETDYN", dst, reg, name),
@@ -690,7 +690,7 @@ class FunctionCompiler {
         store: (src) => void this.emit("SETBI", src, bv.name),
         localReg: null,
       };
-    // ADR-pending ADR-0005: GETBIO/SETBIO, a builtin variable of another instance.
+    // ADR-0005: GETBIO/SETBIO, a builtin variable of another instance.
     const reg = this.targetReg(target);
     return {
       load: (dst) => void this.emit("GETBIO", dst, reg, bv.name),
@@ -713,7 +713,7 @@ class FunctionCompiler {
           return null;
         }
         const i = this.valueAny(index);
-        // ADR-pending ADR-0005: GETBIX/SETBIX, an element of a builtin array variable of self.
+        // ADR-0005: GETBIX/SETBIX, an element of a builtin array variable of self.
         return {
           load: (dst) => void this.emit("GETBIX", dst, bv.name, i),
           store: (src) => void this.emit("SETBIX", src, bv.name, i),

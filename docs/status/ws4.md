@@ -140,7 +140,7 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 ## Open ADR-pending markers
 
 
-- `ADR-pending ADR-0005` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): WS2
-  co-signed (docs/status/ws2.md); with the user for a decision (checkpoint-4 relay); keep until WS0 says.
+- None. ADR-0005 accepted by the user (WS0 relay, main f6ecb1f); its four markers in
+  `packages/compiler/src/codegen/function.ts` are removed.
 
 ## Integration feedback
