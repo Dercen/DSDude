@@ -2,11 +2,13 @@
  * C5 invoke handlers: project, settings and dialogs (core), and build/emulator over the PlayController. The assets,
  * toolchain and doctor channels answer `[not-implemented]` until tasks 5-6 wire them.
  */
+
+import { existsSync } from "node:fs";
 import type { InvokeHandlers, SettingKey } from "@dsdude/ipc-contract";
 import { loadProject, saveProject } from "@dsdude/project-format/node";
 import type { IdeEmulatorManager } from "./build/modes.ts";
 import type { PlayController } from "./build/play.ts";
-import { readProjectFile, writeProjectFile } from "./files.ts";
+import { inside, readProjectFile, writeProjectFile } from "./files.ts";
 import { listLearnDocs, readLearnDoc } from "./learn.ts";
 import type { SettingsStore } from "./settings.ts";
 
@@ -20,9 +22,15 @@ export interface DialogLike {
   }): Promise<{ canceled: boolean; filePaths: string[] }>;
 }
 
+/** Electron `shell.openPath`: resolves to "" on success, else an error message. */
+export interface ShellLike {
+  openPath(path: string): Promise<string>;
+}
+
 export interface CoreHandlerDeps {
   settings: SettingsStore;
   dialog: DialogLike;
+  shell?: ShellLike;
   /** The folder that contains docs/ (Learn documents). */
   learnRoot: string;
 }
@@ -46,8 +54,15 @@ export function createBuildHandlers(play: PlayController, emulators: IdeEmulator
   };
 }
 
-export function createCoreHandlers({ settings, dialog, learnRoot }: CoreHandlerDeps): InvokeHandlers {
+export function createCoreHandlers({ settings, dialog, shell, learnRoot }: CoreHandlerDeps): InvokeHandlers {
   return {
+    "learn.openAssets": async () => {
+      const path = inside(learnRoot, "docs/tutorial/assets");
+      if (!existsSync(path)) throw new Error("the tutorial assets are not installed");
+      const failure = shell ? await shell.openPath(path) : "no shell";
+      if (failure) throw new Error(failure);
+      return { path };
+    },
     "project.readFile": async ({ dir, path }) => ({ bytes: await readProjectFile(dir, path) }),
     "project.writeFile": async ({ dir, path, bytes }) => {
       await writeProjectFile(dir, path, bytes);

@@ -123,6 +123,7 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     },
     badReq: { path: "C:/Windows/win.ini" },
   },
+  "learn.openAssets": { req: {}, res: { path: "C:/DSDude/resources/docs/tutorial/assets" }, badReq: "open" },
   "dialog.open": {
     req: { kind: "file", filters: [{ name: "Images", extensions: ["png"] }] },
     res: { paths: [] },
@@ -140,7 +141,7 @@ const EVENT_SAMPLES: { [C in EventChannel]: { ok: unknown; bad: unknown } } = {
 };
 
 describe("C5 channel map", () => {
-  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0 and 0.4.0 additions", () => {
+  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0 and 0.5.0 additions", () => {
     expect(INVOKE_CHANNELS).toEqual([
       "project.open",
       "project.save",
@@ -164,6 +165,7 @@ describe("C5 channel map", () => {
       "project.writeFile",
       "learn.list",
       "learn.read",
+      "learn.openAssets",
       "dialog.open",
     ]);
     expect(EVENT_CHANNELS).toEqual([

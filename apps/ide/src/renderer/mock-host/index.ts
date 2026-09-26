@@ -156,6 +156,7 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
       return { docs };
     },
     "learn.read": ({ path }) => readDoc(path, options.docs),
+    "learn.openAssets": () => ({ path: "/docs/tutorial/assets" }),
     "build.play": async (req) => {
       const diagnostics = options.buildDiagnostics ?? [];
       emit("build.progress", { phase: "load", progress: 0 });

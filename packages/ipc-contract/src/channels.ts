@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.4.0";
+export const CONTRACT_VERSION = "0.5.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -286,6 +286,8 @@ export const invokeChannels = {
       images: z.record(z.string(), z.string().regex(/^data:image\/(png|jpeg|gif|webp);base64,/)),
     }),
   },
+  /** (0.5.0) Opens docs/tutorial/assets/ (the tutorial's images and sounds) in the file manager (Help menu). */
+  "learn.openAssets": { request: z.object({}), response: z.object({ path: z.string() }) },
   /** (0.2.0) Native open dialog; `paths` is empty when the user cancels. */
   "dialog.open": {
     request: z.object({

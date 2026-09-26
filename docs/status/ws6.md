@@ -142,12 +142,26 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - Ctrl+Z inside Monaco stays Monaco's own; everywhere else in the panel it goes to the panel's undo stack.
   - Tests: node 64, browser 10 (4 new: stacking and headings, Add Event and Functions, undoable properties and parent cycles, typed text reaching the store document), Playwright 8, all green. Screenshot checked.
 
+- **Task 6b: Controls card, Help menu: done; rebinding waits on ADR-0007.**
+  - Controls card:
+    - An overlay on the first successful Play of each session, and from Help > Controls.
+    - It lists the key for each DS button plus 'Mouse click = touch the bottom screen'; Got it, Escape or a backdrop click closes it.
+    - The first Output line of every launch uses the same mapping.
+  - Help menu:
+    - Flappy Bird tutorial and Differences from GameMaker find WS7's documents by title and fall back to the Learn contents.
+    - Controls opens the card; Learn opens the contents.
+    - Tutorial assets opens `docs/tutorial/assets/` through the new C5 0.5.0 channel `learn.openAssets` (T1).
+  - **ADR-0007 (proposed, needs WS1):** C4 `LaunchOptions.keys`, because `LocalEmulatorManager` rewrites the default key map into melonDS.toml / desmume.ini on every launch.
+    - Until it lands, the card and the Output line show the defaults, which is what the emulators use (`effectiveControls` carries `// ADR-pending ADR-0007`).
+    - The rebinding page is held back.
+  - Tests: node 69, browser 10, ipc-contract 66, Playwright 8 (the Play test now checks the card, dismissing it, and Help > Controls). Screenshot checked.
+
 ## Next
-- Task 6 continues: Controls card + rebinding, meters, import dialogs, New Project and first-run wizards, Help menu, Debug, and the fake-toolchain smoke test.
+- Task 6 continues: meters, import dialogs, New Project and first-run wizards, Debug, the fake-toolchain smoke test; the rebinding page once ADR-0007 is accepted.
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
 ## Leftovers / ADR-pending
-- None open.
+- ADR-0007 (emulator key rebinding through C4): proposed; marker in `apps/ide/src/shared/controls.ts` (`effectiveControls`).
 - Deferred:
   - chokidar `project.changed` watcher (with the object editor).
   - `assets.*`, `toolchain.*` and `doctor.run` handlers (tasks 5-6).

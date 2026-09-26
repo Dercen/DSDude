@@ -1,6 +1,6 @@
 # C5: IPC channel map
 
-Version: 0.4.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
+Version: 0.5.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
 
 The typed channels between the IDE's renderer and its main process. Source: PLAN.md section 5.2 C5. The Phase-0
 channel list and zod stubs were written by WS0; WS6 completed them in 0.2.0. The schemas live in
@@ -44,6 +44,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `project.writeFile` (0.4.0) | `{dir, path: AssetPath, bytes: Uint8Array}` | `{ok: true}` (temp file + rename; creates the folder). JSON and DSS files go through `project.save`. |
 | `learn.list` (0.4.0) | `{}` | `{docs: [{path, title, section}]}`: tutorial, then manual, then reference; `assets/` folders skipped; title = first `# ` heading, else the file name |
 | `learn.read` (0.4.0) | `{path: LearnPath}` | `{path, markdown, images}`: `images` maps each relative image source as written in the markdown to a `data:image/(png\|jpeg\|gif\|webp);base64,` URL; remote images and files outside `docs/` are never included |
+| `learn.openAssets` (0.5.0) | `{}` | `{path}`: opens `docs/tutorial/assets/` (under the same root as `learn.*`) in the file manager (Help > Tutorial assets); fails when the folder is missing |
 | `dialog.open` (0.2.0) | `{kind: directory\|file, title?, defaultPath?, filters?}` | `{paths}` (empty when cancelled) |
 
 ## Event channels (main -> renderer)
