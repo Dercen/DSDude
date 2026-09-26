@@ -110,6 +110,20 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 - ADR-0002 DeSmuME R4 slot-1 profile does not mount NitroFS: **accepted** by the user (2026-09-25). DeSmuME launches
   only with its default slot-1 device; flashcart-style boots wait for hardware (spike 15).
 
+- ADR-0003 One key-script format for `dsdude screenshot --keys` and `dsdude-host` (proposed by WS1, 2026-09-26):
+  WS0 recommends **accept**; it is a T1 change to WS2's C8 ("Host runner"), so WS2 co-signs. `tools/screenshot.py`
+  carries `ADR-pending ADR-0003` until then.
+
+## Integration log
+
+- 2026-09-26 checkpoint-1 (`tools/checkpoint.ps1`, first run): WS1, WS4, WS2 and WS6 merged green (37 test files,
+  223 tests); lockfile regenerated; MSYS2 host goldens green on WS2's `Makefile.host`; hello screenshot read back
+  (blue top, bottom text "DSDude hello / emulator: (none) / log: legacy stub / hello"). T1 reviews accepted: C4 0.5.0
+  and C10 0.4.0 (WS1; `PackAssetsFn` gains `outDir`, fine because WS5 has not started), C5 0.2.0 (WS6; stub
+  narrowings with no other consumer yet); WS4's T0 language.md clarifications accepted. The report's 224 MB memory
+  minimum is the laptop waking from a battery sleep (04:17-07:05), not the integration; since 07:09 the minimum is
+  2898 MB. `start-ws3` tagged.
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
