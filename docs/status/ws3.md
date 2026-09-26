@@ -34,7 +34,7 @@ Legend: todo / in progress / done (<sha>).
   the staleness check: `npm run check:dist -w runtime` (git + Node, runs in the cloud/CI) and `build:runtime`'s
   report. WS2 test/host edits no longer make `dist/` stale; `tree` stays, informational. No more VERSION-only
   refresh commits after merges.
-- **Hardware follow-up (run 1 results, WS0 relay): done** (see the next commit). Mode and ARM9 clock on the bench
+- **Hardware follow-up (run 1 results, WS0 relay): done** (34e3b06). Mode and ARM9 clock on the bench
   and page 4; the bench forces 67 MHz and links its workloads (no NitroFS needed; both the tag-checked and the II
   sets on one screen); R584 shows the boot diagnosis; hardware set 2 rebuilt from current dist; C13 scanline
   proposal; DS-mode analysis. See "Hardware results (spike 15)".
@@ -244,7 +244,7 @@ mode**, possibly with the ARM9 at 134 MHz, so the speed figures below are provis
 
 **Timing basis.** The bench's cycles are ARM9 cycles at 67 MHz: `cpuStartTiming` cascades timers 0+1 at the 33.51
 MHz bus clock and the bench multiplies the ticks by 2. In DSi mode at 134 MHz the figures still measure time, but
-they are not a DS's. Since `f23500a`'s successor the bench forces 67 MHz in DSi mode (`setCpuClock(false)`) and
+they are not a DS's. Since `34e3b06` the bench forces 67 MHz in DSi mode (`setCpuClock(false)`) and
 prints the mode and both clocks on screen ("DS mode, ARM9 67 MHz (boot 67)"); selftest page 4 shows them too.
 
 **C13 `scanlineObjCycles` (WS2's contract, seeded by WS0; a proposal, not an edit):** raise the warning threshold
