@@ -244,7 +244,10 @@ function player(): Image {
   );
 
   w("objects/obj_pipe/object.json", json(object("spr_pipe", true)));
-  w("objects/obj_pipe/create.dss", "hspeed = -2;\n");
+  w(
+    "objects/obj_pipe/create.dss",
+    "hspeed = -2;\nimage_yscale = 2;   // 128 px, within the 2x scale limit (ADR-0001)\n",
+  );
   w("objects/obj_pipe/outside_room.dss", "instance_destroy();\n");
 
   w("objects/obj_gap/object.json", json(object("spr_gap", false)));
@@ -257,8 +260,9 @@ function player(): Image {
     "objects/obj_ctrl/alarm_0.dss",
     [
       "var gy = irandom_range(48, 144);",
-      "instance_create(272, gy, obj_pipe);",
-      "instance_create(272, gy, obj_gap);",
+      "instance_create(272, gy - 152, obj_pipe);   // upper pipe: gy-152 .. gy-25 (ADR-0001)",
+      "instance_create(272, gy + 24, obj_pipe);    // lower pipe: gy+24 .. gy+151",
+      "instance_create(272, gy, obj_gap);          // score trigger: gy-24 .. gy+23",
       "alarm[0] = 90;",
       "",
     ].join("\n"),

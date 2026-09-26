@@ -1,6 +1,7 @@
 # ADR-0001: Flappy pipe geometry
 
-- Status: **proposed** (WS0, 2026-09-25). The user decides; WS0 merges.
+- Status: **accepted** (user, 2026-09-25). WS0 applied it before the `phase0` tag, while it still owned
+  `samples/flappy` (`tools/phase0/make-samples.ts`), so WS4 starts from the corrected sample.
 - Affected streams: WS4 (owns `samples/flappy` until M2), WS7 (owns it from M2 and writes the tutorial from it),
   WS2 (its deterministic flappy trace, `fixtures/runtime-core/`), WS5 (the sample's asset budgets).
 - Sources: PLAN.md section 4 (the Flappy listing), `docs/kickoff/ws0.md` task 4.
@@ -59,6 +60,6 @@ screen) are visible.
 
 ## Migration
 
-If accepted, WS4 (before M2) or WS7 (after M2) applies the two edits to `samples/flappy` in one commit, and WS7's
-tutorial listing follows. WS2 regenerates its flappy trace goldens in the same checkpoint. PLAN.md section 4 gets a
+Applied by WS0 in Phase 0, in the same commit that accepted this ADR. WS7's tutorial listing follows the corrected
+sample. WS2 regenerates its flappy trace goldens in the same checkpoint. PLAN.md section 4 gets a
 note pointing here (WS0).
