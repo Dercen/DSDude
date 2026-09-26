@@ -2,7 +2,7 @@
 
 **toolchain-ok: passed 2026-09-25 4ddccb5**
 
-Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `ca892e8`. WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25).
+Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `829b00d` (after checkpoint-1). WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25); checkpoint-1 merged `06e370e`. **Paused** (see "After checkpoint-1").
 
 Gate evidence (all run 2026-09-25 on this machine, section 8 criteria):
 - **Install by `scripts/install-toolchain.ps1`:** fresh run into an empty `C:\msys64\opt\wonderful` (the earlier install was moved aside, then deleted), 23:05:22-23:06:33, exit 0, unattended, no UAC prompt. Then `scripts/smoke-test.ps1 -Screenshot`: 3/3 examples PASS plus a screenshot PASS.
@@ -93,8 +93,7 @@ Legend: todo / in progress / done (<sha>).
     - `desmume.ini` `[Controls]` gets the Controls mapping as virtual-key codes, with key names from the exe's
       `inputdx.cpp` strings;
     - DeSmuME keeps the section when it rewrites the file, and still logs `DSD|LOG|hello`;
-    - **unverified:** whether DeSmuME reads those keys. That needs a real key press in the window, which I did not
-      send (it could land in another app).
+    - **verified after checkpoint-1** (2026-09-26, the user present; see "DeSmuME key-map check" below).
   - **`packages/cli`** injects `compileProject` (`@dsdude/compiler`) and `packAssets` + `checkRoomBudgets`
     (`@dsdude/asset-pipeline`) as soon as both export them. Today neither does, so `dsdude build samples/minimal`
     is E641, exit 2.
@@ -114,6 +113,33 @@ Legend: todo / in progress / done (<sha>).
   - **Tests:** toolchain 84, cli 6; `npm run check` green.
   - **My slip, no effect:** I included a read-only package-manager query (`-Q`) in one command. The deny rule
     refused it, and I took the version from the install log instead. No package manager has run since `phase0`.
+
+## After checkpoint-1 (2026-09-26)
+
+- **Merge:** WS0 merged `ws1-toolchain` as `06e370e` and accepted C4 0.5.0 and C10 0.4.0 (T1). ADR-0002 is accepted.
+  ADR-0003 waits for WS2's co-signature, so the `ADR-pending ADR-0003` marker in `tools/screenshot.py` stays.
+- **Update:** `main` merged at `829b00d`, then `npm install`. `npm test -w packages/toolchain`: 84 passed.
+- **`samples/hello` now logs key presses**, as `DSD|LOG|key <buttons>` (ADR-0003 names), each followed by the pad.
+  Checked headless first: a key script with `60-62 A` and `90 START, UP` logs `key A` and `key START UP`, and the
+  one-frame press registers.
+- **C14 hello fixtures regenerated** from the new build:
+  - `fixtures/runtime/hello/arm9.elf` (stripped), `hello.nds`, and `fixtures/build/hello/{game.nds,packrom.json}`;
+  - the header is unchanged (FNT 0x20400, FAT 0x20600/8, magic OK);
+  - the ROM SHA-256 is now `2b2eb01c...`;
+  - the real-ndstool byte-for-byte test passes against it.
+- **DeSmuME key-map check** (the user pressing keys in the window):
+  1. `dsdude play samples/hello --emulator desmume --no-build`: X, Z, Enter, Up and Shift gave `DSD|LOG|key A`,
+     `DSD|LOG|key B`, `DSD|LOG|key START`, `DSD|LOG|key UP` and `DSD|LOG|key SELECT`. Every line arrived live; a
+     graceful close exited 0.
+  2. DeSmuME's built-in keyboard defaults are close to our map, so step 1 alone does not prove the ini is read. I
+     wrote `[Controls] A=75` (K) and launched DeSmuME directly: K gave `key A`, and X gave nothing, even after the
+     graceful close that flushes stdout. So DeSmuME reads our `[Controls]` section, and it overrides the defaults.
+     `desmume.ini` is back to `A=88`, and no emulator is running.
+  - **Result: PASS.** The leftovers line "The DeSmuME key map is written but not verified" is resolved; the list
+    itself is left for WS0 to edit.
+- **WS1 is now paused** until WS4's `compileProject` and WS5's `packAssets`/`checkRoomBudgets` are on `main`. WS0 then
+  starts a short WS1 session to wire and run them on `samples/minimal` and `samples/flappy`. The TypeScript
+  `installToolchain()` stays a WS8 leftover.
 
 ## Leftovers (for CP-B, or WS8 at CP-C)
 

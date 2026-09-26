@@ -25,6 +25,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.3.0 (2026-09-26, WS1, T1): LaunchOptions.debug and BuildRequest.debug (melonDS GDB stub on 3333/3334; DeSmuME E623), optional EmulatorManager.reconcile() (PID + exe path + start time); ensureInstalled("melonds") downloads the 1.1 zip and checks its SHA-256; E623, E624. All additive.
 - 0.4.0 (2026-09-26, WS1, T1): PackAssetsFn gets a third argument outDir (the build folder; an implementation that takes two still type-checks, but must write there); the build-folder layout (nitrofs/, icon.png, cache/, assets.manifest.json by BuildService); the project.json build path; compileOnly with a provisional manifest; createFakeToolchain(), MOCK_EMULATOR_LINES, BUILD_PHASES and the FIXTURE_* paths exported; MockBuildService phases and ROM name (game.nds) now match LocalBuildService; DeSmuME [Controls] key map; E641.
 - 0.5.0 (2026-09-26, WS1, T1): runDoctor (dsdude doctor); the tools pack pinned by tools/tools-pack.json and built by tools/fetch-vendor.ps1 (spike 5 passes); E650/E651 doctor warnings (severity warning, the only non-error E6xx).
+- 0.5.0 T0 (2026-09-26, WS1): the DeSmuME [Controls] key map is verified with real key presses (toolchain-api.md wording).
 
 ## C5 IPC (`contracts/ipc.md`, `packages/ipc-contract`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): channel list and zod stubs.
@@ -65,3 +66,4 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C14 Phase-0 fixtures
 - 0.1.0 (2026-09-25, WS0, Phase 0): samples/minimal, samples/flappy v0 (ADR-0001 applied), fixtures/bytecode hello + conformance/v0-01, fixtures/assets, fixtures/conformance v0.
+- hello (2026-09-26, WS1, producer of samples/hello and the hello fixtures): samples/hello also logs every key press as DSD|LOG|key <buttons> (ADR-0003 names) plus the pad; fixtures/runtime/hello and fixtures/build/hello regenerated (ROM SHA-256 2b2eb01c...; header, NitroFS layout and the DSD|LOG|hello line unchanged).
