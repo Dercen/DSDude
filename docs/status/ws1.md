@@ -2,7 +2,7 @@
 
 **toolchain-ok: passed 2026-09-25 4ddccb5**
 
-Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `829b00d` (after checkpoint-1). WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25); checkpoint-1 merged `06e370e`. **Paused** (see "After checkpoint-1").
+Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `ca5a41e` (after checkpoint-7). WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25); checkpoint-1 merged `06e370e`. **Paused** again after the batch in "After checkpoint-7" (WS0's list).
 
 Gate evidence (all run 2026-09-25 on this machine, section 8 criteria):
 - **Install by `scripts/install-toolchain.ps1`:** fresh run into an empty `C:\msys64\opt\wonderful` (the earlier install was moved aside, then deleted), 23:05:22-23:06:33, exit 0, unattended, no UAC prompt. Then `scripts/smoke-test.ps1 -Screenshot`: 3/3 examples PASS plus a screenshot PASS.
@@ -141,12 +141,64 @@ Legend: todo / in progress / done (<sha>).
   starts a short WS1 session to wire and run them on `samples/minimal` and `samples/flappy`. The TypeScript
   `installToolchain()` stays a WS8 leftover.
 
+## After checkpoint-7 (2026-09-26): WS0's batch
+
+`main` merged at `ca5a41e`, then `npm install`. Commits `0a59a6e` (C4 0.6.0) and `5f3f26a` (C10 0.5.0).
+
+1. **`samples/minimal` and `samples/flappy` build, play and screenshot** with WS4's `compileProject` and WS5's
+   `packAssets`/`checkRoomBudgets` (the composition root picked them up; nothing to wire):
+   - `dsdude build samples/minimal` (the runtime built with `make -j4`, then packed): 225,280-byte ROM, 2 NitroFS files;
+     `dsdude build samples/flappy`: 258,048 bytes, 5 NitroFS files. Both exit 0.
+   - `dsdude play <sample> --no-build --seconds 8 --json`, one window at a time:
+
+     | Sample | Emulator | exit | READY lines | ERR lines | LOG lines |
+     |---|---|---|---|---|---|
+     | minimal | melonDS 1.1 (with no `melonDS.toml`, item 2) | 0 | 1 (version 0.1.0, ABI f1d376bb)\|f1d376bb`) | none | none |
+     | flappy | melonDS 1.1 | 0 | 1 | none | `Score: 0` x5 (the bird falls and the room restarts) |
+     | minimal | DeSmuME 0.9.13 | 0 | 1 | none | none |
+     | flappy | DeSmuME 0.9.13 | 0 | 1 | none | `Score: 0` x5 |
+
+     `DSD|STAT` shows fps=60 (flappy 59-60) and no OAM/affine/sfx drops; nothing is left running afterwards.
+   - Screenshots (`<DSDUDE_HOME>atch\`, 120 frames): minimal shows the blue player sprite centred on a black top
+     screen; flappy shows the score `0` and the bird, fallen to the bottom. Both bottom screens are one colour (as
+     designed). With a C8 key script flapping every 22 frames (`batchlappy-flap.keys`), frame 100 shows the bird
+     near the top and the first pipes coming in; without it, the bird is mid-screen and no pipes have spawned.
+2. **melonDS 1.1 crash on first Play (WS3's report): fixed.** Reproduced in a scratch copy: writing only DSDude's keys
+   into a new `melonDS.toml` made melonDS exit 0xC0000409 within 4.4 s and left the file at 0 bytes. With no file it
+   starts and writes its default (3,239 bytes); with that default plus DSDude's keys it runs and logs `DSD|LOG|hello`.
+   `writeMelonDsConfig` now seeds a missing or empty file with that default (`MELONDS_DEFAULT_TOML`, without the
+   machine-specific `RecentROM` and `Geometry`), which also repairs a file an earlier crash truncated. Verified for
+   real: this worktree's `melonDS.toml` moved aside, then `dsdude play samples/minimal` ran with exit 0 and READY.
+3. **`--keys` uses the C8 0.2.0 `--input` format** (ADR-0003 superseded). `tools/screenshot.py` parses change-point
+   lines exactly as `runtime/host/keys.c` does: 0-based frames, `-`, lower-case names joined by `+`, one `T<x>,<y>`
+   within 255/191, `#` only at the start of a line, CRLF accepted. The same bad lines fail (`A`, `a++b`, `a+`,
+   `T256,0`, two touches, `30 a b`, an inline comment, a repeated frame), naming the line (E631, exit 2). The
+   `ADR-pending ADR-0003` marker is gone. WS3's `runtime/src/selftest.ts` detects the switch by itself
+   (`screenshotUsesRanges` no longer matches), so it now passes its C8 scripts through untranslated.
+4. **`contracts/cli.md` 0.5.0:** the `assets` `--json` row (`buildDir`, `manifestPath`, `manifest`), and the
+   `--keys` section rewritten for the C8 format.
+5. **ADR-0007 (key rebinding), C4 0.6.0:**
+   - `DsButton`, `SUPPORTED_KEYS`, `LaunchOptions.keys`, and an optional `EmulatorHandle.diagnostics`.
+   - `resolveKeys`/`translateKey`/`DEFAULT_KEYS` go into `keymap.ts`: Qt codes for `melonDS.toml` and virtual-key
+     codes for `desmume.ini`, with `VK_OEM_*` for punctuation.
+   - A key that can't be used keeps that button's default and adds one **E625 warning** ("The key 'F13' can't be
+     used for the B button, so B stays on z."). `launchRom` adds it to its result and its `running` events. The fake
+     manager records `keys` and reports the same warning.
+   - I did not add `BuildRequest.keys`: WS6's compile-time link in `packages/ipc-contract` (`Same<BuildRequest>`)
+     would fail, and the IDE launches through `EmulatorManager.launch` directly anyway.
+   - **Verified with the user pressing keys** (`samples/hello`, launched through `LocalEmulatorManager` with
+     `keys: {a: "k", b: "/"}`, one window at a time):
+     - melonDS: K gave `DSD|LOG|key A`, / gave `key B`, and X and Z gave nothing. The file held `A = 75`, `B = 47`.
+     - DeSmuME: the same result, with `A=75`, `B=191` (`VK_OEM_2`).
+   - Both configs return to the defaults at the next launch without `keys`.
+- **Tests:** toolchain 92 (was 84), cli 6, ipc-contract 66, apps/ide 69 + 10, runtime 27. `npm run check` is green.
+
 ## Leftovers (for CP-B, or WS8 at CP-C)
 
-- Wire and run the real `compileProject`/`packAssets`/`checkRoomBudgets` on `samples/minimal` and `samples/flappy`
-  once WS4 and WS5 have them on `main`. The composition root already picks them up.
-- The DeSmuME key map is written but not verified by a real key press.
-- ADR-0003 (the key-script format) is open with WS2; `tools/screenshot.py` carries `ADR-pending ADR-0003`.
+- Golden PNGs for `samples/minimal` and `samples/flappy` (WS0's checkpoint notes "no golden committed yet"): the
+  frame-120 screenshots above are candidates once WS4/WS5 output is stable.
+- WS5 asks to export `runTool`/`toolRunDiagnostics` from `@dsdude/toolchain` (docs/status/ws5.md), so
+  `packages/asset-pipeline/src/pack/tools.ts` can drop its copy. Not done in this batch.
 - `dsdude toolchain install` still points to `scripts/install-toolchain.ps1`; an `installToolchain()` in TypeScript
   is not written.
 - The packaged IDE (WS8) must point `ToolPaths` at `resources/tools-pack/` instead of `C:\msys64`.
