@@ -47,6 +47,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.
 - 0.1.0 T0 (2026-09-26, WS4): compiler catalog `packages/compiler/src/diagnostics/catalog.ts` started: E101-E129 (syntax), W030, W032.
+- 0.1.0 T0 (2026-09-26, WS5): asset catalog `packages/asset-pipeline/src/diagnostics/catalog.ts` started: E401-E422 (E407, E418, E419 warnings), listed in contracts/assetpack.md section 10.
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
@@ -60,6 +61,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C12 EditorPanel host API + preview API (`apps/ide/src/renderer/panels/api.ts`, `packages/asset-pipeline/src/preview.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): preview types (`PreviewSpriteFn`, `SpritePreview`). Panel API + mock-host owed by WS6 (CP-A).
+- 0.1.0 T0 (2026-09-26, WS5): `previewSprite` implemented (preview-sprite.ts; the frames are every whole frame across the PNG, padded to the OBJ size). Beside the unchanged C12 types, `previewSpriteDetails` adds original vs converted RGBA, source colour count, E401/E407 diagnostics and optional dithering; `spriteDefaults` gives the C1 import defaults.
 
 ## C13 Runtime limits (`contracts/runtime-limits.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): the 22 PLAN 5.2 C13 keys and values.

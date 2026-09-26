@@ -15,6 +15,7 @@
     "@audio/decode-wav": "1.5.0",
     "@dsdude/project-format": "0.1.0",
     "@dsdude/toolchain": "0.1.0",
+    "fflate": "0.8.3",
     "pngjs": "7.0.0",
     "wavefile": "11.0.0"
   }
