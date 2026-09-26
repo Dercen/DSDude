@@ -1,6 +1,6 @@
 # C2: DSDB bytecode container
 
-Version: 0.3.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
+Version: 0.4.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
 
 DSDB is the compiled form of a DSS game: one file, `game.dsdb`, at the NitroFS root (C3), loaded by the runtime VM.
 Written by WS0 in Phase 0; from the `phase0` tag WS2 and WS4 co-own this file (either may commit; the other
@@ -161,11 +161,19 @@ bits 16-31 signed. `contracts/opcodes.json` gives each opcode's number, status a
 | `sym` | SYMS index (C, 8 bits; ADR-0005) | the symbol's name |
 | `bivar` | dense builtin-variable index (`DSD_BUILTIN_VARS` order; ADR-0005) | the variable's name |
 
-**The 29 stable opcodes** (numbers 0-28): HALT, MOV, LOADK, LOADI, LOADB, LOADUNDEF, ADD, SUB, MUL, DIV, IDIV, MOD,
-NEG, EQ, NE, LT, LE, GT, GE, NOT, JMP, JMPT, JMPF, CALLN, RET, CONCAT, TOSTR, GETGLOB, SETGLOB. Numbers 29-50 are
-provisional (CALL, ADDI/SUBI/MULI, CMPJ, GETSLOT/SETSLOT(O), GETDYN/SETDYN, GETBI/SETBI, WITHBEGIN/WITHNEXT/WITHEND,
-NEWARR/GETIDX/SETIDX/LEN, TOINT/TOFIXED) and 51-54 are reserved for the int-specialised ADD/SUB/MUL/CMPJ variants
-(the M1 fallback). Their operands are fixed when they are promoted.
+**The stable opcodes** (0.4.0): numbers 0-28 (HALT, MOV, LOADK, LOADI, LOADB, LOADUNDEF, ADD, SUB, MUL, DIV, IDIV,
+MOD, NEG, EQ, NE, LT, LE, GT, GE, NOT, JMP, JMPT, JMPF, CALLN, RET, CONCAT, TOSTR, GETGLOB, SETGLOB), 29-50 (CALL,
+ADDI/SUBI/MULI, CMPJ, GETSLOT/SETSLOT(O), GETDYN/SETDYN, GETBI/SETBI, WITHBEGIN/WITHNEXT/WITHEND,
+NEWARR/GETIDX/SETIDX/LEN, TOINT/TOFIXED) and 55-58 (GETBIX/SETBIX, GETBIO/SETBIO), with the operands of ADR-0005.
+Numbers 51-54 stay reserved for the int-specialised ADD/SUB/MUL/CMPJ variants (the M1 fallback).
+
+- **CMPJ A B C** compares rA with rB by relation C (0 `==`, 1 `!=`, 2 `<`, 3 `<=`, 4 `>`, 5 `>=`, with the meaning of
+  EQ..GE) and must be followed by a JMP (the loader checks): the JMP is skipped when the relation holds and taken
+  otherwise, so `while (i < n)` is `CMPJ i, n, 2; JMP Lend`.
+- Instance slots and globals start in a "never assigned" state inside the runtime (not `undefined`): GETSLOT,
+  GETDYN and GETGLOB of one raise R500/R501 (language.md rule 1). GETDYN/GETBIO on `noone`, or on an object with no
+  instance, raise R5xx; on `all` they read the first instance.
+- WITHBEGIN leaves an opaque loop handle in rA; code between WITHBEGIN and WITHEND never writes rA.
 
 Decisions, each with its reason:
 - **CALL calls a DSS function by FUNC index** (`CALL A Bx`): user functions are known at compile time, so an index

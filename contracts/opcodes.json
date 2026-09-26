@@ -1,6 +1,6 @@
 {
   "contract": "C2",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "howToChange": "Owner WS4 from the phase0 tag; WS2 co-signs every change. Opcode numbers never change. Adding an opcode, or promoting a provisional or reserved one to stable (fixing its operands), is T1: minor version bump, `node tools/gen-opcodes.ts` (runtime/gen/opcodes.h, packages/dsdb/src/gen/opcodes.ts), regenerated fixtures and a contracts/CHANGELOG.md entry in one commit. Changing a stable opcode's meaning or operands is T2 (ADR co-signed by WS2 and WS4). Encoding: 32-bit little-endian words, op = bits 0-7, A = 8-15, B = 16-23, C = 24-31, Bx/sBx = 16-31 (see contracts/dsdb.md).",
   "opcodes": [
     {
@@ -334,7 +334,7 @@
     {
       "number": 29,
       "name": "CALL",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABx",
       "operands": [
         "A:reg",
@@ -345,7 +345,7 @@
     {
       "number": 30,
       "name": "ADDI",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -357,7 +357,7 @@
     {
       "number": 31,
       "name": "SUBI",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -369,7 +369,7 @@
     {
       "number": 32,
       "name": "MULI",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -381,19 +381,19 @@
     {
       "number": 33,
       "name": "CMPJ",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
         "B:reg",
         "C:u8"
       ],
-      "summary": "compare rA with rB by relation C; the next word is a jump (encoding set by WS4 + WS2 when promoted)"
+      "summary": "compare rA with rB by relation C (0 ==, 1 !=, 2 <, 3 <=, 4 >, 5 >=; as EQ..GE, unordered values are R541); the next instruction must be a JMP, skipped when the relation holds and taken otherwise"
     },
     {
       "number": 34,
       "name": "GETSLOT",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -404,7 +404,7 @@
     {
       "number": 35,
       "name": "SETSLOT",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -415,7 +415,7 @@
     {
       "number": 36,
       "name": "GETSLOTO",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -426,7 +426,7 @@
     {
       "number": 37,
       "name": "SETSLOTO",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -437,7 +437,7 @@
     {
       "number": 38,
       "name": "GETDYN",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -449,7 +449,7 @@
     {
       "number": 39,
       "name": "SETDYN",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -461,7 +461,7 @@
     {
       "number": 40,
       "name": "GETBI",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABx",
       "operands": [
         "A:reg",
@@ -472,7 +472,7 @@
     {
       "number": 41,
       "name": "SETBI",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABx",
       "operands": [
         "A:reg",
@@ -483,7 +483,7 @@
     {
       "number": 42,
       "name": "WITHBEGIN",
-      "status": "provisional",
+      "status": "stable",
       "format": "AsBx",
       "operands": [
         "A:reg",
@@ -494,7 +494,7 @@
     {
       "number": 43,
       "name": "WITHNEXT",
-      "status": "provisional",
+      "status": "stable",
       "format": "AsBx",
       "operands": [
         "A:reg",
@@ -505,7 +505,7 @@
     {
       "number": 44,
       "name": "WITHEND",
-      "status": "provisional",
+      "status": "stable",
       "format": "A",
       "operands": [
         "A:reg"
@@ -515,7 +515,7 @@
     {
       "number": 45,
       "name": "NEWARR",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -526,7 +526,7 @@
     {
       "number": 46,
       "name": "GETIDX",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -538,7 +538,7 @@
     {
       "number": 47,
       "name": "SETIDX",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -550,7 +550,7 @@
     {
       "number": 48,
       "name": "LEN",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -561,7 +561,7 @@
     {
       "number": 49,
       "name": "TOINT",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -572,7 +572,7 @@
     {
       "number": 50,
       "name": "TOFIXED",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -615,7 +615,7 @@
     {
       "number": 55,
       "name": "GETBIX",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -627,7 +627,7 @@
     {
       "number": 56,
       "name": "SETBIX",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -639,7 +639,7 @@
     {
       "number": 57,
       "name": "GETBIO",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",
@@ -651,7 +651,7 @@
     {
       "number": 58,
       "name": "SETBIO",
-      "status": "provisional",
+      "status": "stable",
       "format": "ABC",
       "operands": [
         "A:reg",

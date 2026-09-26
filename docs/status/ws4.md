@@ -115,13 +115,18 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   calls with no override are unchanged (no golden moved). **For WS2:** relies on `GETBI object_index` giving an
   object ASSET value that `EQ` compares equal to `LOADK @obj` (language.md: ids compare by numeric value).
 
+- **ADR-0005 accepted (WS0 relay, main f6ecb1f); opcodes promoted to stable, 2026-09-26.** WS4 co-signs WS2's CMPJ
+  proposal (compare-and-skip, C = relation 0-5, always followed by a JMP) and takes WS2's three ADR-0005 runtime notes
+  into `contracts/dsdb.md` section 5. One T1: `contracts/opcodes.json` 0.3.0 (29-50 and 55-58 stable; 51-54 stay
+  reserved) and `contracts/dsdb.md` 0.4.0, outputs regenerated; runtime host tests (115,765 checks) and WS4's tests
+  green. WS2 listed these as implemented in docs/status/ws2.md ("With WS4: promote ...").
+  - The compiler does not emit ADDI/SUBI/MULI or CMPJ yet: that is task 7's peephole pass, now unblocked.
+
 ## Next
 
 - Task 7 (formatter done): the peephole passes wait on purpose.
-  - ADDI/SUBI/MULI and a fused compare+jump (CMPJ, encoding still open) are provisional opcodes WS2 has not
-    implemented; emitting them now would stop the v0/v1 goldens from running on WS2's first VM (stable opcodes
-    only). They come after WS2 implements them (ADR-0005's operands are co-signed; WS0 accepts it), or at CP-C if the M1 gate
-    needs them.
+  - ADDI/SUBI/MULI and CMPJ are stable now (opcodes 0.3.0) and WS2's VM runs them: the pass can go ahead, measured
+    against WS2's M1 bench.
   - Constant folding must not apply to the conformance programs, which exist to test the VM's arithmetic (v0/02's
     `0.25 + 0.25`); it will be an option of `compileProject` (on for games), with folding that matches the runtime's
     int32/Q20.12 rules exactly.
