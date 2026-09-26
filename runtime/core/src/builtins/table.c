@@ -41,8 +41,7 @@ const DsdBuiltinFn dsd_builtin_fn[DSD_BUILTIN_FUNC_COUNT] = {
 
 // ---- Shared helpers (bi.h) --------------------------------------------------------------------------------------
 
-// Raises R542: builtin `bi` needs `expected` but got args[i].
-static bool wrong_kind(DsdVm *vm, uint32_t bi, const char *expected, DsdValue got) {
+bool dsd_bi_wrong_kind(DsdVm *vm, uint32_t bi, const char *expected, DsdValue got) {
     DsdText t = dsd_vm_error_begin(vm, DSD_R_BAD_ARGUMENT);
     dsd_text_str(&t, dsd_builtin_info[bi].name);
     dsd_text_str(&t, " needs ");
@@ -50,18 +49,6 @@ static bool wrong_kind(DsdVm *vm, uint32_t bi, const char *expected, DsdValue go
     dsd_text_str(&t, " here, but got ");
     dsd_text_str(&t, dsd_value_kind(got));
     return false;
-}
-
-bool dsd_bi_want_number(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
-    return dsd_is_number(args[i]) || wrong_kind(vm, bi, "a number", args[i]);
-}
-
-bool dsd_bi_want_string(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
-    return args[i].tag == DSD_TAG_STR || wrong_kind(vm, bi, "text", args[i]);
-}
-
-bool dsd_bi_want_array(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
-    return args[i].tag == DSD_TAG_ARR || wrong_kind(vm, bi, "a list", args[i]);
 }
 
 bool dsd_bi_arg_int(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, int32_t *out) {
@@ -79,7 +66,7 @@ bool dsd_bi_arg_asset(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, 
                       uint32_t *index) {
     DsdValue v = args[i];
     if (v.tag != DSD_TAG_ASSET || ((uint32_t)v.payload >> DSD_ASSET_KIND_SHIFT) != kind) {
-        return wrong_kind(vm, bi, what, v);
+        return dsd_bi_wrong_kind(vm, bi, what, v);
     }
     *index = (uint32_t)v.payload & DSD_ASSET_INDEX_MASK;
     return true;

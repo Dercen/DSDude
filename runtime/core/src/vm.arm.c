@@ -165,14 +165,6 @@ static void unset_global(DsdVm *vm, uint32_t index) {
     dsd_text_str(&t, " was never given a value");
 }
 
-// CALLN of a builtin this runtime build does not implement yet (R582).
-static void missing_builtin(DsdVm *vm, uint32_t index) {
-    DsdText t = dsd_vm_error_begin(vm, DSD_R_UNSUPPORTED);
-    dsd_text_str(&t, "This game uses something this DSDude runtime can't do yet (");
-    dsd_text_str(&t, dsd_builtin_info[index].name);
-    dsd_text_char(&t, ')');
-}
-
 // Call nesting beyond the register stack or the call-record table (R511).
 static void too_deep(DsdVm *vm) {
     DsdText t = dsd_vm_error_begin(vm, DSD_R_CALL_DEPTH);
@@ -637,12 +629,8 @@ op_JMPF:
 
 op_CALLN: {
     uint32_t bi = DSD_C(ins);
-    DsdBuiltinFn fn = dsd_builtin_fn[bi];
+    DsdBuiltinFn fn = dsd_builtin_fn[bi]; // never NULL: the loader refuses unimplemented builtins (R582)
     SYNC_PC();
-    if (fn == 0) {
-        missing_builtin(vm, bi);
-        goto failed;
-    }
     vm->budget = budget; // a builtin may run script code (events) that charges the same budget
     if (!fn(vm, &RA, DSD_B(ins))) goto failed;
     budget = vm->budget;
