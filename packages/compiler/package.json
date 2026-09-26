@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@dsdude/dsdb": "0.1.0",
-    "@dsdude/lang": "0.1.0",
     "@dsdude/project-format": "0.1.0",
     "@dsdude/toolchain": "0.1.0"
   }

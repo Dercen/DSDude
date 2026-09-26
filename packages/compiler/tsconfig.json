@@ -15,9 +15,6 @@
       "path": "../dsdb"
     },
     {
-      "path": "../lang"
-    },
-    {
       "path": "../toolchain"
     }
   ]
