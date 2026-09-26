@@ -35,6 +35,16 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
 - [ ] Task 6 (rest): `docs/manual/assets/`.
 - [ ] Next: WS0's Windows run of the real-tool test; then refine the MSL/MAS reading if its figures disagree.
 
+## Blockers
+- **push.sh refuses a merge of origin/main (2026-09-26).** The daily `git merge origin/main` brings in WS0's
+  `7fd898f chore(deps): regenerate lockfile`; `tools/cloud/push.sh` checks every non-merge commit in
+  `origin/ws5-assets..HEAD`, which includes main's own commits, and stops at "7fd898f changes package-lock.json".
+  WS5 therefore undid its local (unpushed) merge and keeps working on top of `c0d8649`; the merge itself was clean
+  apart from a CHANGELOG conflict (keep both sides: main's C9 lines, then WS5's). Proposed fix (WS0 owns
+  `tools/cloud/`): exclude main's commits from the check, e.g.
+  `for c in $(git rev-list --no-merges "$B..HEAD" --not origin/main); do`. Alternatively WS0 fast-forwards
+  `ws5-assets` to a merge of main at integration.
+
 ## For WS0 at integration (Windows-only checks)
 - `npm test -w packages/asset-pipeline` runs `src/pack/real-tools.test.ts` with the real grit/mmutil: flappy + the XM
   fixture packed twice into byte-identical `nitrofs/`, RIFF/"GRF " files, ids from soundbank.h, and
