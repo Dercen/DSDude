@@ -16,6 +16,8 @@ export default defineConfig({
     name: "ide-browser",
     include: ["src/**/*.browser.test.{ts,tsx}"],
     testTimeout: 30_000,
+    // One test file (one Chromium context) at a time: parallel contexts cost ~1.5 GB on this 11 GB machine.
+    fileParallelism: false,
     api: { port, strictPort: true },
     browser: {
       enabled: true,
