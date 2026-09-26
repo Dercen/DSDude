@@ -119,6 +119,11 @@ Legend: todo / in progress / done (<sha>).
     18.1, MOV 21.0, CMPJ+JMP 34.2, SETSLOT 34.9, ADD 34.9, MUL 35.9, GETSLOT 38.9, CALLN 64.8. DTCM now 4,332 of
     4,608 B (the table). Dispatch is 7 instructions (`cmp`/`beq` watchdog, `ldr ins` main RAM, `sub`, `and`,
     `ldr [fp, op, lsl #2]` DTCM, `mov pc`).
+  - **Spike 14, cache-resident loop vs straight-line** (`loopDsda`: the first 10 units of the mix, 400 bytes,
+    run 12 times through ADDI/CMPJ/JMP; about the same op count as the 4.8 KB block): melonDS **34.81 vs 35.06
+    cycles/op** (equal within 1 %: melonDS does not model the data cache); py-desmume **47.71 vs 57.62** (the loop
+    17 % cheaper there). What the D-cache is worth on hardware needs spike 15 (a flashcart run). `npm run bench`
+    now reports it every run (`LOOP` lines).
   - **Memory probe** (new, in the bench): 32-bit loads through the same loop cost melonDS **3.56 cycles from main
     RAM vs 1.80 from DTCM**, so the bytecode fetch adds < 2 cycles/op there; the rest of LOADI's ~18 is
     instructions and the `mov pc` refill. DeSmuME charges 7.7 for both (it models neither).
@@ -153,7 +158,7 @@ Legend: todo / in progress / done (<sha>).
     painted stack: ~4 KB used by the printf-heavy selftest of 10.9 KB).
 - Task 4. `dsd_platform.h` implementation: **done for C11 0.2.0** (see the reconciliation above). Not yet exercised
   by a room game with sprites and backgrounds (WS2's v2 fixtures load no assets); that comes with samples/flappy.
-- Task 5. Spikes (spike 14's DS side: see "M1 benchmark" above; the cache-resident loop variant is still todo):
+- Task 5. Spikes (spike 14's DS side: see "M1 benchmark" above, loop variant included):
   - **Spike 10 (graphics): PASS.** grit 1.24.0 with the PLAN 2.9 sprite, 4bpp and BG lines; the ROM uses the 3.3
     bank table, 128-byte-aligned frames (strides 256/128/4096 logged) and the UI layer. The screenshot shows the
     source PNGs' colours exactly: 0 of 6,144 background pixels and 0 of 96 opaque sprite pixels differ at RGB555

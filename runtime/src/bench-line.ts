@@ -54,6 +54,45 @@ export function stepVariant(benchDsda: string, body: readonly string[], prologue
 }
 
 /**
+ * Spike 14's cache-resident loop: the first `units` units of bench.dsda's straight-line block (the same M1 op mix,
+ * 10 words each: `units` x 40 bytes of bytecode) run `iterations` times through a backward jump, so about the same
+ * number of ops runs from a block small enough to stay in the data cache on hardware. Registers r16 (counter) and
+ * r17 (limit) are added to the function; the loop costs 3 ops per iteration (ADDI, CMPJ, JMP).
+ */
+export function loopDsda(benchDsda: string, units = 10, iterations = 12): string {
+  const lines = benchDsda.split(/\r?\n/);
+  const start = lines.findIndex((l) => /^\.func bench_step\b/.test(l));
+  if (start < 0) throw new Error("bench.dsda has no .func bench_step");
+  const end = lines.findIndex((l, i) => i > start && l.trim() === ".end");
+  const inner = lines.slice(start + 1, end);
+  let k = inner.findIndex((l) => l.trim().startsWith(".loc")) + 1;
+  const head = inner.slice(0, k);
+  while (k < inner.length && /^\s*LOADI /.test(inner[k])) head.push(inner[k++]);
+  // A unit ends with its CALLN (bench.dsda: 4 arith, MOV, LOADI, GET/SETSLOT, CMPJ + JMP + label, CALLN).
+  const body: string[] = [];
+  let done = 0;
+  for (; k < inner.length && done < units; k++) {
+    body.push(inner[k]);
+    if (/^\s*CALLN /.test(inner[k])) done++;
+  }
+  if (done < units) throw new Error(`bench.dsda has fewer than ${units} units`);
+  const func = lines[start].replace(/^(\.func bench_step \d+) \d+/, "$1 18");
+  const loop = [
+    "    LOADI r16, 0",
+    `    LOADI r17, ${iterations}`,
+    "  LOOP:",
+    ...body,
+    "    ADDI r16, r16, 1",
+    "    CMPJ r16, r17, 2",
+    "    JMP LEND",
+    "    JMP LOOP",
+    "  LEND:",
+    "    RET r0, 0",
+  ];
+  return [...lines.slice(0, start), func, ...head, ...loop, ...lines.slice(end)].join("\n");
+}
+
+/**
  * The baseline workload: the Step body is one RET. Timing it gives the per-frame engine and platform cost without
  * the block.
  */

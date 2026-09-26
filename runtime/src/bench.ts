@@ -16,7 +16,7 @@ import { assembleToBytes } from "@dsdude/dsdb";
 import { loadBuiltinsEnv } from "@dsdude/dsdb/node";
 import { detectToolchain, dsdudeHome, formatDiagnostic, runMake, takeScreenshot } from "@dsdude/toolchain";
 import { run } from "./artifact.ts";
-import { type BenchResult, baselineDsda, MIX, parseBenchLine, stepVariant, vmFigures } from "./bench-line.ts";
+import { type BenchResult, baselineDsda, loopDsda, MIX, parseBenchLine, stepVariant, vmFigures } from "./bench-line.ts";
 
 const runtimeDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.dirname(runtimeDir);
@@ -48,9 +48,10 @@ async function main(): Promise<number> {
     console.error("bench: needs BlocksDS and py-desmume (the local machine)");
     return 2;
   }
-  const workloads: Record<"full" | "base", Uint8Array> = {
+  const workloads: Record<"full" | "base" | "loop", Uint8Array> = {
     full: readFileSync(`${BENCH}.dsdb`),
     base: assembleToBytes(baselineDsda(readFileSync(`${BENCH}.dsda`, "utf8")), loadBuiltinsEnv(repoRoot)),
+    loop: assembleToBytes(loopDsda(readFileSync(`${BENCH}.dsda`, "utf8")), loadBuiltinsEnv(repoRoot)),
   };
   const cli = (...args: string[]) =>
     run(process.execPath, [CLI, ...args], { cwd: repoRoot, timeoutMs: 180_000 }).then((r) => r.stdout);
@@ -141,6 +142,15 @@ async function main(): Promise<number> {
         `${full.opsPerFrame} ops/frame; per-frame overhead ${vm.overheadPerFrame} cycles`,
     );
     if (!pass) failed++;
+    // Spike 14: the same op mix from a small loop (cache-resident on hardware) against the straight-line block.
+    const loop = await runOnce(`${name}-loop`, elf, workloads.loop);
+    if (loop) {
+      const lv = vmFigures(loop, base);
+      console.log(
+        `LOOP ${name} on ${loop.emulator}: VM ${lv.cyclesPerOp.toFixed(2)} cycles/op = ${lv.opsPerFrame} ops/frame ` +
+          `(straight-line ${vm.cyclesPerOp.toFixed(2)})`,
+      );
+    }
   }
   return failed > 0 ? 1 : 0;
 }

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { assembleToBytes } from "@dsdude/dsdb";
 import { loadBuiltinsEnv } from "@dsdude/dsdb/node";
 import { describe, expect, it } from "vitest";
-import { baselineDsda, FRAME_CYCLES, parseBenchLine, vmFigures } from "./bench-line.ts";
+import { baselineDsda, FRAME_CYCLES, loopDsda, parseBenchLine, vmFigures } from "./bench-line.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -53,6 +53,17 @@ describe("baseline workload", () => {
     expect(base.length).toBeLessThan(bench.length / 5);
     const env = loadBuiltinsEnv(repoRoot);
     expect(assembleToBytes(base, env).length).toBeLessThan(assembleToBytes(bench, env).length);
+  });
+
+  it("builds spike 14's loop: 10 units of the mix run 12 times from a small block, and it assembles", () => {
+    const loop = loopDsda(bench);
+    expect(loop).toContain(".func bench_step 0 18");
+    const step = loop.slice(loop.indexOf(".func bench_step"), loop.indexOf(".end", loop.indexOf(".func bench_step")));
+    expect(step.match(/CALLN /g)).toHaveLength(10);
+    expect(step).toContain("    LOADI r17, 12\n  LOOP:");
+    expect(step).toContain("    CMPJ r16, r17, 2\n    JMP LEND\n    JMP LOOP\n  LEND:\n    RET r0, 0");
+    const env = loadBuiltinsEnv(repoRoot);
+    expect(assembleToBytes(loop, env).length).toBeLessThan(assembleToBytes(bench, env).length / 3);
   });
 
   it("refuses a file without bench_step", () => {
