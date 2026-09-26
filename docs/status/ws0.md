@@ -110,9 +110,10 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 - ADR-0002 DeSmuME R4 slot-1 profile does not mount NitroFS: **accepted** by the user (2026-09-25). DeSmuME launches
   only with its default slot-1 device; flashcart-style boots wait for hardware (spike 15).
 
-- ADR-0003 One key-script format for `dsdude screenshot --keys` and `dsdude-host` (proposed by WS1, 2026-09-26):
-  WS0 recommends **accept**; it is a T1 change to WS2's C8 ("Host runner"), so WS2 co-signs. `tools/screenshot.py`
-  carries `ADR-pending ADR-0003` until then.
+- ADR-0003 key-script format (WS1): **superseded** by WS2's C8 0.2.0 `--input` format (user decision, 2026-09-26).
+  **Next WS1 session** (with the compileProject/packAssets wiring): switch `dsdude screenshot --keys` and
+  `tools/screenshot.py` to the C8 format, update `contracts/cli.md` (T1), drop the `ADR-pending ADR-0003` marker.
+  If WS1 does not run again before CP-C, this goes to `docs/kickoff/ws8.md` with the other leftovers.
 
 ## Integration log
 
@@ -124,11 +125,13 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   minimum is the laptop waking from a battery sleep (04:17-07:05), not the integration; since 07:09 the minimum is
   2898 MB. `start-ws3` tagged.
 
+- **ADR numbers (WS0, 2026-09-26):** three ADRs were filed as 0003 on the same day. Final numbers by arrival on main: ADR-0003 key-script format (WS1); ADR-0004 platform seam (WS3); **ADR-0005** provisional opcode operands (WS4, co-signed by WS2; was 0003); **ADR-0006** sprite geometry in the DSDB (WS2; renamed when WS2's branch merges).
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
   passes (2432 MB). When to launch WS6 and WS3 locally (see the Day-2 report).
-- P8 (branch selector): WS2 and WS4 were opened on `main` (2026-09-25); start.sh adopts `ws2-runtime-core` / `ws4-compiler`, so the procedure works either way.
+- P8 (branch selector): answered. WS2 and WS4 were opened on `main` (2026-09-25), and WS5 directly on `ws5-assets` (2026-09-26): the selector does offer stream lines. start.sh handles both.
 
 ## Notes for PLAN.md (fold in at CP-A)
 

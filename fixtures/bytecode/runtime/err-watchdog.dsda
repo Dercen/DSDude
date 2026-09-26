@@ -1,0 +1,8 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 1
+  L0:
+    .loc "rt/watchdog.dss" 3
+    JMP L0
+.end

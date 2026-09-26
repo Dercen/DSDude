@@ -106,8 +106,10 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
      geometry, recent ROMs), and melonDS keeps these when it rewrites the file on exit.
      For DeSmuME, patch `desmume.ini` beside the exe (0.4.0): `[Controls]` gets the same mapping as Windows
      virtual-key codes (A=88, B=90, X=83, Y=65, L=81, R=87, Start=13, Select=16, Up=38, Down=40, Left=37, Right=39;
-     key names from the exe's `inputdx.cpp` strings). DeSmuME keeps the section when it rewrites the file, but
-     whether it reads those keys is not verified, because no key-press test was run against a real window.
+     key names from the exe's `inputdx.cpp` strings). DeSmuME keeps the section when it rewrites the file and reads
+     it. Verified 2026-09-26 with the user pressing keys in the window: X, Z, Enter, Up and Shift gave
+     `DSD|LOG|key A`, `B`, `START`, `UP` and `SELECT`. With `A=75` written instead, K gave `key A` and X gave
+     nothing, so the section overrides DeSmuME's built-in defaults.
   4. Spawn `exe <absolute rom>` with cwd = the emulator folder, and record
      `{pid, kind, exe, rom, startedAt}` in `<DSDUDE_HOME>\emulators\running.json` (`startedAt` is taken right
      after the spawn).

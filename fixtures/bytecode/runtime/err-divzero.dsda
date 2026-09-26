@@ -1,0 +1,11 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 2
+    .loc "rt/divzero.dss" 1
+    LOADI r0, 1
+    LOADI r1, 0
+    .loc "rt/divzero.dss" 2
+    DIV r0, r0, r1
+    RET r0, 0
+.end

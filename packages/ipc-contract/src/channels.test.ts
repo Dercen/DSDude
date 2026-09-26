@@ -68,7 +68,7 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     badReq: { projectDir: "C:/p", sprite: "spr_a", sourcePath: "C:/x.png" },
   },
   "build.play": {
-    req: { projectDir: "C:/p", emulator: "melonds", skipCompile: true },
+    req: { projectDir: "C:/p", emulator: "melonds", skipCompile: true, debug: true },
     res: { ...buildResult, emulator: { kind: "melonds", pid: 1234 } },
     badReq: { projectDir: "C:/p", emulator: "no$gba" },
   },

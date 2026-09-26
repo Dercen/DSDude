@@ -1,0 +1,74 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_player "gfx/spr_player.grf" 1
+
+.func obj_player__step 0 4
+    .loc "objects/obj_player/step.dss" 2
+    LOADI r0, 10
+    CALLN r0, 1, button_check
+    JMPF r0, L0
+    GETBI r0, x
+    LOADI r1, 2
+    SUB r0, r0, r1
+    SETBI r0, x
+  L0:
+    .loc "objects/obj_player/step.dss" 3
+    LOADI r0, 11
+    CALLN r0, 1, button_check
+    JMPF r0, L1
+    GETBI r0, x
+    LOADI r1, 2
+    ADD r0, r0, r1
+    SETBI r0, x
+  L1:
+    .loc "objects/obj_player/step.dss" 4
+    LOADI r0, 8
+    CALLN r0, 1, button_check
+    JMPF r0, L2
+    GETBI r0, y
+    LOADI r1, 2
+    SUB r0, r0, r1
+    SETBI r0, y
+  L2:
+    .loc "objects/obj_player/step.dss" 5
+    LOADI r0, 9
+    CALLN r0, 1, button_check
+    JMPF r0, L3
+    GETBI r0, y
+    LOADI r1, 2
+    ADD r0, r0, r1
+    SETBI r0, y
+  L3:
+    .loc "objects/obj_player/step.dss" 6
+    GETBI r0, x
+    LOADI r1, 8
+    GETBI r2, room_width
+    LOADI r3, 8
+    SUB r2, r2, r3
+    CALLN r0, 3, clamp
+    SETBI r0, x
+    .loc "objects/obj_player/step.dss" 7
+    GETBI r0, y
+    LOADI r1, 8
+    GETBI r2, room_height
+    LOADI r3, 8
+    SUB r2, r2, r3
+    CALLN r0, 3, clamp
+    SETBI r0, y
+    RET r0, 0
+.end
+
+.object obj_player sprite=spr_player parent=- visible=1 screen=top depth=0
+    .event step obj_player__step
+.end
+
+.room rm_main 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_player 128 96 top -
+    .set top spr_player -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_main

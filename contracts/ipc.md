@@ -1,6 +1,6 @@
 # C5: IPC channel map
 
-Version: 0.2.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
+Version: 0.3.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
 
 The typed channels between the IDE's renderer and its main process. Source: PLAN.md section 5.2 C5. The Phase-0
 channel list and zod stubs were written by WS0; WS6 completed them in 0.2.0. The schemas live in
@@ -12,7 +12,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | Schema | Mirrors | Notes |
 |---|---|---|
 | `ProjectSchema` | C1 `Project` | The whole in-memory project: JSON files and DSS sources, never images or sounds. `tsc -b` fails if it drifts from C1. |
-| `BuildRequestSchema`, `BuildResultSchema`, `BuildPhaseSchema` | C4 `BuildRequest`, `BuildResult`, `BuildPhase` | Also linked to C4 at compile time. |
+| `BuildRequestSchema`, `BuildResultSchema`, `BuildPhaseSchema` | C4 `BuildRequest`, `BuildResult`, `BuildPhase` | Linked to C4 at compile time, key sets included (an optional field on one side only fails `tsc -b`). |
 | `PlayResultSchema` | C4 `PlayResult` | `emulator` is `{kind, pid}` or null instead of the handle. |
 | `SpritePreviewSchema`, `PreviewSpriteOptionsSchema` | C12 `SpritePreview`, `PreviewSpriteOptions` | `indices` is a `Uint8Array`: the only binary payload. |
 | `SettingsSchema` (+ `ControlsSchema`) | `settings.json` under userData | Every key has a default. `controls` defaults to the PLAN 6 WS6 Controls mapping. |
@@ -27,7 +27,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `project.create` | `{dir, name, template?}` | `{dir}` |
 | `assets.import` | `{projectDir, kind: sprite\|background\|sound, sourcePath, name}` | `{name, diagnostics}` |
 | `assets.preview` | `{projectDir, sprite?, sourcePath?, options?}`: exactly one of `sprite`/`sourcePath`; `sourcePath` needs `options` | `SpritePreview` (C12) |
-| `build.play` | C4 `BuildRequest` | `PlayResult` (`BuildResult` + `emulator`) |
+| `build.play` | C4 `BuildRequest` (incl. `debug`, 0.3.0) | `PlayResult` (`BuildResult` + `emulator`) |
 | `build.build`, `build.compileOnly` | C4 `BuildRequest` | C4 `BuildResult` |
 | `build.cancel` | `{}` | `{ok: true}` |
 | `emulator.stop` | `{}` | `{ok: true}` |

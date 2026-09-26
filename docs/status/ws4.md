@@ -24,17 +24,56 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   changed. **WS0: please regenerate `package-lock.json`** (the workspace entries for `packages/compiler` and
   `packages/lang` are stale; nothing else changes).
 
+- **Task 2, codegen: done** (2026-09-26).
+  - Program form: `compileProgram()` (`src/program.ts`); per-function code generator `src/codegen/function.ts`.
+    Locals get fixed registers, temporaries a stack above them (a single-pass allocation; the PLAN's IR + linear
+    scan is only needed for frames over 64 registers, which report E492). `v0/01-arith` compiles byte-identically to
+    WS0's hand-assembled `fixtures/bytecode/conformance/v0-01.dsda`.
+  - Projects: `compileProjectModule()` / `compileProject()` (`src/project.ts`, C4 `CompileFn` shape): event-name
+    checks (E308/E309), object functions (inherited; another object's helper is E205), scripts, room creation code,
+    slot layouts (parent first, then own assigned names sorted; E491 over 24), `with` (target's slots inside, `other`
+    = outer self), collision `other` slots, dynamic names (GETDYN/SETDYN) for scripts, `with (all)` and a parent
+    reading a child's variable, OBJS/ROOM/ASET, per-screen room asset sets (placed objects, `instance_create`
+    closure, scripts called, `draw_set_screen` = both screens) returned as C4 `roomSets`.
+  - FUNC names: events `<obj>__<stem>`, object functions `<obj>__fn_<name>`, creation code `<room>__inst_<i>`,
+    scripts by their own name.
+  - ADR-0003 (proposed, needs WS2): operand kinds `sym`/`bivar`, GETBIX/SETBIX (55-56), GETBIO/SETBIO (57-58), the
+    `with` loop shape, NEWARR/SETIDX meaning. opcodes.json and dsdb.md 0.2.0 (T1), packages/dsdb supports them.
+  - Catalog: E201-E205, E208, E301-E309, E491-E494.
+  - ASET paths (`gfx/<name>.grf`, `bg/<name>.grf`, sounds `""`) and `aux` follow the provisional C4 AssetManifest
+    until WS5's C3 (`contracts/assetpack.md`).
+
+- **Task 3, `compileProject` + `dsdude compile`: done** (2026-09-26).
+  - `compileProject` (C4 `CompileFn`) returns the DSDB (ABI hash, DBG table via `@dsdude/dsdb` `encode`) and
+    `roomSets`; `compileProjectModule` adds options (`seed`) and the module.
+  - `cliCommands` exports `compile` (`src/cli.ts`): `dsdude compile <project> [-o <file.dsdb>] [--seed N] [--json]`,
+    default output `<DSDUDE_HOME>/build/<project-hash>/nitrofs/game.dsdb`, reads `<build>/assets.manifest.json`
+    when present. `packages/cli` already registers it: `npx dsdude compile samples/flappy --json` works on Linux and
+    writes the golden bytes; `dsdb-dis` round-trips them.
+  - **For WS1 (cli.md is yours):** `compile --json` fields besides `ok`/`diagnostics`: `output`, `bytes`,
+    `roomSets`, `ms` (please add the row, T1). `compile` does not run room budgets yet: `checkRoomBudgets` is WS5's
+    and not on main; BuildService calls it after `compileProject` anyway.
+  - Worker safety is a test (`src/worker-safe.test.ts`): nothing statically reachable from `src/index.ts` imports
+    a Node API; the CLI imports Node modules dynamically.
+
 ## Next
 
-- Task 2: binder and codegen to `.dsda` (locals to registers, slot layouts, 3-address IR, linear scan, OBJS/ROOMS),
-  goldens against `samples/flappy`.
+- Task 4: C7 `LanguageServiceHost` in `packages/lang/src/host.ts` (by CP-B).
+- Task 5: conformance programs 6-10; task 6: the 20 beginner mistakes; task 7: formatter and peephole passes.
+- Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
+  child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
 
 ## Goldens (tier status)
 
-- None yet.
+- `fixtures/compiler/conformance/v0/*.dsda` + `.dsdb` (all five v0 programs): disassembly snapshots; they execute
+  once WS2's VM lands v0 (**WS2: these can replace hand-assembling v0 02-05**).
+- `fixtures/compiler/samples/{minimal,flappy}.dsda` + `.dsdb` + `.roomsets.json`: disassembly snapshots (tier v2-v4
+  features: slots, `with`, alarms, collisions, draw). Flappy compiles in ~6 ms warm (budget 100 ms).
+- Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.
 
 ## Open ADR-pending markers
 
-- None.
+- `ADR-pending ADR-0003` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): until WS2
+  co-signs ADR-0003.
 
 ## Integration feedback

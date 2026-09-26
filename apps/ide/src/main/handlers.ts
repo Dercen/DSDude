@@ -1,9 +1,11 @@
 /**
- * C5 invoke handlers that need no build worker. Build, emulator, assets and toolchain channels are wired with the
- * build worker and EmulatorManager (task 3; real BuildService at CP-B) and answer `[not-implemented]` until then.
+ * C5 invoke handlers: project, settings and dialogs (core), and build/emulator over the PlayController. The assets,
+ * toolchain and doctor channels answer `[not-implemented]` until tasks 5-6 wire them.
  */
 import type { InvokeHandlers, SettingKey } from "@dsdude/ipc-contract";
 import { loadProject, saveProject } from "@dsdude/project-format/node";
+import type { IdeEmulatorManager } from "./build/modes.ts";
+import type { PlayController } from "./build/play.ts";
 import type { SettingsStore } from "./settings.ts";
 
 export interface DialogLike {
@@ -19,6 +21,25 @@ export interface DialogLike {
 export interface CoreHandlerDeps {
   settings: SettingsStore;
   dialog: DialogLike;
+}
+
+/** build.* and emulator.* over the PlayController (worker + EmulatorManager). */
+export function createBuildHandlers(play: PlayController, emulators: IdeEmulatorManager): InvokeHandlers {
+  return {
+    "build.play": (req) => play.play(req),
+    "build.build": (req) => play.build("build", req),
+    "build.compileOnly": (req) => play.build("compileOnly", req),
+    "build.cancel": () => {
+      play.cancel();
+      return { ok: true };
+    },
+    "emulator.stop": async () => {
+      await play.stop();
+      return { ok: true };
+    },
+    "emulator.status": () => play.status(),
+    "emulator.install": async ({ kind }) => ({ exe: await emulators.ensureInstalled(kind) }),
+  };
 }
 
 export function createCoreHandlers({ settings, dialog }: CoreHandlerDeps): InvokeHandlers {

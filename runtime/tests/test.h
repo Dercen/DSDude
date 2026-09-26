@@ -11,6 +11,10 @@ int dsd_test_check(int ok, const char *file, int line, const char *expr);
 int dsd_test_check_i64(int64_t got, int64_t want, const char *file, int line, const char *expr);
 int dsd_test_check_str(const char *got, const char *want, const char *file, int line, const char *expr);
 
+// Reads a whole file (path relative to the repo root, where make runs the tests) into buf; returns its size, or -1
+// when it cannot be read or does not fit.
+int32_t dsd_test_read_file(const char *path, char *buf, uint32_t cap);
+
 // Deterministic test PRNG (xorshift32, never seeded with 0); the core's own RNG is tested separately.
 uint32_t dsd_test_rand(void);
 void dsd_test_seed(uint32_t seed);
@@ -21,8 +25,12 @@ void dsd_test_seed(uint32_t seed);
 
 // Every suite, defined in its runtime/tests/test_*.c file.
 void suite_fixed(void);
+void suite_heap(void);
+void suite_host(void);
+void suite_loader(void);
 void suite_number(void);
 void suite_numfmt(void);
+void suite_programs(void);
 void suite_trig(void);
 
 #endif // DSD_TEST_H

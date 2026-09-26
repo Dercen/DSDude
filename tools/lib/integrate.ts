@@ -297,11 +297,22 @@ function main(argv: string[]): number {
         3 * MIN,
       );
       if (own.code !== 0) {
-        let v: { violations?: { commit?: string; path: string; reason: string }[] } = {};
+        let v: { violations?: { commit?: string; path: string; reason: string }[] } | null = null;
         try {
           v = JSON.parse(own.out);
         } catch {
-          v = { violations: [{ path: "?", reason: firstLines(own.out) }] };
+          v = null;
+        }
+        if (!v?.violations?.length) {
+          // The checker itself failed or timed out: WS0's problem, not the stream's. No IF entry.
+          const why = own.timedOut ? "timed out" : `exit ${own.code}: ${firstLines(own.out, 3)}`;
+          outcomes.push({
+            ...base,
+            status: "refused",
+            detail: `ownership check could not run (${why}); not merged, no IF entry`,
+          });
+          say(`${s.ws}: ownership check could not run (${why})`);
+          continue;
         }
         const list = (v.violations ?? []).map((x) => `${x.commit?.slice(0, 7) ?? ""} ${x.path}: ${x.reason}`);
         outcomes.push({ ...base, status: "refused", detail: `ownership: ${list.slice(0, 5).join("; ")}` });

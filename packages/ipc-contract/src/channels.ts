@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.2.0";
+export const CONTRACT_VERSION = "0.3.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -55,6 +55,8 @@ export const BuildRequestSchema = z.object({
   skipCompile: z.boolean().optional(),
   skipAssets: z.boolean().optional(),
   jobs: z.int().min(1).optional(),
+  /** play only: start the emulator's GDB stub (C4 0.3.0; melonDS only). C5 0.3.0. */
+  debug: z.boolean().optional(),
 });
 
 /** C4 `BuildResult` as JSON. */
@@ -271,8 +273,10 @@ export interface DsdudeBridge {
   on<C extends EventChannel>(channel: C, listener: (payload: EventPayload<C>) => void): () => void;
 }
 
-// Compile-time links to C1, C4 and C12: a drift in either direction fails `tsc -b`.
-type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+// Compile-time links to C1, C4 and C12: a drift in either direction fails `tsc -b`. Mutual assignability alone
+// misses an optional field present on one side only, so the key sets are compared as well.
+type Keys<A, B> = [keyof A] extends [keyof B] ? ([keyof B] extends [keyof A] ? true : false) : false;
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? Keys<A, B> : false) : false;
 const check = <T extends true>(): T => true as T;
 check<Same<z.output<typeof ProjectSchema>, Project>>();
 check<Same<z.output<typeof BuildPhaseSchema>, BuildPhase>>();

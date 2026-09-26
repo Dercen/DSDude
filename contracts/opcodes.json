@@ -1,6 +1,6 @@
 {
   "contract": "C2",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "howToChange": "Owner WS4 from the phase0 tag; WS2 co-signs every change. Opcode numbers never change. Adding an opcode, or promoting a provisional or reserved one to stable (fixing its operands), is T1: minor version bump, `node tools/gen-opcodes.ts` (runtime/gen/opcodes.h, packages/dsdb/src/gen/opcodes.ts), regenerated fixtures and a contracts/CHANGELOG.md entry in one commit. Changing a stable opcode's meaning or operands is T2 (ADR co-signed by WS2 and WS4). Encoding: 32-bit little-endian words, op = bits 0-7, A = 8-15, B = 16-23, C = 24-31, Bx/sBx = 16-31 (see contracts/dsdb.md).",
   "opcodes": [
     {
@@ -442,9 +442,9 @@
       "operands": [
         "A:reg",
         "B:reg",
-        "C:u8"
+        "C:sym"
       ],
-      "summary": "rA = instance(rB).<symbol> (symbol encoding set when promoted)"
+      "summary": "rA = variable C (a SYMS symbol) of the instance in rB: an instance id, an object (its first instance) or -1..-4 (self, other, all, noone); slot table first, then the overflow map (ADR-0003)"
     },
     {
       "number": 39,
@@ -454,9 +454,9 @@
       "operands": [
         "A:reg",
         "B:reg",
-        "C:u8"
+        "C:sym"
       ],
-      "summary": "instance(rB).<symbol> = rA"
+      "summary": "variable C (a SYMS symbol) of the instance in rB = rA; an object in rB writes every instance of it (ADR-0003)"
     },
     {
       "number": 40,
@@ -465,9 +465,9 @@
       "format": "ABx",
       "operands": [
         "A:reg",
-        "Bx:u16"
+        "Bx:bivar"
       ],
-      "summary": "rA = built-in variable Bx of self"
+      "summary": "rA = built-in variable Bx (dense variable index, DSD_BUILTIN_VARS) of self, or the global one (ADR-0003)"
     },
     {
       "number": 41,
@@ -476,9 +476,9 @@
       "format": "ABx",
       "operands": [
         "A:reg",
-        "Bx:u16"
+        "Bx:bivar"
       ],
-      "summary": "built-in variable Bx of self = rA"
+      "summary": "built-in variable Bx of self (or the global one) = rA (ADR-0003)"
     },
     {
       "number": 42,
@@ -489,7 +489,7 @@
         "A:reg",
         "sBx:label"
       ],
-      "summary": "start a with-loop over rA's snapshot; jump past the body when empty"
+      "summary": "rA holds the target (object, instance id, or -1..-3); snapshot the matching ids into a loop state kept in rA; enter the body with the first as self (the old self becomes other), or jump past the loop when there is none (ADR-0003)"
     },
     {
       "number": 43,
@@ -500,7 +500,7 @@
         "A:reg",
         "sBx:label"
       ],
-      "summary": "advance the with-loop; jump back to the body while instances remain"
+      "summary": "advance the with-loop in rA past destroyed instances; jump back to the body with the next one as self, or fall through when done (ADR-0003)"
     },
     {
       "number": 44,
@@ -510,7 +510,7 @@
       "operands": [
         "A:reg"
       ],
-      "summary": "leave the with-loop (break/continue/exit/return unwind through it)"
+      "summary": "leave the with-loop in rA: restore self and other (break/continue/exit/return emit it before jumping out; ADR-0003)"
     },
     {
       "number": 45,
@@ -521,7 +521,7 @@
         "A:reg",
         "B:u8"
       ],
-      "summary": "rA = new array of B elements"
+      "summary": "rA = new array of the B values in rA..rA+B-1 (B = 0: empty; the CALLN argument convention, ADR-0003)"
     },
     {
       "number": 46,
@@ -545,7 +545,7 @@
         "B:reg",
         "C:reg"
       ],
-      "summary": "rA[rB] = rC"
+      "summary": "rA[rB] = rC; grows the array, filling 0; when rA is undefined a new array is made in rA first (ADR-0003)"
     },
     {
       "number": 48,
@@ -611,6 +611,54 @@
       "format": "none",
       "operands": [],
       "summary": "reserved: int-specialised CMPJ (M1 fallback)"
+    },
+    {
+      "number": 55,
+      "name": "GETBIX",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:bivar",
+        "C:reg"
+      ],
+      "summary": "rA = element rC of built-in array variable B (alarm, view_x, view_y) of self or the global one (ADR-0003)"
+    },
+    {
+      "number": 56,
+      "name": "SETBIX",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:bivar",
+        "C:reg"
+      ],
+      "summary": "element rC of built-in array variable B of self (or the global one) = rA (ADR-0003)"
+    },
+    {
+      "number": 57,
+      "name": "GETBIO",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:bivar"
+      ],
+      "summary": "rA = built-in variable C of the instance in rB (instance id, object = first instance, or -1..-4) (ADR-0003)"
+    },
+    {
+      "number": 58,
+      "name": "SETBIO",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:bivar"
+      ],
+      "summary": "built-in variable C of the instance in rB = rA; an object in rB writes every instance of it (ADR-0003)"
     }
   ]
 }

@@ -1,0 +1,24 @@
+[
+  {
+    "room": "rm_game",
+    "screens": {
+      "top": {
+        "sprites": [
+          "spr_bird",
+          "spr_gap",
+          "spr_pipe"
+        ],
+        "backgrounds": []
+      },
+      "bottom": {
+        "sprites": [],
+        "backgrounds": []
+      }
+    },
+    "sounds": [
+      "snd_flap",
+      "snd_hit",
+      "snd_point"
+    ]
+  }
+]

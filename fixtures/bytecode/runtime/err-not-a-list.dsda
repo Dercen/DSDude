@@ -1,0 +1,10 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 3
+    .loc "rt/not-a-list.dss" 1
+    LOADI r0, 5
+    LOADI r1, 0
+    GETIDX r2, r0, r1
+    RET r0, 0
+.end
