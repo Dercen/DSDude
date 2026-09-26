@@ -156,8 +156,56 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
     - The rebinding page is held back.
   - Tests: node 69, browser 10, ipc-contract 66, Playwright 8 (the Play test now checks the card, dismissing it, and Help > Controls). Screenshot checked.
 
+- **Task 6c, status-bar meters: done.**
+  - `computeMeters` (pure; plain words in the bar, hardware terms only in tooltips) over C13 `contracts/runtime-limits.json` (a `?raw` import, the single source). Before Play:
+    - 'Top: n/128 sprites · n/16 colour sets' and the same for Bottom: sprite-bearing instances of the room per screen, plus C3 manifest palettes and OBJ VRAM when a build exists.
+    - 'Sound memory n/768 KB' from the room's soundRamBytes, or every sound's ramBytes.
+  - While the game runs:
+    - `DSD|STAT` spr_top/spr_bot replace the sprite counts.
+    - `oam_drop` / `aff_drop` add red 'N sprites not drawn' / 'N turned sprites drawn straight' meters.
+    - `DSD|MEM` snd/inst give Sound memory and Instances.
+    - Warn at 90% of a limit, red over it.
+  - C5 0.6.0 (T1): `build.manifest` reads the build folder's `assets.manifest.json` through a tolerant `ManifestSummarySchema` (C3 is provisional, owned by WS5). The store refreshes it after open and after every Play.
+  - Tests: node 74 (meters 4, build.manifest handler), browser 10, ipc-contract 68, Playwright 8. Screenshot checked.
+
+- **Task 6d, New Project wizard: done.**
+  - The wizard asks for a name (C1 NAME rule) and a folder (default `%USERPROFILE%DSDudeProjects`, with Browse, and a warning when the folder is inside `%OneDrive%` / `%OneDriveConsumer%` / `%OneDriveCommercial%`).
+  - Templates come from `templates/index.json`; Flappy Bird is preselected when listed. Create opens the new project. It is reached from the toolbar New… and the Welcome panel.
+  - Main: `project.create` copies the template without any `build/` folder and sets project.json's name and title through C1.
+    - The built-in Empty template writes rm_main plus a generated 32x32 two-colour icon.png, since C1 requires the icon.
+    - Until WS7 ships `templates/`, the list is Empty plus, in development only, the repo's `samples/*` projects.
+  - C5 0.7.0 (T1): `project.templates`, `app.info`, and `TemplateIndexSchema`, the reader's format for WS7's `templates/index.json`: `{templates: [{id, title, description, dir}]}`. It also pins the `project.create` semantics.
+  - Tests: node 82 (projects 5, helpers 3), browser 10, ipc-contract 73, Playwright 9 (new-project.spec: OneDrive warning, invalid name, create from a template, opens, refuses an existing folder). Screenshot checked.
+
+- **Task 6e, first-run wizard: done.**
+  - It opens until finished once (`settings.firstRunDone`).
+  - 'Your computer' lists C10 `dsdude doctor` checks (ok/warn/fail/info icons; each detail names its fix) and has Check again.
+  - 'Emulator' sets up melonDS through C4 `ensureInstalled` (the bundled or downloaded 1.1 zip, SHA-256 checked by WS1) and offers the optional DeSmuME profile.
+  - It finishes with 'Start making games' (or 'Skip for now'), and Learn opens behind it on the first launch.
+  - Main: `doctor.run` runs `runDoctor` and `toolchain.status` runs `detectToolchain` in real mode; mock and fake mode answer canned results, so tests never probe the machine.
+  - C5 0.8.0 (T1): doctor checks carry an optional `status`.
+  - The e2e helper pre-seeds `firstRunDone` unless a test asks for the first run.
+  - Tests: node 85, browser 10, ipc-contract 73, Playwright 10 (first-run.spec new). Screenshot checked.
+- 2026-09-26: WS0 merged `85eb04c` at checkpoint-8 (C5 0.6.0/0.7.0 accepted). ADR-0007 was accepted by the user; WS1 implements `LaunchOptions.keys`; the marker stays until WS0 reports it on main.
+
+- **Task 6f, Debug: done.**
+  - The toolbar has Debug next to Play: a Play with C4 `debug: true`, always on melonDS, since DeSmuME has no GDB stub (E623).
+  - After the Controls line, Output says melonDS waits on port 3333 (ARM9) / 3334 (ARM7) and gives the attach command: `arm-none-eabi-gdb "<runtime>/dist/arm9-debug.elf" -ex "target remote localhost:3333"`. The ELF is the C8 runtime artifact's debug ELF (`DSDUDE_RUNTIME_DIR`, `resources/runtime` when packaged, else the repo's `runtime/dist`).
+  - Tests: node 87.
+
+- **Build deps injected (part of task 5) and the smoke test (task 6g): done.**
+  - The build worker is the IDE's C4 composition root, like packages/cli: it injects WS4's `compileProject` and WS5's `packAssets` + `checkRoomBudgets` into the BuildService.
+    - Real mode gets all three.
+    - Fake mode (`DSDUDE_FAKE_TOOLCHAIN=1`) gets the real compiler and budget check, with a tools-free `packAssets` (the toolchain's `provisionalManifest`). So fake-mode Play compiles DSS for real and packs the fixture ROM with the fake emulator.
+    - samples/minimal and samples/flappy build clean this way (node test).
+  - Mock mode stays the default until task 5 switches the default to real (CP-B).
+  - `tests/smoke.spec.ts` (fake mode, fresh profile): first-run wizard -> Learn -> New Project from the Flappy template -> object editor -> edit -> Play (real compile, Controls card, 'hello', meters) -> Stop, with no renderer errors and no CSP violations.
+  - The fake-mode play test now also breaks step.dss and checks the compiler's own E101 on line 1 in Problems.
+  - Tests: node 88, browser 10, Playwright 11, all green. Screenshots checked.
+
 ## Next
-- Task 6 continues: meters, import dialogs, New Project and first-run wizards, Debug, the fake-toolchain smoke test; the rebinding page once ADR-0007 is accepted.
+- Task 6 continues: import dialogs (WS5's `previewSprite` is on main via `@dsdude/asset-pipeline/browser`); the rebinding page once WS1's `LaunchOptions.keys` is on main.
+- Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
 ## Leftovers / ADR-pending

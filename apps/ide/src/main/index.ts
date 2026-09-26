@@ -22,7 +22,7 @@ import { controlsLine, effectiveControls } from "../shared/controls.ts";
 import { buildServiceMode, createEmulatorManager } from "./build/modes.ts";
 import { PlayController } from "./build/play.ts";
 import { BuildWorkerHost, type WorkerChild } from "./build/worker-host.ts";
-import { createBuildHandlers, createCoreHandlers } from "./handlers.ts";
+import { createBuildHandlers, createCoreHandlers, createToolHandlers } from "./handlers.ts";
 import { createEventSender, registerIpc, type SendEvent } from "./ipc.ts";
 import { APP_ORIGIN, APP_SCHEME, resolveAppUrl } from "./protocol.ts";
 import { isDockviewPopout, isTrustedRendererUrl } from "./security.ts";
@@ -119,6 +119,13 @@ app.whenReady().then(() => {
     send: sendEvent,
     controlsLine: async () => controlsLine(effectiveControls({ controls: await settings.get("controls") })),
     defaultEmulator: () => settings.get("emulator"),
+    // C8 runtime artifact: runtime/dist in the repo; resources/runtime when packaged (WS8's layout).
+    debugElf: () =>
+      process.env.DSDUDE_RUNTIME_DIR
+        ? join(process.env.DSDUDE_RUNTIME_DIR, "dist", "arm9-debug.elf")
+        : app.isPackaged
+          ? join(process.resourcesPath, "runtime", "arm9-debug.elf")
+          : resolve(app.getAppPath(), "../../runtime/dist/arm9-debug.elf"),
   });
   // An emulator an earlier IDE left running is killed at startup and before quit (C4 reconcile).
   void emulators.reconcile?.();
@@ -150,8 +157,23 @@ app.whenReady().then(() => {
   registerIpc(
     ipcMain,
     {
-      ...createCoreHandlers({ settings, dialog, shell, learnRoot: learnRoot() }),
-      ...createBuildHandlers(play, emulators),
+      ...createCoreHandlers({
+        settings,
+        dialog,
+        shell,
+        learnRoot: learnRoot(),
+        samplesDir: app.isPackaged ? null : resolve(app.getAppPath(), "../../samples"),
+        appInfo: {
+          version: app.getVersion(),
+          packaged: app.isPackaged,
+          defaultProjectsDir: join(app.getPath("home"), "DSDudeProjects"),
+          oneDriveDirs: [process.env.OneDrive, process.env.OneDriveConsumer, process.env.OneDriveCommercial].filter(
+            (d, i, all): d is string => !!d && all.indexOf(d) === i,
+          ),
+        },
+      }),
+      ...createBuildHandlers(play, emulators, home),
+      ...createToolHandlers(mode),
     },
     (event: IpcMainInvokeEvent) => ({
       url: event.senderFrame?.url ?? null,

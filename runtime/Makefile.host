@@ -23,6 +23,8 @@ endif
 CFLAGS := -std=c11 -O2 -fwrapv -fno-strict-aliasing -funsigned-char -Wall -Wextra -DDSD_HOST
 # UBSan in trap mode only (MSYS2 has no libubsan): a trap exits with SIGILL (Linux) / 0xC000001D (Windows).
 UBSAN_FLAGS := -fsanitize=undefined -fsanitize-trap=undefined
+# The unoptimised variant (spike 12: -O0, -O2 and the trap build must print the same numbers); gcc takes the last -O.
+O0_FLAGS := -O0
 # Generated headers are included by bare name ("opcodes.h", "builtins_table.h"); host code also sees runtime/host.
 INCLUDES := -Iruntime/core/include -Iruntime/gen -Iruntime/host
 
@@ -42,16 +44,18 @@ BUILD := runtime/build-host
 HOST := $(BUILD)/dsdude-host$(EXE)
 TESTS := $(BUILD)/dsdude-tests$(EXE)
 TESTS_UBSAN := $(BUILD)/dsdude-tests-ubsan$(EXE)
+TESTS_O0 := $(BUILD)/dsdude-tests-o0$(EXE)
 
 .PHONY: all test
 
-all: $(HOST) $(TESTS) $(TESTS_UBSAN)
+all: $(HOST) $(TESTS) $(TESTS_UBSAN) $(TESTS_O0)
 
-# The pre-commit command: build the runner and both test variants, then run the tests (either failing fails the
-# target). The tests run from the repo root and read fixtures/ by relative path.
-test: $(HOST) $(TESTS) $(TESTS_UBSAN)
+# The pre-commit command: build the runner and the three test variants (-O2, UBSan trap, -O0), then run the tests
+# (any failing fails the target). The tests run from the repo root and read fixtures/ by relative path.
+test: $(HOST) $(TESTS) $(TESTS_UBSAN) $(TESTS_O0)
 	$(TESTS)
 	$(TESTS_UBSAN)
+	$(TESTS_O0)
 
 $(HOST): $(CORE_SRC) $(HOST_SRC) $(HOST_MAIN) $(HEADERS) | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(CORE_SRC) $(HOST_SRC) $(HOST_MAIN)
@@ -61,6 +65,9 @@ $(TESTS): $(CORE_SRC) $(HOST_SRC) $(TEST_SRC) $(HEADERS) | $(BUILD)
 
 $(TESTS_UBSAN): $(CORE_SRC) $(HOST_SRC) $(TEST_SRC) $(HEADERS) | $(BUILD)
 	$(CC) $(CFLAGS) $(UBSAN_FLAGS) $(INCLUDES) -o $@ $(CORE_SRC) $(HOST_SRC) $(TEST_SRC)
+
+$(TESTS_O0): $(CORE_SRC) $(HOST_SRC) $(TEST_SRC) $(HEADERS) | $(BUILD)
+	$(CC) $(CFLAGS) $(O0_FLAGS) $(INCLUDES) -o $@ $(CORE_SRC) $(HOST_SRC) $(TEST_SRC)
 
 # One level only (runtime/ always exists). The quotes keep cmd.exe from reading "/build-host" as a switch; sh
 # treats them as plain quoting. Make skips this recipe whenever the directory already exists.

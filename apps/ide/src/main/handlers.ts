@@ -4,12 +4,18 @@
  */
 
 import { existsSync } from "node:fs";
-import type { InvokeHandlers, SettingKey } from "@dsdude/ipc-contract";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { type InvokeHandlers, ManifestSummarySchema, type SettingKey } from "@dsdude/ipc-contract";
+import type { Diagnostic } from "@dsdude/project-format";
 import { loadProject, saveProject } from "@dsdude/project-format/node";
+import { detectToolchain, dsdudeHome, projectBuildDir, runDoctor } from "@dsdude/toolchain";
 import type { IdeEmulatorManager } from "./build/modes.ts";
 import type { PlayController } from "./build/play.ts";
+import type { BuildServiceMode } from "./build/protocol.ts";
 import { inside, readProjectFile, writeProjectFile } from "./files.ts";
 import { listLearnDocs, readLearnDoc } from "./learn.ts";
+import { createProject, templateSources } from "./projects.ts";
 import type { SettingsStore } from "./settings.ts";
 
 export interface DialogLike {
@@ -27,17 +33,88 @@ export interface ShellLike {
   openPath(path: string): Promise<string>;
 }
 
+export interface AppInfo {
+  version: string;
+  packaged: boolean;
+  defaultProjectsDir: string;
+  oneDriveDirs: string[];
+}
+
 export interface CoreHandlerDeps {
   settings: SettingsStore;
   dialog: DialogLike;
   shell?: ShellLike;
+  /** The repo's samples/ in development (template fallback until WS7 ships templates/); null when packaged. */
+  samplesDir?: string | null;
+  appInfo?: AppInfo;
   /** The folder that contains docs/ (Learn documents). */
   learnRoot: string;
 }
 
-/** build.* and emulator.* over the PlayController (worker + EmulatorManager). */
-export function createBuildHandlers(play: PlayController, emulators: IdeEmulatorManager): InvokeHandlers {
+/** The build folder's assets.manifest.json (C3), or null when missing or unreadable. */
+export async function readManifest(buildDir: string): Promise<unknown | null> {
+  try {
+    return JSON.parse(await readFile(join(buildDir, "assets.manifest.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * doctor.run and toolchain.status (C10 dsdude doctor, C4 detectToolchain). In mock and fake mode they report canned
+ * results, so tests never probe the machine; `real` runs the checks (every tool spawn has its own timeout).
+ */
+export function createToolHandlers(
+  mode: BuildServiceMode,
+  deps: {
+    doctor?: () => Promise<{ checks: { name: string; status: "ok" | "warn" | "fail" | "info"; detail: string }[] }>;
+    detect?: () => Promise<{ installed: boolean; blocksdsVersion: string | null; diagnostics: Diagnostic[] }>;
+  } = {},
+): InvokeHandlers {
+  const fake = mode !== "real";
   return {
+    "doctor.run": async () => {
+      if (fake)
+        return {
+          checks: [
+            {
+              name: "Build service",
+              ok: true,
+              status: "info",
+              detail: `This IDE runs the ${mode} build service, so it needs no tools.`,
+            },
+          ],
+        };
+      const report = await (deps.doctor ?? (() => runDoctor({ env: process.env })))();
+      return {
+        checks: report.checks.map((c) => ({
+          name: c.name,
+          ok: c.status !== "fail",
+          detail: c.detail,
+          status: c.status,
+        })),
+      };
+    },
+    "toolchain.status": async () => {
+      if (fake) return { installed: true, blocksdsVersion: "1.24.0", diagnostics: [] };
+      const st = await (deps.detect ?? (() => detectToolchain({ env: process.env })))();
+      return { installed: st.installed, blocksdsVersion: st.blocksdsVersion, diagnostics: st.diagnostics };
+    },
+  };
+}
+
+/** build.* and emulator.* over the PlayController (worker + EmulatorManager). */
+export function createBuildHandlers(
+  play: PlayController,
+  emulators: IdeEmulatorManager,
+  home: string = dsdudeHome(),
+): InvokeHandlers {
+  return {
+    "build.manifest": async ({ projectDir }) => {
+      const raw = await readManifest(projectBuildDir(projectDir, home));
+      const parsed = ManifestSummarySchema.safeParse(raw);
+      return { manifest: raw !== null && parsed.success ? parsed.data : null };
+    },
     "build.play": (req) => play.play(req),
     "build.build": (req) => play.build("build", req),
     "build.compileOnly": (req) => play.build("compileOnly", req),
@@ -54,8 +131,31 @@ export function createBuildHandlers(play: PlayController, emulators: IdeEmulator
   };
 }
 
-export function createCoreHandlers({ settings, dialog, shell, learnRoot }: CoreHandlerDeps): InvokeHandlers {
+export function createCoreHandlers({
+  settings,
+  dialog,
+  shell,
+  learnRoot,
+  samplesDir = null,
+  appInfo,
+}: CoreHandlerDeps): InvokeHandlers {
   return {
+    "project.templates": async () => ({
+      templates: (await templateSources(learnRoot, samplesDir)).map(({ id, title, description }) => ({
+        id,
+        title,
+        description,
+      })),
+    }),
+    "project.create": async ({ dir, name, template }) => ({
+      dir: await createProject({
+        parent: dir,
+        name,
+        template: template ?? "empty",
+        sources: await templateSources(learnRoot, samplesDir),
+      }),
+    }),
+    ...(appInfo ? { "app.info": () => appInfo } : {}),
     "learn.openAssets": async () => {
       const path = inside(learnRoot, "docs/tutorial/assets");
       if (!existsSync(path)) throw new Error("the tutorial assets are not installed");

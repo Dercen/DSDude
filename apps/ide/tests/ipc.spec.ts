@@ -14,12 +14,12 @@ test("IPC round trips through the preload with validation on both ends", async (
     await page.waitForFunction(() => typeof window.dsdude?.invoke === "function");
 
     const all = await page.evaluate(() => window.dsdude.invoke("settings.getAll", {}));
-    expect(all.settings).toMatchObject({ emulator: "melonds", firstRunDone: false });
+    expect(all.settings).toMatchObject({ emulator: "melonds", firstRunDone: true });
 
-    await page.evaluate(() => window.dsdude.invoke("settings.set", { key: "firstRunDone", value: true }));
+    await page.evaluate(() => window.dsdude.invoke("settings.set", { key: "emulator", value: "desmume" }));
     const file = join(launched.home, "userData", "settings.json");
     expect(existsSync(file)).toBe(true);
-    expect(JSON.parse(readFileSync(file, "utf8")).firstRunDone).toBe(true);
+    expect(JSON.parse(readFileSync(file, "utf8")).emulator).toBe("desmume");
 
     const flappy = resolve(appDir, "../../samples/flappy");
     const opened = await page.evaluate((dir) => window.dsdude.invoke("project.open", { dir }), flappy);
@@ -34,7 +34,7 @@ test("IPC round trips through the preload with validation on both ends", async (
       return {
         badRequest: await grab(window.dsdude.invoke("settings.set", { key: "emulator", value: "mame" } as never)),
         unknown: await grab(window.dsdude.invoke("shell.exec" as never, {} as never)),
-        notYet: await grab(window.dsdude.invoke("doctor.run", {})),
+        notYet: await grab(window.dsdude.invoke("toolchain.install", {})),
       };
     });
     expect(errors.badRequest).toContain("[bad-request]");

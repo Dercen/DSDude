@@ -21,8 +21,7 @@
     CALLN r1, 1, show_debug_message
     .loc "v0/02-fixed.dss" 6
     LOADK r1, 1.5
-    LOADI r2, 4
-    MUL r1, r1, r2
+    MULI r1, r1, 4
     CALLN r1, 1, show_debug_message
     .loc "v0/02-fixed.dss" 7
     LOADI r1, 10

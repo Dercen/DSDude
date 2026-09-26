@@ -10,7 +10,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { createEventSender } from "../ipc.ts";
 import { FakeEmulatorManager } from "./modes.ts";
-import { PlayController } from "./play.ts";
+import { debugLines, PlayController } from "./play.ts";
 
 type Sent = { [C in EventChannel]: [C, EventPayload<C>] }[EventChannel];
 
@@ -81,6 +81,27 @@ describe("PlayController", () => {
     ).toBe("DSD|EXIT|0");
     expect(of("emulator.exit")).toEqual([{ code: 0 }]);
     expect(play.status()).toEqual({ running: false, kind: null, pid: null });
+  });
+
+  it("prints the GDB attach command after the Controls line when debugging", async () => {
+    const { play, of } = setup();
+    await play.play({ projectDir: "C:/p", debug: true });
+    await settle();
+    const lines = of("build.log").flatMap((p) => p.lines);
+    const i = lines.indexOf("Controls: Arrows = D-pad");
+    expect(lines.slice(i + 1, i + 3)).toEqual(debugLines("arm9-debug.elf"));
+    expect(lines[i + 2]).toContain('-ex "target remote localhost:3333"');
+    await play.stop();
+    const plain = setup();
+    await plain.play.play({ projectDir: "C:/p" });
+    await settle();
+    expect(
+      plain
+        .of("build.log")
+        .flatMap((p) => p.lines)
+        .some((l) => l.startsWith("Debug:")),
+    ).toBe(false);
+    await plain.play.stop();
   });
 
   it("does not launch when the build fails, and sends the diagnostics once", async () => {

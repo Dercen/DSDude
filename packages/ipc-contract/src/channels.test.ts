@@ -14,6 +14,7 @@ import {
   LearnPathSchema,
   ProjectSchema,
   SettingsSchema,
+  TemplateIndexSchema,
 } from "./channels.ts";
 
 const diag: Diagnostic = {
@@ -56,6 +57,21 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     res: { dir: "C:/p/my_game" },
     badReq: { dir: "C:/p", name: "my game" },
   },
+  "project.templates": {
+    req: {},
+    res: { templates: [{ id: "empty", title: "Empty", description: "One room, nothing in it." }] },
+    badReq: [],
+  },
+  "app.info": {
+    req: {},
+    res: {
+      version: "0.1.0",
+      packaged: false,
+      defaultProjectsDir: "C:/Users/me/DSDudeProjects",
+      oneDriveDirs: ["C:/Users/me/OneDrive"],
+    },
+    badReq: 0,
+  },
   "assets.import": {
     req: { projectDir: "C:/p", kind: "sprite", sourcePath: "C:/x.png", name: "spr_x" },
     res: { name: "spr_x", diagnostics: [] },
@@ -82,6 +98,17 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     badReq: { projectDir: 1 },
   },
   "build.cancel": { req: {}, res: { ok: true }, badReq: null },
+  "build.manifest": {
+    req: { projectDir: "C:/p" },
+    res: {
+      manifest: {
+        contract: "C3",
+        sounds: { snd_flap: { id: 0, ramBytes: 8840 } },
+        rooms: { rm_game: { top: { objVramBytes: 1152, obj16Palettes: 2 }, bottom: null, soundRamBytes: 26520 } },
+      },
+    },
+    badReq: { projectDir: "" },
+  },
   "emulator.stop": { req: {}, res: { ok: true }, badReq: "stop" },
   "emulator.status": { req: {}, res: { running: true, kind: "melonds", pid: 99 }, badReq: undefined },
   "emulator.install": { req: { kind: "desmume" }, res: { exe: "C:/e/DeSmuME.exe" }, badReq: { kind: "mame" } },
@@ -98,7 +125,16 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     badReq: 3,
   },
   "toolchain.install": { req: {}, res: { installed: true, diagnostics: [] }, badReq: "x" },
-  "doctor.run": { req: {}, res: { checks: [{ name: "BlocksDS", ok: true, detail: "1.24.0" }] }, badReq: false },
+  "doctor.run": {
+    req: {},
+    res: {
+      checks: [
+        { name: "BlocksDS", ok: true, detail: "1.24.0" },
+        { name: "OneDrive", ok: true, detail: "The project is under OneDrive", status: "warn" },
+      ],
+    },
+    badReq: false,
+  },
   "project.readFile": {
     req: { dir: "C:/p", path: "sprites/spr_bird/sheet.png" },
     res: { bytes: new Uint8Array([137, 80, 78, 71]) },
@@ -141,17 +177,20 @@ const EVENT_SAMPLES: { [C in EventChannel]: { ok: unknown; bad: unknown } } = {
 };
 
 describe("C5 channel map", () => {
-  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0 and 0.5.0 additions", () => {
+  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0-0.7.0 additions", () => {
     expect(INVOKE_CHANNELS).toEqual([
       "project.open",
       "project.save",
       "project.create",
+      "project.templates",
+      "app.info",
       "assets.import",
       "assets.preview",
       "build.play",
       "build.build",
       "build.compileOnly",
       "build.cancel",
+      "build.manifest",
       "emulator.stop",
       "emulator.status",
       "emulator.install",
@@ -233,6 +272,15 @@ describe("payload schemas", () => {
     const images = invokeChannels["learn.read"].response.shape.images;
     expect(images.safeParse({ a: "https://example.com/x.png" }).success).toBe(false);
     expect(images.safeParse({ a: "data:image/svg+xml;base64,PHN2Zz4=" }).success).toBe(false);
+  });
+
+  it("reads templates/index.json entries and refuses unsafe folders", () => {
+    const ok = TemplateIndexSchema.parse({ templates: [{ id: "flappy", title: "Flappy Bird", dir: "flappy" }] });
+    expect(ok.templates[0]?.description).toBe("");
+    expect(
+      TemplateIndexSchema.safeParse({ templates: [{ id: "x", title: "X", dir: "../samples/flappy" }] }).success,
+    ).toBe(false);
+    expect(TemplateIndexSchema.safeParse({ templates: [] }).success).toBe(false);
   });
 
   it("settings.set refuses undefined values and unknown keys", () => {

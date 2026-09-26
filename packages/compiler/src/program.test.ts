@@ -65,10 +65,56 @@ describe("program form: the conformance corpus", () => {
 
 describe("program form: code shape", () => {
   it("puts locals in fixed registers and temporaries above them", () => {
-    const r = compileProgram("var a = 1\nvar b = a + 2\nshow_debug_message(b)", { file: "t.dss" });
+    // 200 is outside ADDI's signed 8-bit range, so the literal goes through a temporary register.
+    const r = compileProgram("var a = 1\nvar b = a + 200\nshow_debug_message(b)", { file: "t.dss" });
     expect(disassemble(r.module as NonNullable<typeof r.module>)).toContain(
-      ["    LOADI r0, 1", '    .loc "t.dss" 2', "    LOADI r2, 2", "    ADD r1, r0, r2"].join("\n"),
+      ["    LOADI r0, 1", '    .loc "t.dss" 2', "    LOADI r2, 200", "    ADD r1, r0, r2"].join("\n"),
     );
+  });
+
+  /** The disassembled instructions of a one-function program, without directives. */
+  const instructions = (source: string): string[] => {
+    const r = compileProgram(source, { file: "t.dss" });
+    return disassemble(r.module as NonNullable<typeof r.module>)
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("."));
+  };
+
+  it("uses ADDI/SUBI/MULI for small int literals, and ADD for anything else", () => {
+    expect(instructions("var a = 1\nvar b = a - 127\nb *= -3\nb += 127\nb--")).toEqual([
+      "LOADI r0, 1",
+      "SUBI r1, r0, 127",
+      "MULI r1, r1, -3",
+      "ADDI r1, r1, 127",
+      "SUBI r1, r1, 1",
+      "RET r0, 0",
+    ]);
+    // 128 and a fixed-point literal don't fit the signed 8-bit int operand.
+    expect(instructions("var a = 1\nvar b = a + 128\nb += 1.5")).toEqual([
+      "LOADI r0, 1",
+      "LOADI r2, 128",
+      "ADD r1, r0, r2",
+      "LOADK r2, 1.5",
+      "ADD r1, r1, r2",
+      "RET r0, 0",
+    ]);
+  });
+
+  it("branches on comparisons with CMPJ followed by JMP", () => {
+    // if: jump past the body when the relation fails, so CMPJ tests the relation itself (3 is <=).
+    expect(instructions("var a = 1\nif (a <= 5) a = 2")).toEqual([
+      "LOADI r0, 1",
+      "LOADI r1, 5",
+      "CMPJ r0, r1, 3",
+      "JMP L0",
+      "LOADI r0, 2",
+      "L0:",
+      "RET r0, 0",
+    ]);
+    // `||` jumps into the body when its left side is true, so CMPJ tests the negated relation: 1 (!=) skips that
+    // JMP exactly when a == 3 is false.
+    expect(instructions("var a = 1\nif (a == 3 || a > 7) a = 2")).toContain("CMPJ r0, r1, 1");
   });
 
   it("fills default parameters at the call", () => {

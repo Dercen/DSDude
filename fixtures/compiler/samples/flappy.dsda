@@ -82,16 +82,15 @@
     .loc "objects/obj_bird/step.dss" 7
     GETBI r0, vspeed
     LOADI r1, 6
-    GT r0, r0, r1
-    JMPF r0, L3
+    CMPJ r0, r1, 4
+    JMP L3
     LOADI r0, 6
     SETBI r0, vspeed
   L3:
     .loc "objects/obj_bird/step.dss" 8
     GETBI r0, vspeed
     NEG r0, r0
-    LOADI r1, 8
-    MUL r0, r0, r1
+    MULI r0, r0, 8
     LOADI r1, -30
     LOADI r2, 60
     CALLN r0, 3, clamp
@@ -99,8 +98,8 @@
     .loc "objects/obj_bird/step.dss" 9
     GETBI r0, y
     LOADI r1, 0
-    LT r0, r0, r1
-    JMPF r0, L4
+    CMPJ r0, r1, 2
+    JMP L4
     LOADI r0, 0
     SETBI r0, y
     LOADI r0, 0
@@ -111,8 +110,8 @@
     GETBI r1, room_height
     GETBI r2, sprite_height
     SUB r1, r1, r2
-    GT r0, r0, r1
-    JMPF r0, L5
+    CMPJ r0, r1, 4
+    JMP L5
     CALL r0, obj_bird__fn_die
   L5:
     RET r0, 0
@@ -124,7 +123,7 @@
     RET r0, 0
 .end
 
-.func obj_bird__collision_obj_gap 0 2
+.func obj_bird__collision_obj_gap 0 1
     .loc "objects/obj_bird/collision_obj_gap.dss" 2
     GETSLOT r0, 0
     JMPF r0, L0
@@ -133,8 +132,7 @@
     LOADB r0, true
     SETSLOTO r0, 0
     GETGLOB r0, score
-    LOADI r1, 1
-    ADD r0, r0, r1
+    ADDI r0, r0, 1
     SETGLOB r0, score
     LOADK r0, @snd_point
     CALLN r0, 1, audio_play_sound
@@ -173,8 +171,7 @@
     CALLN r1, 3, instance_create
     .loc "objects/obj_ctrl/alarm_0.dss" 3
     LOADI r1, 272
-    LOADI r3, 24
-    ADD r2, r0, r3
+    ADDI r2, r0, 24
     LOADK r3, @obj_pipe
     CALLN r1, 3, instance_create
     .loc "objects/obj_ctrl/alarm_0.dss" 4

@@ -63,7 +63,13 @@ static uint16_t *ds_obj_base(int screen)
     return screen == DS_TOP ? SPRITE_GFX : SPRITE_GFX_SUB;
 }
 
-bool ds_obj_upload(int screen, const ds_grf *g, int w, int h, ds_sprite *out)
+bool ds_obj_is_size(int w, int h)
+{
+    SpriteSize size;
+    return ds_obj_shape(w, h, &size);
+}
+
+bool ds_obj_upload(int screen, const ds_grf *g, int w, int h, int frames_wanted, ds_sprite *out)
 {
     SpriteSize size;
     int bpp = g->hdr.gfxAttr;
@@ -73,6 +79,12 @@ bool ds_obj_upload(int screen, const ds_grf *g, int w, int h, ds_sprite *out)
     uint32_t frame_bytes = (uint32_t)(w * h * bpp / 8);
     uint32_t stride = (frame_bytes + DS_OBJ_ALIGN - 1) & ~(uint32_t)(DS_OBJ_ALIGN - 1);
     uint32_t frames = (uint32_t)(g->gfx_size / frame_bytes);
+    if (frames_wanted > 0)
+    {
+        if ((uint32_t)frames_wanted > frames)
+            return false;
+        frames = (uint32_t)frames_wanted;
+    }
     if (frames == 0 || ds_obj_top[screen] + frames * stride > DS_OBJ_VRAM_BYTES)
         return false;
 

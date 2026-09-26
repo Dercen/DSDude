@@ -1,0 +1,313 @@
+.dsda 0.1
+.seed 20260926
+.global a
+.global b
+
+.func __main 0 16
+    .loc "rt/numeric-hashes.dss" 21
+    LOADI r12, 1
+    SETGLOB r12, a
+    .loc "rt/numeric-hashes.dss" 22
+    LOADI r12, 0
+    SETGLOB r12, b
+    .loc "rt/numeric-hashes.dss" 25
+    LOADI r0, -720
+  L0:
+    LOADI r12, 720
+    CMPJ r0, r12, 3
+    JMP L1
+    .loc "rt/numeric-hashes.dss" 26
+    MOV r12, r0
+    CALLN r12, 1, dsin
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 27
+    MOV r12, r0
+    CALLN r12, 1, dcos
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 25
+    LOADK r12, 7.300048828125
+    ADD r0, r0, r12
+    JMP L0
+  L1:
+    .loc "rt/numeric-hashes.dss" 29
+    LOADK r12, "trig"
+    CALL r12, report
+    .loc "rt/numeric-hashes.dss" 32
+    LOADI r1, -20
+  L2:
+    LOADI r12, 20
+    CMPJ r1, r12, 3
+    JMP L5
+    .loc "rt/numeric-hashes.dss" 33
+    LOADI r2, -20
+  L3:
+    LOADI r12, 20
+    CMPJ r2, r12, 3
+    JMP L4
+    .loc "rt/numeric-hashes.dss" 34
+    LOADI r12, 0
+    LOADI r13, 0
+    MOV r14, r2
+    MOV r15, r1
+    CALLN r12, 4, point_direction
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 33
+    ADDI r2, r2, 3
+    JMP L3
+  L4:
+    .loc "rt/numeric-hashes.dss" 32
+    ADDI r1, r1, 3
+    JMP L2
+  L5:
+    .loc "rt/numeric-hashes.dss" 37
+    LOADK r12, "atan2"
+    CALL r12, report
+    .loc "rt/numeric-hashes.dss" 40
+    LOADI r3, 0
+  L6:
+    LOADI r12, 300
+    CMPJ r3, r12, 3
+    JMP L7
+    .loc "rt/numeric-hashes.dss" 41
+    MUL r12, r3, r3
+    MULI r12, r12, 37
+    ADD r12, r12, r3
+    CALLN r12, 1, sqrt
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 42
+    LOADI r13, 7
+    DIV r12, r3, r13
+    CALLN r12, 1, sqrt
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 40
+    ADDI r3, r3, 1
+    JMP L6
+  L7:
+    .loc "rt/numeric-hashes.dss" 44
+    LOADK r12, "sqrt"
+    CALL r12, report
+    .loc "rt/numeric-hashes.dss" 47
+    LOADI r4, -50
+  L8:
+    LOADI r12, 50
+    CMPJ r4, r12, 3
+    JMP L11
+    .loc "rt/numeric-hashes.dss" 48
+    LOADI r5, -9
+  L9:
+    LOADI r12, 9
+    CMPJ r5, r12, 3
+    JMP L10
+    .loc "rt/numeric-hashes.dss" 49
+    DIV r12, r4, r5
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 50
+    IDIV r12, r4, r5
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 51
+    MOD r12, r4, r5
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 52
+    LOADK r13, 0.3701171875
+    ADD r12, r4, r13
+    LOADK r14, 0.5
+    MUL r13, r5, r14
+    DIV r12, r12, r13
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 48
+    ADDI r5, r5, 2
+    JMP L9
+  L10:
+    .loc "rt/numeric-hashes.dss" 47
+    ADDI r4, r4, 7
+    JMP L8
+  L11:
+    .loc "rt/numeric-hashes.dss" 55
+    LOADK r12, "div"
+    CALL r12, report
+    .loc "rt/numeric-hashes.dss" 58
+    LOADI r6, 1
+  L12:
+    LOADI r12, 200
+    CMPJ r6, r12, 3
+    JMP L13
+    .loc "rt/numeric-hashes.dss" 59
+    LOADK r13, 0.123046875
+    MUL r12, r6, r13
+    LOADK r14, -0.77001953125
+    MUL r13, r6, r14
+    MUL r12, r12, r13
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 60
+    LOADI r13, 3
+    DIV r12, r6, r13
+    LOADI r14, -9
+    DIV r13, r6, r14
+    MUL r12, r12, r13
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 58
+    ADDI r6, r6, 1
+    JMP L12
+  L13:
+    .loc "rt/numeric-hashes.dss" 62
+    LOADK r12, "mul"
+    CALL r12, report
+    .loc "rt/numeric-hashes.dss" 65
+    LOADI r7, 10
+  L14:
+    LOADI r12, 100
+    CMPJ r7, r12, 3
+    JMP L17
+    .loc "rt/numeric-hashes.dss" 66
+    LOADI r8, 0
+  L15:
+    LOADI r12, 360
+    CMPJ r8, r12, 2
+    JMP L16
+    .loc "rt/numeric-hashes.dss" 67
+    MOV r12, r7
+    MOV r13, r8
+    CALLN r12, 2, lengthdir_x
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 68
+    MOV r12, r7
+    MOV r13, r8
+    CALLN r12, 2, lengthdir_y
+    CALL r12, raw
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 66
+    ADDI r8, r8, 25
+    JMP L15
+  L16:
+    .loc "rt/numeric-hashes.dss" 65
+    ADDI r7, r7, 10
+    JMP L14
+  L17:
+    .loc "rt/numeric-hashes.dss" 71
+    LOADK r12, "lengthdir"
+    CALL r12, report
+    .loc "rt/numeric-hashes.dss" 74
+    LOADI r9, 0
+  L18:
+    LOADI r12, 100
+    CMPJ r9, r12, 3
+    JMP L19
+    .loc "rt/numeric-hashes.dss" 75
+    LOADI r13, 8
+    DIV r12, r9, r13
+    LOADK r13, 3.0625
+    SUB r12, r12, r13
+    CALLN r12, 1, string
+    MOV r10, r12
+    .loc "rt/numeric-hashes.dss" 76
+    MOV r12, r10
+    CALLN r12, 1, string_length
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 77
+    MOV r12, r10
+    MOV r13, r10
+    CALLN r13, 1, string_length
+    CALLN r12, 2, string_char_at
+    CALLN r12, 1, ord
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 74
+    ADDI r9, r9, 1
+    JMP L18
+  L19:
+    .loc "rt/numeric-hashes.dss" 79
+    LOADK r12, "string"
+    CALL r12, report
+    .loc "rt/numeric-hashes.dss" 82
+    LOADI r11, 0
+  L20:
+    LOADI r12, 200
+    CMPJ r11, r12, 2
+    JMP L21
+    .loc "rt/numeric-hashes.dss" 83
+    LOADK r12, 100000
+    CALLN r12, 1, irandom
+    CALL r12, mix
+    .loc "rt/numeric-hashes.dss" 82
+    ADDI r11, r11, 1
+    JMP L20
+  L21:
+    .loc "rt/numeric-hashes.dss" 85
+    LOADK r12, "random"
+    CALL r12, report
+    RET r0, 0
+.end
+
+.func mix 1 4
+    .loc "rt/numeric-hashes.dss" 5
+    LOADK r2, 65521
+    MOD r1, r0, r2
+    .loc "rt/numeric-hashes.dss" 6
+    LOADI r2, 0
+    CMPJ r1, r2, 2
+    JMP L0
+    LOADK r2, 65521
+    ADD r1, r1, r2
+  L0:
+    .loc "rt/numeric-hashes.dss" 7
+    GETGLOB r2, a
+    ADD r2, r2, r1
+    LOADK r3, 65521
+    MOD r2, r2, r3
+    SETGLOB r2, a
+    .loc "rt/numeric-hashes.dss" 8
+    GETGLOB r2, b
+    GETGLOB r3, a
+    ADD r2, r2, r3
+    LOADK r3, 65521
+    MOD r2, r2, r3
+    SETGLOB r2, b
+    RET r0, 0
+.end
+
+.func raw 1 5
+    .loc "rt/numeric-hashes.dss" 13
+    MOV r2, r0
+    CALLN r2, 1, floor
+    MOV r1, r2
+    .loc "rt/numeric-hashes.dss" 14
+    LOADI r3, 4096
+    MUL r2, r1, r3
+    SUB r3, r0, r1
+    LOADI r4, 4096
+    MUL r3, r3, r4
+    CALLN r3, 1, floor
+    ADD r2, r2, r3
+    RET r2, 1
+.end
+
+.func report 1 3
+    .loc "rt/numeric-hashes.dss" 17
+    LOADK r2, " "
+    ADD r1, r0, r2
+    GETGLOB r2, a
+    CALLN r2, 1, string
+    ADD r1, r1, r2
+    LOADK r2, " "
+    ADD r1, r1, r2
+    GETGLOB r2, b
+    CALLN r2, 1, string
+    ADD r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "rt/numeric-hashes.dss" 18
+    LOADI r1, 1
+    SETGLOB r1, a
+    .loc "rt/numeric-hashes.dss" 19
+    LOADI r1, 0
+    SETGLOB r1, b
+    RET r0, 0
+.end

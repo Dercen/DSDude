@@ -44,6 +44,9 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.3.0 (2026-09-26, WS6, T1): BuildRequestSchema gains optional `debug` (follows C4 0.3.0); the compile-time C1/C4/C12 links now also compare key sets, so an optional field added on one side only fails `tsc -b`.
 - 0.4.0 (2026-09-26, WS6, T1): new channels project.readFile / project.writeFile (asset files: AssetPathSchema, safe relative paths, png/wav/mp3/xm/mod/it/s3m, Uint8Array bytes; for the C12 editors) and learn.list / learn.read (docs/tutorial|manual|reference markdown, local images as data: URLs; for the Learn panel); settings key learnOpened (default false); isSafeRelativePath, AssetPathSchema, LearnPathSchema, LearnDocSchema exported. All additive.
 - 0.5.0 (2026-09-26, WS6, T1): new channel learn.openAssets ({} -> {path}; opens docs/tutorial/assets/ in the file manager for Help > Tutorial assets). Additive.
+- 0.6.0 (2026-09-26, WS6, T1): new channel build.manifest ({projectDir} -> {manifest}: the build folder's C3 assets.manifest.json through the tolerant ManifestSummarySchema, or null); for the status-bar meters. Additive.
+- 0.7.0 (2026-09-26, WS6, T1): new channels project.templates and app.info; TemplateIndexSchema (the reader's format for WS7's templates/index.json: {templates: [{id, title, description, dir}]}); project.create semantics pinned (creates <dir>/<name>, refuses a non-empty folder, sets name/title). Additive.
+- 0.8.0 (2026-09-26, WS6, T1): doctor.run checks gain an optional status (ok|warn|fail|info, from C10 dsdude doctor); ok stays false only for fail. Additive.
 
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).
@@ -65,6 +68,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - owed: WS3, with its first runtime/dist build.
 - 0.1.0 (2026-09-26, WS3, first build): runtime/dist/arm9.elf (stripped) + arm9-debug.elf + VERSION (key=value: runtime, abi, tree = git tree of runtime/ without dist/, blocksds, arm7, arm9_sha256, itcm/dtcm/dtcm_data/cstack/image); paired ARM7 arm7_maxmod.elf; `npm run build:runtime -w runtime`; DTCM data 0x1200 with an 11,200-byte C stack; reproducible across folders; boot errors R580-R582 provisional (ADR-0004).
 - 0.2.0 (2026-09-26, WS3, T1): VERSION key `loaded` (code + data, which carries the 0.7 MB budget); `image` stays (everything static, now information only: the core's static pools are budgeted separately, PLAN 3.3); boot via the core's dsd_core_main (C11 0.2.0), errors are the core's R5xx (R584/R571), provisional R580-R582 dropped.
+- 0.3.0 (2026-09-26, WS3, T1): VERSION key `build_tree` (git tree of the DS build's inputs: core/, gen/, platform/ds/src/, data/, Makefile, package.json), appended; it is the staleness check for dist/ (`npm run check:dist -w runtime`), so WS2 test/host edits no longer make dist/ stale; `tree` unchanged, now informational.
 
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.

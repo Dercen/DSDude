@@ -1,6 +1,6 @@
 // Shared helpers for the Playwright `_electron` suite: build once, launch the built app with an isolated DSDUDE_HOME.
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -51,8 +51,19 @@ export interface LaunchedApp {
   close(): Promise<void>;
 }
 
-export async function launchApp(extraEnv: Record<string, string> = {}): Promise<LaunchedApp> {
+/**
+ * Launches the built app with a fresh DSDUDE_HOME. The first-run wizard is marked done unless `firstRun` is set,
+ * so tests that do not test it are not covered by its overlay.
+ */
+export async function launchApp(
+  extraEnv: Record<string, string> = {},
+  opts: { firstRun?: boolean } = {},
+): Promise<LaunchedApp> {
   const home = mkdtempSync(join(tmpdir(), "dsdude-e2e-"));
+  if (!opts.firstRun) {
+    mkdirSync(join(home, "userData"), { recursive: true });
+    writeFileSync(join(home, "userData", "settings.json"), JSON.stringify({ firstRunDone: true }));
+  }
   const env: Record<string, string> = {};
   for (const [k, v] of Object.entries(process.env)) if (v !== undefined && k !== "ELECTRON_RENDERER_URL") env[k] = v;
   const app = await _electron.launch({

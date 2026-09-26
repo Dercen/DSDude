@@ -1,12 +1,13 @@
 /** The IDE shell: toolbar, the dockview workbench, status bar and toast. */
 import "dockview/dist/styles/dockview.css";
 import { DockviewReact, type DockviewReadyEvent, themeDark } from "dockview-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ControlsCard } from "./help/ControlsCard.tsx";
 import { HelpMenu } from "./help/HelpMenu.tsx";
 import { IdeContext, useActions, useIde } from "./ide-context.tsx";
 import { ipc } from "./ipc.ts";
 import { LearnPanel } from "./learn/LearnPanel.tsx";
+import { computeMeters } from "./meters.ts";
 import { disposeAllModels, installLearnLinkOpener } from "./monaco/models.ts";
 import { createObjectEditorFactory } from "./object-editor/ObjectEditor.tsx";
 import { CodePanel } from "./panels/CodePanel.tsx";
@@ -17,6 +18,8 @@ import { ProjectTree } from "./panels/ProjectTree.tsx";
 import { loadEditorModules, registerEditor, saveDirtyPanels } from "./panels/registry.ts";
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
 import { createIde } from "./store/ide.ts";
+import { FirstRunWizard } from "./wizards/FirstRunWizard.tsx";
+import { NewProjectDialog } from "./wizards/NewProjectDialog.tsx";
 import { DockWorkbench } from "./workbench.ts";
 
 loadEditorModules();
@@ -55,6 +58,9 @@ function Toolbar() {
   const dirty = useIde((s) => Object.keys(s.dirty).length > 0);
   return (
     <div className="toolbar">
+      <button type="button" data-testid="new" onClick={() => actions.showNewProject()}>
+        New…
+      </button>
       <button type="button" data-testid="open" onClick={() => void actions.chooseAndOpenProject()}>
         Open…
       </button>
@@ -76,17 +82,49 @@ function Toolbar() {
           {"■"} Stop
         </button>
       ) : (
-        <button
-          type="button"
-          className="play"
-          data-testid="play"
-          disabled={!hasProject || status === "building"}
-          onClick={() => void actions.play()}
-        >
-          {"▶"} Play
-        </button>
+        <>
+          <button
+            type="button"
+            data-testid="debug"
+            title="Play with the debugger (melonDS waits for GDB)"
+            disabled={!hasProject || status === "building"}
+            onClick={() => void actions.debug()}
+          >
+            Debug
+          </button>
+          <button
+            type="button"
+            className="play"
+            data-testid="play"
+            disabled={!hasProject || status === "building"}
+            onClick={() => void actions.play()}
+          >
+            {"▶"} Play
+          </button>
+        </>
       )}
     </div>
+  );
+}
+
+function Meters() {
+  const project = useIde((s) => s.project);
+  const manifest = useIde((s) => s.manifest);
+  const stats = useIde((s) => s.stats);
+  const usage = useIde((s) => s.usage);
+  const running = useIde((s) => s.build.status === "running");
+  const meters = useMemo(
+    () => computeMeters({ project, manifest, stats, usage, running }),
+    [project, manifest, stats, usage, running],
+  );
+  return (
+    <span className="meters">
+      {meters.map((m) => (
+        <span key={m.id} className={`meter meter-${m.level}`} title={m.tooltip} data-testid={`meter:${m.id}`}>
+          {m.text}
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -100,8 +138,9 @@ function StatusBar() {
         ? `Game running${stats?.fps !== undefined ? ` · ${stats.fps} fps` : ""}`
         : "Ready";
   return (
-    <div className="statusbar" data-testid="status">
-      {text}
+    <div className="statusbar">
+      <span data-testid="status">{text}</span>
+      <Meters />
     </div>
   );
 }
@@ -176,6 +215,8 @@ export function App() {
         <StatusBar />
         <ToastView />
         <ControlsCard />
+        <NewProjectDialog />
+        <FirstRunWizard />
       </div>
     </IdeContext.Provider>
   );

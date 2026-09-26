@@ -21,5 +21,7 @@ Inputs and fingerprints for WS2's host runs of whole games (docs/kickoff/ws2.md,
   a filled `draw_rectangle`. The GRFs are copies of WS3's selftest grit output
   (`fixtures/runtime/selftest/nitrofs`, made from `fixtures/runtime/selftest/src/*.png` with the C3 grit lines):
   `gfx/spr16.grf` sha256 `6202600c...`, `gfx/spr8x8.grf` `96dd084c...`, `gfx/spr64.grf` `fca15594...`,
-  `bg/bg.grf` `69512af1...`. `runtime/tests/check_screens.mjs` compares a render with those source PNGs (81,820
-  pixels exact; the rotated sprite within the DS's corner sampling), and `test_screens` pins the renders by hash.
+  `bg/bg.grf` `69512af1...`. A second room, `rm_pan` (reached by `room_goto` at the end of frame 3), shows `spr64` over the
+  background on the top screen with a view that pans 3 pixels right and 1 down per Step, and nothing on the bottom
+  screen. `runtime/tests/check_screens.mjs <frame-1 dir> <frame-5 dir>` compares both renders with the source PNGs
+  (178,856 pixels exact; the rotated sprite within the DS's corner sampling), and `test_screens` pins them by hash.

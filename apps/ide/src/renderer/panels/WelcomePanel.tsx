@@ -11,10 +11,15 @@ export function WelcomePanel() {
         <p>Pick an event in the Project tree to edit it, then press Play.</p>
       ) : (
         <>
-          <p>Make Nintendo DS games. Open a project to start.</p>
-          <button type="button" onClick={() => void actions.chooseAndOpenProject()}>
-            Open a project…
-          </button>
+          <p>Make Nintendo DS games. Start a new project, or open one you have.</p>
+          <p className="welcome-buttons">
+            <button type="button" className="primary" onClick={() => actions.showNewProject()}>
+              New project…
+            </button>
+            <button type="button" onClick={() => void actions.chooseAndOpenProject()}>
+              Open a project…
+            </button>
+          </p>
         </>
       )}
     </div>

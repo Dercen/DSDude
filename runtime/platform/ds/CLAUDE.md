@@ -14,7 +14,7 @@ Generated in Phase 0; edited by WS3 since (<= 60 lines). State and progress: `do
 ## Contracts
 | Contract | Files | Version | Role |
 |---|---|---|---|
-| C11 platform seam | `runtime/core/include/dsd_platform.h` | 0.2.0 (frozen at CP-A); ADR-0004 | consumer (`src/ds_plat.c`) |
+| C11 platform seam | `runtime/core/include/dsd_platform.h` | 0.3.0 (frozen at CP-A) | consumer (`src/ds_plat.c`) |
 | C8 runtime artifact | `contracts/runtime-artifact.md` | 0.2.0 | owner |
 | C8 log protocol | `contracts/log-protocol.md` | 0.1.0 | consumer |
 | C13 runtime limits | `contracts/runtime-limits.json` | 0.1.0 | consumer |
@@ -25,6 +25,7 @@ Changes follow the tiers in `contracts/README.md` (T0 doc, T1 additive + CHANGEL
 ```
 npm test -w runtime
 npm run build:runtime -w runtime   # DSDUDE_MAKE_JOBS=4; commit dist/ with the sources it was built from
+npm run check:dist -w runtime      # dist/ current? (VERSION build_tree vs the build inputs)
 npm run selftest -w runtime        # screenshot cases vs goldens
 npm run conformance:ds -w runtime  # WS2's fixtures on the DS core vs the host's .out
 ```

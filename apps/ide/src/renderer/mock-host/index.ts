@@ -111,6 +111,7 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
 
   let settings: Settings = SettingsSchema.parse({
     learnOpened: true,
+    firstRunDone: true,
     ...options.settings,
     recentProjects: options.settings?.recentProjects ?? (dir ? [dir] : []),
   });
@@ -148,6 +149,10 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
     },
     "settings.getAll": () => ({ settings }),
     "dialog.open": () => ({ paths: dir ? [dir] : [] }),
+    "project.templates": () => ({
+      templates: [{ id: "empty", title: "Empty", description: "One room on both screens and nothing in it." }],
+    }),
+    "app.info": () => ({ version: "0.1.0", packaged: false, defaultProjectsDir: "/projects", oneDriveDirs: [] }),
     "learn.list": () => {
       const docs = listDocs();
       for (const path of Object.keys(options.docs ?? {}))
@@ -187,6 +192,7 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
       return { ok: !fail(diagnostics), ndsPath: null, diagnostics, timings: {} };
     },
     "build.cancel": () => ({ ok: true }),
+    "build.manifest": () => ({ manifest: null }),
     "emulator.stop": () => {
       if (running) {
         running = false;
@@ -198,7 +204,10 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
     "emulator.status": () =>
       running ? { running: true, kind: "melonds", pid: null } : { running: false, kind: null, pid: null },
     "toolchain.status": () => ({ installed: true, blocksdsVersion: "1.24.0", diagnostics: [] }),
-    "doctor.run": () => ({ checks: [] }),
+    "doctor.run": () => ({
+      checks: [{ name: "Build service", ok: true, status: "info", detail: "The mock host needs no tools." }],
+    }),
+    "emulator.install": ({ kind }) => ({ exe: `/emulators/${kind}.exe` }),
   };
   const handlers: InvokeHandlers = { ...base, ...options.handlers };
   // Record every call (before validation, as the renderer made it).

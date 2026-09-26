@@ -2,7 +2,13 @@
  * The IDE store (zustand, vanilla) over the C1 Project, plus the actions that talk to main through C5. The layout
  * is injected as a `Workbench`, so node Vitest drives the store with `createLocalBridge` and a fake workbench.
  */
-import { type DsdudeBridge, type EventPayload, parseIpcError, type Settings } from "@dsdude/ipc-contract";
+import {
+  type DsdudeBridge,
+  type EventPayload,
+  type ManifestSummary,
+  parseIpcError,
+  type Settings,
+} from "@dsdude/ipc-contract";
 import type { Diagnostic, Project } from "@dsdude/project-format";
 import { type Draft, produce } from "immer";
 import { createStore, type StoreApi } from "zustand/vanilla";
@@ -46,6 +52,12 @@ export interface IdeState {
   learn: { target: LearnTarget | null; seq: number };
   /** The Controls card overlay is showing (first Play of the session, or Help > Controls). */
   controlsCard: boolean;
+  /** The project's last C3 assets.manifest.json (meters), null before the first build. */
+  manifest: ManifestSummary | null;
+  /** The New Project dialog is open. */
+  newProject: boolean;
+  /** The first-run wizard is open (settings.firstRunDone is false). */
+  firstRun: boolean;
 }
 
 /** What the store needs from the dockview layout. */
@@ -69,6 +81,8 @@ export interface IdeActions {
   chooseAndOpenProject(): Promise<void>;
   save(): Promise<boolean>;
   play(): Promise<void>;
+  /** Play with melonDS's GDB stub (C4 debug); Output shows the attach command. */
+  debug(): Promise<void>;
   stop(): Promise<void>;
   editDocument(docId: string, text: string): void;
   /** C12 ProjectStore.update: applies an immer recipe and marks the resource's file dirty. */
@@ -80,6 +94,14 @@ export interface IdeActions {
   revealDiagnostic(d: Diagnostic): void;
   clearOutput(): void;
   showToast(message: string, kind?: Toast["kind"]): void;
+  /** Re-reads the build folder's manifest (after open and after every build). */
+  refreshManifest(): Promise<void>;
+  /** Closes the first-run wizard and remembers it (settings.firstRunDone). */
+  finishFirstRun(): Promise<void>;
+  showNewProject(): void;
+  hideNewProject(): void;
+  /** Creates <parent>/<name> from a template and opens it; throws (for the dialog) when main refuses. */
+  createProject(opts: { parent: string; name: string; template: string }): Promise<void>;
   showControls(): void;
   hideControls(): void;
   /** Help > Tutorial assets: opens docs/tutorial/assets/ in the file manager. */
@@ -110,6 +132,9 @@ const initial = (): IdeState => ({
   reveal: null,
   learn: { target: null, seq: 0 },
   controlsCard: false,
+  manifest: null,
+  newProject: false,
+  firstRun: false,
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -143,11 +168,51 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
     set({ output: output.length > OUTPUT_LIMIT ? output.slice(output.length - OUTPUT_LIMIT) : output });
   };
 
+  /** Play, or Debug with melonDS's GDB stub. */
+  async function runGame(debug: boolean): Promise<void> {
+    const { projectDir, project, dirty, build } = get();
+    if (!projectDir || !project) {
+      actions.showToast("Open a project first.", "error");
+      return;
+    }
+    if (build.status === "building") return;
+    if ((Object.keys(dirty).length > 0 || options.savePanels) && !(await actions.save())) return;
+    const seq = exitSeq;
+    set({ build: { status: "building", phase: "load", progress: 0 }, runtimeDiagnostics: [], stats: null });
+    append({ kind: "info", text: `${debug ? "Debug" : "Play"} ${project.project.title}` });
+    try {
+      const res = await ipc.invoke("build.play", {
+        projectDir,
+        // Only melonDS has a GDB stub (C4 E623 for DeSmuME).
+        emulator: debug ? "melonds" : get().settings?.emulator,
+        ...(debug ? { debug: true } : {}),
+      });
+      void actions.refreshManifest();
+      if (!res.ok) {
+        set({ build: { ...get().build, status: "idle" }, buildDiagnostics: res.diagnostics });
+        const n = errorsIn(problemsOf(get())).length;
+        actions.showToast(
+          n > 0 ? `Fix ${n} problem${n === 1 ? "" : "s"} to play` : "The game did not start: see Output.",
+          "error",
+        );
+        workbench.focusPanel(n > 0 ? "problems" : "output");
+        return;
+      }
+      // The game may already have ended (emulator.exit arrived while build.play was answering).
+      set({ build: { ...get().build, status: exitSeq === seq ? "running" : "idle" } });
+      // The Controls card appears on the first Play of each session (PLAN.md 6 WS6).
+      if (!controlsShown) actions.showControls();
+    } catch (err) {
+      set({ build: { ...get().build, status: "idle" } });
+      actions.showToast(`Play failed: ${parseIpcError(err).message}`, "error");
+    }
+  }
+
   const actions: IdeActions = {
     async boot() {
       try {
         const { settings } = await ipc.invoke("settings.getAll", {});
-        set({ settings });
+        set({ settings, firstRun: !settings.firstRunDone });
         const recent = settings.recentProjects[0];
         if (recent) await actions.openProject(recent);
         // The Learn panel opens on first launch (PLAN.md 6 WS6).
@@ -183,6 +248,8 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
         const settings = get().settings;
         if (settings) set({ settings: { ...settings, recentProjects: recent } });
         await ipc.invoke("settings.set", { key: "recentProjects", value: recent });
+        set({ manifest: null });
+        void actions.refreshManifest();
         return true;
       } catch (err) {
         actions.showToast(`Could not open ${dir}: ${parseIpcError(err).message}`, "error");
@@ -211,39 +278,11 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
     },
 
     async play() {
-      const { projectDir, project, dirty, build } = get();
-      if (!projectDir || !project) {
-        actions.showToast("Open a project first.", "error");
-        return;
-      }
-      if (build.status === "building") return;
-      if ((Object.keys(dirty).length > 0 || options.savePanels) && !(await actions.save())) return;
-      const seq = exitSeq;
-      set({ build: { status: "building", phase: "load", progress: 0 }, runtimeDiagnostics: [], stats: null });
-      append({ kind: "info", text: `Play ${project.project.title}` });
-      try {
-        const res = await ipc.invoke("build.play", {
-          projectDir,
-          emulator: get().settings?.emulator,
-        });
-        if (!res.ok) {
-          set({ build: { ...get().build, status: "idle" }, buildDiagnostics: res.diagnostics });
-          const n = errorsIn(problemsOf(get())).length;
-          actions.showToast(
-            n > 0 ? `Fix ${n} problem${n === 1 ? "" : "s"} to play` : "The game did not start: see Output.",
-            "error",
-          );
-          workbench.focusPanel(n > 0 ? "problems" : "output");
-          return;
-        }
-        // The game may already have ended (emulator.exit arrived while build.play was answering).
-        set({ build: { ...get().build, status: exitSeq === seq ? "running" : "idle" } });
-        // The Controls card appears on the first Play of each session (PLAN.md 6 WS6).
-        if (!controlsShown) actions.showControls();
-      } catch (err) {
-        set({ build: { ...get().build, status: "idle" } });
-        actions.showToast(`Play failed: ${parseIpcError(err).message}`, "error");
-      }
+      await runGame(false);
+    },
+
+    async debug() {
+      await runGame(true);
     },
 
     async stop() {
@@ -300,6 +339,41 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
 
     dismissToast() {
       set({ toast: null });
+    },
+
+    async refreshManifest() {
+      const dir = get().projectDir;
+      if (!dir) return;
+      try {
+        const { manifest } = await ipc.invoke("build.manifest", { projectDir: dir });
+        if (get().projectDir === dir) set({ manifest });
+      } catch {
+        // meters keep what they had
+      }
+    },
+
+    async finishFirstRun() {
+      set({ firstRun: false });
+      const settings = get().settings;
+      if (settings) set({ settings: { ...settings, firstRunDone: true } });
+      try {
+        await ipc.invoke("settings.set", { key: "firstRunDone", value: true });
+      } catch (err) {
+        actions.showToast(`Could not save the settings: ${parseIpcError(err).message}`, "error");
+      }
+    },
+
+    showNewProject() {
+      set({ newProject: true });
+    },
+
+    hideNewProject() {
+      set({ newProject: false });
+    },
+
+    async createProject({ parent, name, template }) {
+      const { dir } = await ipc.invoke("project.create", { dir: parent, name, template });
+      if (await actions.openProject(dir)) set({ newProject: false });
     },
 
     showControls() {

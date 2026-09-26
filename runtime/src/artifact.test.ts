@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  BUILD_INPUTS,
+  distProblems,
   formatReport,
   formatVersion,
   ITCM_CEILING_BYTES,
@@ -86,6 +88,7 @@ describe("VERSION", () => {
       runtime: "0.1.0",
       abi: "0dd9987a",
       tree: "a".repeat(40),
+      buildTree: "c".repeat(40),
       blocksds: "1.24.0",
       arm9Sha256: "b".repeat(64),
       report: { itcm: 1088, dtcm: 0, dtcmData: 4608, cstack: 11200, image: 92692, loaded: 90000 },
@@ -98,6 +101,8 @@ describe("VERSION", () => {
     expect(v.arm7).toBe("$BLOCKSDS/sys/arm7/main_core/arm7_maxmod.elf");
     expect(v.cstack).toBe("11200");
     expect(v.loaded).toBe("90000");
+    expect(v.build_tree).toBe("c".repeat(40));
+    expect(text.trimEnd().split("\n").at(-1)).toBe(`build_tree=${"c".repeat(40)}`); // appended: an additive key
   });
 
   it("takes the ABI hash from builtins_table.h as 8 lowercase hex digits", () => {
@@ -152,5 +157,48 @@ describe("runtimeTreeHash", () => {
     git(dir, "add", "-A");
     git(dir, "commit", "-q", "-m", "b");
     expect(await runtimeTreeHash(dir)).toBe(changed);
+  });
+
+  it("with BUILD_INPUTS covers only what the DS build reads (build_tree)", async () => {
+    const dir = repo();
+    const put = (rel: string, text: string) => {
+      mkdirSync(path.dirname(path.join(dir, "runtime", rel)), { recursive: true });
+      writeFileSync(path.join(dir, "runtime", rel), text);
+    };
+    put("core/src/vm.c", "int vm;\n");
+    put("platform/ds/src/main.c", "int main;\n");
+    put("Makefile", "all:\n");
+    const build = await runtimeTreeHash(dir, "git", BUILD_INPUTS);
+    expect(build).toMatch(/^[0-9a-f]{40}$/);
+
+    // WS2's tests and host runner, the brief and the selftest do not count (data/ and gen/ may be missing).
+    put("tests/test_x.c", "int t;\n");
+    put("host/main.c", "int h;\n");
+    put("platform/ds/CLAUDE.md", "# brief\n");
+    put("selftest/source/selftest.c", "int s;\n");
+    expect(await runtimeTreeHash(dir, "git", BUILD_INPUTS)).toBe(build);
+    expect(await runtimeTreeHash(dir)).not.toBe(build);
+
+    // A core, platform or Makefile change does.
+    put("core/src/vm.c", "int vm2;\n");
+    const core = await runtimeTreeHash(dir, "git", BUILD_INPUTS);
+    expect(core).not.toBe(build);
+    put("Makefile", "all: x\n");
+    expect(await runtimeTreeHash(dir, "git", BUILD_INPUTS)).not.toBe(core);
+    expect(git(dir, "diff", "--cached", "--name-only")).toBe("");
+  });
+});
+
+describe("distProblems", () => {
+  const v = { build_tree: "b".repeat(40), arm9_sha256: "e".repeat(64) };
+
+  it("is empty when dist/ matches its inputs and ELF", () => {
+    expect(distProblems(v, "b".repeat(40), "e".repeat(64))).toEqual([]);
+  });
+
+  it("names a changed input, a different ELF, or a VERSION from before build_tree", () => {
+    expect(distProblems(v, "c".repeat(40), "e".repeat(64))[0]).toMatch(/a build input changed/);
+    expect(distProblems(v, "b".repeat(40), "f".repeat(64))[0]).toMatch(/arm9\.elf is not the file/);
+    expect(distProblems({ arm9_sha256: "e".repeat(64) }, "b".repeat(40), "e".repeat(64))[0]).toMatch(/no build_tree/);
   });
 });

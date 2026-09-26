@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.5.0";
+export const CONTRACT_VERSION = "0.8.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -145,6 +145,57 @@ export const LearnDocSchema = z.object({
   section: z.enum(LEARN_SECTIONS),
 });
 
+/**
+ * The parts of C3 `assets.manifest.json` the IDE's meters read (0.6.0). Tolerant on purpose: C3 is provisional and
+ * owned by WS5, so every field is optional and unknown fields pass through.
+ */
+const ScreenBudgetSchema = z.looseObject({
+  objVramBytes: z.number().nullable().optional(),
+  obj16Palettes: z.number().nullable().optional(),
+  obj256Palettes: z.number().nullable().optional(),
+  bgPalettes: z.number().nullable().optional(),
+  bgVramBytes: z.number().nullable().optional(),
+});
+export const ManifestSummarySchema = z.looseObject({
+  sounds: z
+    .record(z.string(), z.looseObject({ ramBytes: z.number().nullable().optional() }))
+    .nullable()
+    .optional(),
+  soundbank: z.looseObject({ bytes: z.number().nullable().optional() }).nullable().optional(),
+  rooms: z
+    .record(
+      z.string(),
+      z.looseObject({
+        top: ScreenBudgetSchema.nullable().optional(),
+        bottom: ScreenBudgetSchema.nullable().optional(),
+        soundRamBytes: z.number().nullable().optional(),
+      }),
+    )
+    .nullable()
+    .optional(),
+});
+export type ManifestSummary = z.infer<typeof ManifestSummarySchema>;
+
+/**
+ * `templates/index.json` (WS7's file; the New Project wizard reads it, 0.7.0): each template is a complete C1 project
+ * in `templates/<dir>/`. Listed in the order the wizard shows them.
+ */
+export const TemplateIndexSchema = z.object({
+  templates: z
+    .array(
+      z.object({
+        /** Stable id, e.g. "empty", "flappy". */
+        id: z.string().regex(/^[a-z0-9-]+$/),
+        title: z.string().min(1),
+        description: z.string().default(""),
+        /** Folder under templates/ that holds the project (project.json at its root). */
+        dir: z.string().refine(isSafeRelativePath, "expected a folder under templates/"),
+      }),
+    )
+    .min(1),
+});
+export const TemplateInfoSchema = z.object({ id: z.string(), title: z.string(), description: z.string() });
+
 /** Emulator key names per DS button (KeyboardEvent.key values); defaults are PLAN.md 6 WS6 "Controls card". */
 export const ControlsSchema = z.object({
   up: z.string().default("ArrowUp"),
@@ -191,9 +242,27 @@ export const invokeChannels = {
   },
   /** Writes every JSON and DSS file of the project (C1 `save`); never deletes files. */
   "project.save": { request: z.object({ dir: z.string().min(1), project: ProjectSchema }), response: Ok },
+  /**
+   * Creates `<dir>/<name>` from a template (default "empty"): refuses an existing non-empty folder, copies the
+   * template, and sets project.json's name and title (0.7.0 pins these semantics). Returns the new project folder.
+   */
   "project.create": {
     request: z.object({ dir: z.string().min(1), name: NameSchema, template: z.string().optional() }),
     response: z.object({ dir: z.string() }),
+  },
+  /** (0.7.0) The New Project templates (templates/index.json; a built-in Empty template when it is missing). */
+  "project.templates": { request: z.object({}), response: z.object({ templates: z.array(TemplateInfoSchema) }) },
+  /** (0.7.0) Facts the wizards need from main. */
+  "app.info": {
+    request: z.object({}),
+    response: z.object({
+      version: z.string(),
+      packaged: z.boolean(),
+      /** %USERPROFILE%\DSDudeProjects */
+      defaultProjectsDir: z.string(),
+      /** OneDrive folders (%OneDrive%, %OneDriveConsumer%, %OneDriveCommercial%): projects there get a warning. */
+      oneDriveDirs: z.array(z.string()),
+    }),
   },
   "assets.import": {
     request: z.object({
@@ -228,6 +297,11 @@ export const invokeChannels = {
   "build.build": { request: BuildRequestSchema, response: BuildResultSchema },
   "build.compileOnly": { request: BuildRequestSchema, response: BuildResultSchema },
   "build.cancel": { request: z.object({}), response: Ok },
+  /** (0.6.0) The project's last `assets.manifest.json` (C3) from its build folder, or null before the first build. */
+  "build.manifest": {
+    request: z.object({ projectDir: z.string().min(1) }),
+    response: z.object({ manifest: ManifestSummarySchema.nullable() }),
+  },
   "emulator.stop": { request: z.object({}), response: Ok },
   "emulator.status": {
     request: z.object({}),
@@ -260,7 +334,17 @@ export const invokeChannels = {
   },
   "doctor.run": {
     request: z.object({}),
-    response: z.object({ checks: z.array(z.object({ name: z.string(), ok: z.boolean(), detail: z.string() })) }),
+    response: z.object({
+      checks: z.array(
+        z.object({
+          name: z.string(),
+          ok: z.boolean(),
+          detail: z.string(),
+          /** (0.8.0) C10 doctor status; `ok` is false only for "fail". */
+          status: z.enum(["ok", "warn", "fail", "info"]).optional(),
+        }),
+      ),
+    }),
   },
   /** (0.4.0) Reads an asset file of the project (sprite sheets, background images, sounds). */
   "project.readFile": {
