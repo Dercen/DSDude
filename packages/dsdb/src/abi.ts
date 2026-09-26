@@ -67,13 +67,31 @@ export interface BuiltinsEnv {
   /** Builtin function names by dense runtime index (function entries in id order); CALLN's C operand. */
   functions: readonly string[];
   functionIndex: ReadonlyMap<string, number>;
+  /**
+   * Builtin variable names by dense runtime index (variable entries in id order, DSD_BUILTIN_VARS): the
+   * `bivar` operand of GETBI/SETBI/GETBIX/SETBIX/GETBIO/SETBIO (ADR-0003).
+   */
+  variables: readonly string[];
+  variableIndex: ReadonlyMap<string, number>;
 }
 
-export function builtinsEnv(file: BuiltinsFile): BuiltinsEnv {
-  const functions = file.entries
-    .filter((e) => e.kind === "function")
+/** Names of the entries of one kind, in id order: their dense runtime indices. */
+const denseNames = (file: BuiltinsFile, kind: BuiltinEntry["kind"]): string[] =>
+  file.entries
+    .filter((e) => e.kind === kind)
     .sort((a, b) => a.id - b.id)
     .map((e) => e.name);
+
+/** Builds the environment from builtins.json. */
+export function builtinsEnv(file: BuiltinsFile): BuiltinsEnv {
+  const functions = denseNames(file, "function");
+  const variables = denseNames(file, "variable");
   if (functions.length > 256) throw new Error("more than 256 builtin functions do not fit CALLN's C operand");
-  return { abiHash: abiHash(file.entries), functions, functionIndex: new Map(functions.map((n, i) => [n, i])) };
+  return {
+    abiHash: abiHash(file.entries),
+    functions,
+    functionIndex: new Map(functions.map((n, i) => [n, i])),
+    variables,
+    variableIndex: new Map(variables.map((n, i) => [n, i])),
+  };
 }

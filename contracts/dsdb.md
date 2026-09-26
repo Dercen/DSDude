@@ -1,6 +1,6 @@
 # C2: DSDB bytecode container
 
-Version: 0.1.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
+Version: 0.2.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
 
 DSDB is the compiled form of a DSS game: one file, `game.dsdb`, at the NitroFS root (C3), loaded by the runtime VM.
 Written by WS0 in Phase 0; from the `phase0` tag WS2 and WS4 co-own this file (either may commit; the other
@@ -148,6 +148,8 @@ bits 16-31 signed. `contracts/opcodes.json` gives each opcode's number, status a
 | `builtin` | dense runtime index of a builtin function (C) | the builtin's name |
 | `global` | GLOB index (Bx) | the global's name |
 | `func` | FUNC index (Bx) | the function's name |
+| `sym` | SYMS index (C, 8 bits; ADR-0003) | the symbol's name |
+| `bivar` | dense builtin-variable index (`DSD_BUILTIN_VARS` order; ADR-0003) | the variable's name |
 
 **The 29 stable opcodes** (numbers 0-28): HALT, MOV, LOADK, LOADI, LOADB, LOADUNDEF, ADD, SUB, MUL, DIV, IDIV, MOD,
 NEG, EQ, NE, LT, LE, GT, GE, NOT, JMP, JMPT, JMPF, CALLN, RET, CONCAT, TOSTR, GETGLOB, SETGLOB. Numbers 29-50 are

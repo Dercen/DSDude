@@ -224,3 +224,46 @@ describe("helpers", () => {
     expect(() => eventId("jump", idx)).toThrow();
   });
 });
+
+describe("ADR-0003 operand kinds: sym and bivar", () => {
+  const TEXT = `.dsda 0.1
+.seed 0
+.symbol score
+
+.func f 0 3
+    LOADI r1, -2
+    GETDYN r0, r1, score
+    SETDYN r0, r1, score
+    GETBI r0, x
+    SETBI r0, room_width
+    LOADI r2, 0
+    GETBIX r0, alarm, r2
+    SETBIX r0, alarm, r2
+    GETBIO r0, r1, vspeed
+    SETBIO r0, r1, hspeed
+    RET r0, 0
+.end
+`;
+
+  it("round-trips symbols and builtin variables by name", () => {
+    expect(roundTrip(TEXT)).toBe(TEXT);
+  });
+
+  it("encodes a symbol as its SYMS index and a builtin variable as its dense index", () => {
+    const bytes = encode(assemble(TEXT), env);
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    // Section table entry 3 is CODE: {tag, offset, size}; its first word is the count, then the instructions.
+    const codeOffset = view.getUint32(32 + 3 * 12 + 4, true);
+    const word = (pc: number) => view.getUint32(codeOffset + 4 + pc * 4, true);
+    expect(word(1) >>> 24).toBe(0); // GETDYN C = symbol 0 ("score", the only symbol)
+    expect(word(3) >>> 16).toBe(env.variableIndex.get("x")); // GETBI Bx = dense index of x
+    expect((word(6) >>> 16) & 0xff).toBe(env.variableIndex.get("alarm")); // GETBIX B = dense index of alarm
+    expect(env.variableIndex.get("id")).toBe(0);
+  });
+
+  it("refuses unknown names", () => {
+    expect(() => encode(assemble(TEXT.replace("GETBI r0, x", "GETBI r0, nope")), env)).toThrow(
+      /unknown builtin variable nope/,
+    );
+  });
+});

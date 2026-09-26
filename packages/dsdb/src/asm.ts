@@ -185,6 +185,8 @@ export function assemble(text: string): DsdbModule {
           case "builtin":
           case "global":
           case "func":
+          case "sym":
+          case "bivar":
             return name(tok, where);
           default:
             return int(tok, where);
