@@ -26,16 +26,16 @@ Legend: todo / in progress / done (<sha>).
   - `LICENSE`, `runtime/LICENSE`, `README.md`: done
   - lockfile (`chore(deps): regenerate lockfile`): done
   - spike 13 (WS0 part): done, PASS (results below)
-- Task 3. Hooks and governance tools: in progress
-  - `tools/ownership.json`, `tools/check-ownership.ts` + walk test: done (see git log)
+- Task 3. Hooks and governance tools: done except the cloud probe, which the user runs (47539d5, a0a259d)
+  - `tools/ownership.json`, `tools/check-ownership.ts` + walk test: done (47539d5)
   - `.githooks/pre-commit`, `commit-msg`, `pre-push` (+x): done
   - `tools/adr-pending.ts`, `tools/memsampler.ps1` (started 18:33, running), `tools/checkpoint.ps1` Day-1 part: done
   - `.claude/settings.json` cloud rules + SessionStart hook: done
   - spike 1 (`tools/phase0/spike1-hooks.ps1`): done, 11/11 PASS (results below)
   - cloud pieces (`tools/cloud/**`, `docs/status/cloud.md`, status stubs for WS2-WS8 and WS6b): done, pushed
-  - cloud probe (user runs it): todo
-- Task 4. Small contracts, C4 types, project format, samples: done (5c71867 and this commit)
-  - C9 `diagnostics.md` + `Diagnostic` type, C1 `Project` + schemas + load/save, C4 `api.ts` + `MockBuildService`, C10 `cli.md`: done (this commit; WS1 told to merge `main`)
+  - cloud probe (user runs it): todo, ready (see Cloud probe)
+- Task 4. Small contracts, C4 types, project format, samples: done (5c71867, b06a127)
+  - C9 `diagnostics.md` + `Diagnostic` type, C1 `Project` + schemas + load/save, C4 `api.ts` + `MockBuildService`, C10 `cli.md`: done (5c71867); WS1 was not launched yet at the end of Day 1, see the report
   - C13 `runtime-limits.json`, C8 `log-protocol.md`, C5 `ipc.md` + `ipc-contract` zod stubs, C12 `preview.ts`: done
   - C1 `project-format.md` + schemas + load/save + E290-E299 catalog; tests load both samples and round-trip them byte for byte: done
   - `samples/minimal`, `samples/flappy` v0 (PNGs/WAVs from `tools/phase0/make-samples.ts`), ADR-0001: done
@@ -63,7 +63,8 @@ Legend: todo / in progress / done (<sha>).
 
 ## Cloud probe
 
-Not run yet. WS0 pushes the task-3 cloud pieces first.
+Not run yet. The cloud pieces are on `origin/main` since `47539d5` (now `b06a127` and later), so the user can run it
+any time: README section 8.1 steps 1-3 (environments), then the probe prompt in `docs/kickoff/ws0.md` task 3.
 
 ## Open ADRs
 
@@ -72,3 +73,25 @@ Not run yet. WS0 pushes the task-3 cloud pieces first.
 ## Open questions for the user
 
 - Open question 3: do the usage limits cover ~4 local + 4-5 cloud sessions? Needed before the tag launches.
+- ADR-0001 (Flappy pipe geometry): accept the recommended two-pipe fix?
+- After the cloud probe: did the claude.ai/code branch selector offer branches other than `main` (P8)?
+- `ws1.ps` (your WS1 launch script) sits untracked in the repo root. WS0 never commits it; moving it outside the
+  repo avoids an accidental `git add`.
+
+## End-of-day report: Day 1 (2026-09-25)
+
+**Done, with SHAs (all pushed to `origin/main`):**
+- Task 1 `896eb47`: `.gitattributes`, `.editorconfig`, `.npmrc`, full `.gitignore`, `vendor/README.md`, `.claude/settings.json` v1, Status block, this file.
+- Task 2 `60bb682` + `d554fcd` (lockfile): root config, 14 skeletons with the PLAN 2.5 pins, `tools/postinstall.mjs`, `tools/check-lockfile.mjs`, briefs via `tools/phase0/gen-briefs.ts`, licences, README. Spike 13 PASS.
+- Task 3 `47539d5` + `a0a259d`: `tools/ownership.json`, `tools/check-ownership.ts` (+ walk test), the three hooks, `tools/adr-pending.ts`, `tools/memsampler.ps1` (running since 18:33), `tools/checkpoint.ps1` (-MemoryOnly/-AdrOnly), cloud scripts, registry, status stubs, settings cloud rules + SessionStart hook. Spike 1 11/11 PASS.
+- Task 4 `5c71867` + `b06a127`: C9, C1 (types, schemas, load/save, spec, E290-E299), C4 `api.ts` + `MockBuildService`, C10 draft, C13, C8, C5 stubs, C12 preview types, `samples/minimal`, `samples/flappy` v0, ADR-0001.
+
+**`npm run check && npm test` on Windows (end of Day 1):** `biome check` "Checked 118 files ... No fixes applied", `tsc -b` exit 0; Vitest "Test Files 18 passed (18), Tests 39 passed (39)".
+
+**Vendor check:** `git log --format= --name-only origin/main -- vendor ':(exclude)vendor/README.md'` prints nothing.
+
+**Memory gate** (`tools/checkpoint.ps1 -MemoryOnly`, 13 samples): minimum available 1786 MB, peak commit 17.5 GB, PASS; but only WS0 was running, so the margin for WS1 + WS6 is thin.
+
+**WS1:** its inputs (`packages/toolchain` + `packages/cli` skeletons, `api.ts` + `MockBuildService`, `contracts/cli.md`, `contracts/diagnostics.md`, `contracts/log-protocol.md`, `contracts/ipc.md`) are on `main` since `5c71867`/`b06a127`. No `ws1-toolchain` worktree existed at the end of Day 1, so WS1 has not been told in its own session yet: its kickoff has it run `git merge main` and `npm install` once the skeleton is on `main`, which is now.
+
+**Day 2 plan:** task 6 first (`dsdb.md`, `opcodes.json`, the `builtins.json` signatures, the generators, `packages/dsdb`, `hello.dsda/.dsdb`), then task 5 (`language.md`, `events.md`), then task 7 (fixtures, conformance v0, `contracts/README.md` + `CHANGELOG.md`, kickoff finalisation, Status block, pacman deny rules, the clean-clone DoD run, the tag).
