@@ -1081,3 +1081,31 @@ canvas.pixelated {
   align-items: center;
   margin-left: 8px;
 }
+
+.room-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: 13px;
+  outline: none;
+}
+
+.room-editor select {
+  background: #3c3c3c;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  color: inherit;
+  font: inherit;
+}
+
+.room-canvas {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.room-canvas canvas {
+  display: block;
+  outline: none;
+}
