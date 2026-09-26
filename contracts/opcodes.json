@@ -1,0 +1,616 @@
+{
+  "contract": "C2",
+  "version": "0.1.0",
+  "howToChange": "Owner WS4 from the phase0 tag; WS2 co-signs every change. Opcode numbers never change. Adding an opcode, or promoting a provisional or reserved one to stable (fixing its operands), is T1: minor version bump, `node tools/gen-opcodes.ts` (runtime/gen/opcodes.h, packages/dsdb/src/gen/opcodes.ts), regenerated fixtures and a contracts/CHANGELOG.md entry in one commit. Changing a stable opcode's meaning or operands is T2 (ADR co-signed by WS2 and WS4). Encoding: 32-bit little-endian words, op = bits 0-7, A = 8-15, B = 16-23, C = 24-31, Bx/sBx = 16-31 (see contracts/dsdb.md).",
+  "opcodes": [
+    {
+      "number": 0,
+      "name": "HALT",
+      "status": "stable",
+      "format": "none",
+      "operands": [],
+      "summary": "Stop the VM (end of program)."
+    },
+    {
+      "number": 1,
+      "name": "MOV",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg"
+      ],
+      "summary": "rA = rB"
+    },
+    {
+      "number": 2,
+      "name": "LOADK",
+      "status": "stable",
+      "format": "ABx",
+      "operands": [
+        "A:reg",
+        "Bx:k"
+      ],
+      "summary": "rA = KONS[Bx] (number or string constant)"
+    },
+    {
+      "number": 3,
+      "name": "LOADI",
+      "status": "stable",
+      "format": "AsBx",
+      "operands": [
+        "A:reg",
+        "sBx:s16"
+      ],
+      "summary": "rA = int sBx"
+    },
+    {
+      "number": 4,
+      "name": "LOADB",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:bool"
+      ],
+      "summary": "rA = (B != 0)"
+    },
+    {
+      "number": 5,
+      "name": "LOADUNDEF",
+      "status": "stable",
+      "format": "A",
+      "operands": [
+        "A:reg"
+      ],
+      "summary": "rA = undefined"
+    },
+    {
+      "number": 6,
+      "name": "ADD",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB + rC (numbers; two strings concatenate; string + number is R5xx)"
+    },
+    {
+      "number": 7,
+      "name": "SUB",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB - rC"
+    },
+    {
+      "number": 8,
+      "name": "MUL",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB * rC (64-bit intermediate)"
+    },
+    {
+      "number": 9,
+      "name": "DIV",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB / rC (language.md number rules; /0 is R5xx)"
+    },
+    {
+      "number": 10,
+      "name": "IDIV",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB div rC (integer division, truncates)"
+    },
+    {
+      "number": 11,
+      "name": "MOD",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB mod rC (sign of the dividend)"
+    },
+    {
+      "number": 12,
+      "name": "NEG",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg"
+      ],
+      "summary": "rA = -rB"
+    },
+    {
+      "number": 13,
+      "name": "EQ",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = (rB == rC)"
+    },
+    {
+      "number": 14,
+      "name": "NE",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = (rB != rC)"
+    },
+    {
+      "number": 15,
+      "name": "LT",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = (rB < rC)"
+    },
+    {
+      "number": 16,
+      "name": "LE",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = (rB <= rC)"
+    },
+    {
+      "number": 17,
+      "name": "GT",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = (rB > rC)"
+    },
+    {
+      "number": 18,
+      "name": "GE",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = (rB >= rC)"
+    },
+    {
+      "number": 19,
+      "name": "NOT",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg"
+      ],
+      "summary": "rA = !truthy(rB)"
+    },
+    {
+      "number": 20,
+      "name": "JMP",
+      "status": "stable",
+      "format": "sBx",
+      "operands": [
+        "sBx:label"
+      ],
+      "summary": "pc += sBx (relative to the next instruction)"
+    },
+    {
+      "number": 21,
+      "name": "JMPT",
+      "status": "stable",
+      "format": "AsBx",
+      "operands": [
+        "A:reg",
+        "sBx:label"
+      ],
+      "summary": "if truthy(rA) pc += sBx"
+    },
+    {
+      "number": 22,
+      "name": "JMPF",
+      "status": "stable",
+      "format": "AsBx",
+      "operands": [
+        "A:reg",
+        "sBx:label"
+      ],
+      "summary": "if !truthy(rA) pc += sBx"
+    },
+    {
+      "number": 23,
+      "name": "CALLN",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:u8",
+        "C:builtin"
+      ],
+      "summary": "rA = builtin C (dense runtime index) with B arguments in rA..rA+B-1"
+    },
+    {
+      "number": 24,
+      "name": "RET",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:u8"
+      ],
+      "summary": "return rA when B = 1, undefined when B = 0"
+    },
+    {
+      "number": 25,
+      "name": "CONCAT",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB .. rC (both strings)"
+    },
+    {
+      "number": 26,
+      "name": "TOSTR",
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg"
+      ],
+      "summary": "rA = string(rB) (language.md printing rules)"
+    },
+    {
+      "number": 27,
+      "name": "GETGLOB",
+      "status": "stable",
+      "format": "ABx",
+      "operands": [
+        "A:reg",
+        "Bx:global"
+      ],
+      "summary": "rA = global[Bx]"
+    },
+    {
+      "number": 28,
+      "name": "SETGLOB",
+      "status": "stable",
+      "format": "ABx",
+      "operands": [
+        "A:reg",
+        "Bx:global"
+      ],
+      "summary": "global[Bx] = rA"
+    },
+    {
+      "number": 29,
+      "name": "CALL",
+      "status": "provisional",
+      "format": "ABx",
+      "operands": [
+        "A:reg",
+        "Bx:func"
+      ],
+      "summary": "rA = FUNC Bx with its params in rA.. (callee frame starts at rA)"
+    },
+    {
+      "number": 30,
+      "name": "ADDI",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:s8"
+      ],
+      "summary": "rA = rB + C"
+    },
+    {
+      "number": 31,
+      "name": "SUBI",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:s8"
+      ],
+      "summary": "rA = rB - C"
+    },
+    {
+      "number": 32,
+      "name": "MULI",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:s8"
+      ],
+      "summary": "rA = rB * C"
+    },
+    {
+      "number": 33,
+      "name": "CMPJ",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:u8"
+      ],
+      "summary": "compare rA with rB by relation C; the next word is a jump (encoding set by WS4 + WS2 when promoted)"
+    },
+    {
+      "number": 34,
+      "name": "GETSLOT",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:u8"
+      ],
+      "summary": "rA = self.slot[B]"
+    },
+    {
+      "number": 35,
+      "name": "SETSLOT",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:u8"
+      ],
+      "summary": "self.slot[B] = rA"
+    },
+    {
+      "number": 36,
+      "name": "GETSLOTO",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:u8"
+      ],
+      "summary": "rA = other.slot[B]"
+    },
+    {
+      "number": 37,
+      "name": "SETSLOTO",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:u8"
+      ],
+      "summary": "other.slot[B] = rA"
+    },
+    {
+      "number": 38,
+      "name": "GETDYN",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:u8"
+      ],
+      "summary": "rA = instance(rB).<symbol> (symbol encoding set when promoted)"
+    },
+    {
+      "number": 39,
+      "name": "SETDYN",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:u8"
+      ],
+      "summary": "instance(rB).<symbol> = rA"
+    },
+    {
+      "number": 40,
+      "name": "GETBI",
+      "status": "provisional",
+      "format": "ABx",
+      "operands": [
+        "A:reg",
+        "Bx:u16"
+      ],
+      "summary": "rA = built-in variable Bx of self"
+    },
+    {
+      "number": 41,
+      "name": "SETBI",
+      "status": "provisional",
+      "format": "ABx",
+      "operands": [
+        "A:reg",
+        "Bx:u16"
+      ],
+      "summary": "built-in variable Bx of self = rA"
+    },
+    {
+      "number": 42,
+      "name": "WITHBEGIN",
+      "status": "provisional",
+      "format": "AsBx",
+      "operands": [
+        "A:reg",
+        "sBx:label"
+      ],
+      "summary": "start a with-loop over rA's snapshot; jump past the body when empty"
+    },
+    {
+      "number": 43,
+      "name": "WITHNEXT",
+      "status": "provisional",
+      "format": "AsBx",
+      "operands": [
+        "A:reg",
+        "sBx:label"
+      ],
+      "summary": "advance the with-loop; jump back to the body while instances remain"
+    },
+    {
+      "number": 44,
+      "name": "WITHEND",
+      "status": "provisional",
+      "format": "A",
+      "operands": [
+        "A:reg"
+      ],
+      "summary": "leave the with-loop (break/continue/exit/return unwind through it)"
+    },
+    {
+      "number": 45,
+      "name": "NEWARR",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:u8"
+      ],
+      "summary": "rA = new array of B elements"
+    },
+    {
+      "number": 46,
+      "name": "GETIDX",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB[rC]"
+    },
+    {
+      "number": 47,
+      "name": "SETIDX",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA[rB] = rC"
+    },
+    {
+      "number": 48,
+      "name": "LEN",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg"
+      ],
+      "summary": "rA = length of rB"
+    },
+    {
+      "number": 49,
+      "name": "TOINT",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg"
+      ],
+      "summary": "rA = int(rB) (floor)"
+    },
+    {
+      "number": 50,
+      "name": "TOFIXED",
+      "status": "provisional",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg"
+      ],
+      "summary": "rA = fixed(rB)"
+    },
+    {
+      "number": 51,
+      "name": "ADDII",
+      "status": "reserved",
+      "format": "none",
+      "operands": [],
+      "summary": "reserved: int-specialised ADD (M1 fallback)"
+    },
+    {
+      "number": 52,
+      "name": "SUBII",
+      "status": "reserved",
+      "format": "none",
+      "operands": [],
+      "summary": "reserved: int-specialised SUB (M1 fallback)"
+    },
+    {
+      "number": 53,
+      "name": "MULII",
+      "status": "reserved",
+      "format": "none",
+      "operands": [],
+      "summary": "reserved: int-specialised MUL (M1 fallback)"
+    },
+    {
+      "number": 54,
+      "name": "CMPJII",
+      "status": "reserved",
+      "format": "none",
+      "operands": [],
+      "summary": "reserved: int-specialised CMPJ (M1 fallback)"
+    }
+  ]
+}

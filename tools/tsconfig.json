@@ -4,6 +4,17 @@
     "outDir": "dist-types",
     "rootDir": "."
   },
-  "include": ["*.ts", "phase0/**/*.ts"],
-  "exclude": ["gen-docs"]
+  "include": [
+    "*.ts",
+    "phase0/**/*.ts",
+    "lib/**/*.ts"
+  ],
+  "exclude": [
+    "gen-docs"
+  ],
+  "references": [
+    {
+      "path": "../packages/dsdb"
+    }
+  ]
 }

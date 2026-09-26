@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "postinstall": "node tools/postinstall.mjs",
-    "check": "biome check && tsc -b",
+    "check": "biome check && tsc -b && node tools/gen-opcodes.ts --check && node tools/gen-builtins.ts --check && node tools/gen-dsdb.ts --check",
     "test": "vitest run --pool=threads --maxWorkers=2"
   },
   "devDependencies": {

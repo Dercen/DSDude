@@ -40,9 +40,12 @@ Legend: todo / in progress / done (<sha>).
   - C1 `project-format.md` + schemas + load/save + E290-E299 catalog; tests load both samples and round-trip them byte for byte: done
   - `samples/minimal`, `samples/flappy` v0 (PNGs/WAVs from `tools/phase0/make-samples.ts`), ADR-0001: done
 
-### Day 2
+### Day 2 (2026-09-25/26)
 - Task 5. `contracts/language.md` v0.1, `contracts/events.md`: todo
-- Task 6. Minimal C2 (`dsdb.md`, `opcodes.json`, `builtins.json`, generators, `packages/dsdb`, `hello.dsda/.dsdb`): todo
+- Task 6. Minimal C2: done (see git log)
+  - `contracts/dsdb.md` (container, cells, sections, calling convention, event ids, `.dsda` grammar, ABI hash), `contracts/opcodes.json` (29 stable + 22 provisional + 4 reserved), `contracts/builtins.json` (85 functions, 40 variables, 18 constants; 30 documented; ABI hash 0x0dd9987a): done
+  - `tools/gen-opcodes.ts`, `tools/gen-builtins.ts`, `tools/gen-dsdb.ts` (all with `--check`, run by `npm run check`): done
+  - `packages/dsdb` (encode/decode/assemble/disassemble, bins `dsdb-asm`/`dsdb-dis`), `fixtures/bytecode/hello.dsda` -> `hello.dsdb` (round-trips byte for byte): done
 - Task 7. Fixtures, conformance v0, contracts README/CHANGELOG, kickoff files, Status block, tag: todo
 
 ## Spike results

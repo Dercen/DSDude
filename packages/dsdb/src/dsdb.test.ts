@@ -1,0 +1,190 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import { abiHash, abiLine, type BuiltinsFile, builtinsEnv, fnv1a32 } from "./abi.ts";
+import { assemble, disassemble, formatFixed, parseFixed } from "./asm.ts";
+import { decode, encode } from "./encode.ts";
+import { OPCODES } from "./gen/opcodes.ts";
+import { eventId, eventStem } from "./model.ts";
+
+const repo = resolve(import.meta.dirname, "../../..");
+const builtins = JSON.parse(readFileSync(resolve(repo, "contracts/builtins.json"), "utf8")) as BuiltinsFile;
+const env = builtinsEnv(builtins);
+const roundTrip = (text: string) => disassemble(decode(encode(assemble(text), env), env));
+
+const PROJECT = `.dsda 0.1
+.seed 7
+.global score
+.symbol spare
+.asset sprite spr_bird "gfx/spr_bird.grf" 3
+.asset sprite spr_pipe "gfx/spr_pipe.grf" 1
+.asset sound snd_flap "" 0
+
+.func obj_bird_create 0 2
+    .loc "objects/obj_bird/create.dss" 2
+    LOADK r0, 0.199951171875
+    LOADI r1, 0
+    SETGLOB r1, score
+    RET r0, 0
+.end
+
+.func obj_bird_step 0 3
+    .loc "objects/obj_bird/step.dss" 1
+    LOADI r0, 10
+  L0:
+    LOADI r1, 0
+    GT r2, r0, r1
+    JMPF r2, L1
+    LOADI r1, 1
+    SUB r0, r0, r1
+    JMP L0
+  L1:
+    LOADK r1, @obj_pipe
+    LOADK r2, @snd_flap
+    LOADK r1, -100000
+    LOADK r1, "Score: \\"x\\""
+    CALLN r1, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func obj_ctrl_alarm_0 0 1
+    LOADK r0, @rm_game
+    RET r0, 1
+.end
+
+.object obj_bird sprite=spr_bird parent=- visible=1 screen=top depth=0
+    .slot alive 1
+    .slot flap_power 0
+    .event create obj_bird_create
+    .event step obj_bird_step
+    .event collision_obj_pipe obj_bird_step
+.end
+
+.object obj_pipe sprite=spr_pipe parent=obj_bird visible=1 screen=bottom depth=-5
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event alarm_0 obj_ctrl_alarm_0
+    .event button_pressed_a obj_ctrl_alarm_0
+    .event user_3 obj_ctrl_alarm_0
+.end
+
+.room rm_game 256 192
+    .screen top - 0 0
+    .screen bottom - 0 8
+    .instance obj_bird 64 96 top -
+    .instance obj_ctrl 0 0 top obj_ctrl_alarm_0
+    .set top spr_bird+spr_pipe -
+    .set bottom - -
+    .sounds snd_flap
+.end
+
+.first rm_game
+`;
+
+describe("hello.dsda", () => {
+  const text = readFileSync(resolve(repo, "fixtures/bytecode/hello.dsda"), "utf8");
+  const bytes = new Uint8Array(readFileSync(resolve(repo, "fixtures/bytecode/hello.dsdb")));
+
+  it("assembles to the committed hello.dsdb and disassembles back byte for byte", () => {
+    expect(Buffer.from(encode(assemble(text), env)).equals(Buffer.from(bytes))).toBe(true);
+    expect(disassemble(decode(bytes, env))).toBe(text);
+  });
+
+  it("uses only stable opcodes and is a program-form DSDB", () => {
+    const m = decode(bytes, env);
+    const stable = new Set(OPCODES.filter((o) => o.status === "stable").map((o) => o.name));
+    expect(m.functions[0].name).toBe("__main");
+    expect(m.functions.flatMap((f) => f.code).every((i) => stable.has(i.op))).toBe(true);
+    expect(m.objects).toEqual([]);
+    expect(m.rooms).toEqual([]);
+    expect(m.firstRoom).toBeNull();
+  });
+
+  it("has the header of contracts/dsdb.md", () => {
+    const v = new DataView(bytes.buffer, bytes.byteOffset);
+    expect(String.fromCharCode(...bytes.subarray(0, 4))).toBe("DSDB");
+    expect(v.getUint16(4, true)).toBe(0);
+    expect(v.getUint16(6, true)).toBe(1);
+    expect(v.getUint32(8, true)).toBe(env.abiHash);
+    expect(v.getUint32(16, true)).toBe(bytes.length);
+    expect(v.getUint16(20, true)).toBe(10);
+    expect(v.getUint32(24, true)).toBe(0xffffffff);
+  });
+});
+
+describe("project-form round trip", () => {
+  it("dis(decode(encode(asm(text)))) === text", () => {
+    expect(roundTrip(PROJECT)).toBe(PROJECT);
+  });
+
+  it("encode(decode(bytes)) === bytes", () => {
+    const bytes = encode(assemble(PROJECT), env);
+    expect(Buffer.from(encode(decode(bytes, env), env)).equals(Buffer.from(bytes))).toBe(true);
+  });
+
+  it("is canonical whatever order globals and slots are written in", () => {
+    const shuffled = PROJECT.replace(".global score\n", "").replace(
+      "    .slot alive 1\n    .slot flap_power 0\n",
+      "    .slot flap_power 0\n    .slot alive 1\n",
+    );
+    expect(Buffer.from(encode(assemble(shuffled), env)).equals(Buffer.from(encode(assemble(PROJECT), env)))).toBe(true);
+  });
+});
+
+describe("errors", () => {
+  const fn = (body: string) => `.dsda 0.1\n.seed 0\n\n.func f 0 2\n${body}\n.end\n`;
+  const enc = (t: string) => () => encode(assemble(t), env);
+  it("rejects unknown builtins, reserved opcodes, bad registers and unknown labels", () => {
+    expect(enc(fn("    CALLN r0, 0, no_such_builtin"))).toThrow(/unknown builtin/);
+    expect(() => assemble(fn("    ADDII"))).not.toThrow();
+    expect(enc(fn("    ADDII"))).toThrow(/reserved/);
+    expect(enc(fn("    MOV r0, r2"))).toThrow(/register/);
+    expect(() => assemble(fn("    JMP nowhere"))).toThrow(/unknown label/);
+    expect(() => assemble(".dsda 9.9\n")).toThrow(/starts with/);
+  });
+  it("refuses a DSDB with another ABI hash", () => {
+    const bytes = encode(assemble(fn("    RET r0, 0")), env);
+    expect(() => decode(bytes, { ...env, abiHash: env.abiHash ^ 1 })).toThrow(/ABI hash/);
+  });
+});
+
+describe("ABI hash", () => {
+  it("is FNV-1a 32 over the canonical lines", () => {
+    expect(fnv1a32(new TextEncoder().encode(""))).toBe(0x811c9dc5);
+    expect(fnv1a32(new TextEncoder().encode("a"))).toBe(0xe40c292c);
+    const floor = builtins.entries.find((e) => e.name === "floor");
+    expect(floor && abiLine(floor)).toBe(`${floor?.id}|floor|function|number|1|1|int||`);
+    const alarm = builtins.entries.find((e) => e.name === "alarm");
+    expect(alarm && abiLine(alarm)).toBe(`${alarm?.id}|alarm|variable||||int|instance|`);
+    const noone = builtins.entries.find((e) => e.name === "noone");
+    expect(noone && abiLine(noone)).toBe(`${noone?.id}|noone|constant||||instance||-4`);
+  });
+  it("ignores doc/example and alias/unsupported entries", () => {
+    const edited = builtins.entries.map((e) => ({ ...e, doc: "x", example: "y" }));
+    const appended = [...builtins.entries, { id: 9999, name: "image_alpha", kind: "unsupported" as const }];
+    expect(abiHash(edited)).toBe(env.abiHash);
+    expect(abiHash(appended)).toBe(env.abiHash);
+    const renamed = builtins.entries.map((e) => (e.name === "floor" ? { ...e, name: "flr" } : e));
+    expect(abiHash(renamed)).not.toBe(env.abiHash);
+  });
+});
+
+describe("helpers", () => {
+  it("formats and parses Q20.12 exactly", () => {
+    expect(formatFixed(6144)).toBe("1.5");
+    expect(formatFixed(8192)).toBe("2.0");
+    expect(formatFixed(-410)).toBe("-0.10009765625");
+    expect(parseFixed("0.1")).toBe(410);
+    expect(parseFixed("-1.5")).toBe(-6144);
+    expect(parseFixed(formatFixed(12345))).toBe(12345);
+  });
+  it("maps event stems to kind << 16 | arg and back", () => {
+    const objs = ["obj_a", "obj_b"];
+    const idx = (n: string) => objs.indexOf(n);
+    for (const s of ["create", "step", "alarm_7", "collision_obj_b", "button_held_select", "user_0", "outside_room"])
+      expect(eventStem(eventId(s, idx), (i) => objs[i])).toBe(s);
+    expect(eventId("alarm_2", idx)).toBe((5 << 16) | 2);
+    expect(() => eventId("jump", idx)).toThrow();
+  });
+});

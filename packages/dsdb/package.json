@@ -5,7 +5,12 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts"
+  },
+  "bin": {
+    "dsdb-asm": "src/cli-asm.ts",
+    "dsdb-dis": "src/cli-dis.ts"
   },
   "scripts": {
     "test": "vitest run --pool=threads --maxWorkers=2"

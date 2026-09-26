@@ -1,0 +1,2655 @@
+{
+  "contract": "C2",
+  "version": "0.1.0",
+  "howToChange": "Owner WS0. Ordinals (`id`) are append-only forever: never reorder, renumber or delete an entry. A new builtin, alias or unsupported entry is appended as T1 (minor version bump; `node tools/gen-builtins.ts` and `node tools/gen-dsdb.ts` regenerate their outputs in the same commit; CHANGELOG entry). WS7 fills `doc`/`example` fields left as TODO(WS7) as T0 changes on its own branch. Changing the id, name, kind or signature of a function, variable or constant entry changes the ABI hash (contracts/dsdb.md) and is T2.",
+  "types": [
+    "number",
+    "int",
+    "string",
+    "bool",
+    "any",
+    "array",
+    "instance",
+    "object",
+    "sprite",
+    "sound",
+    "room",
+    "background",
+    "button",
+    "screen",
+    "color",
+    "void"
+  ],
+  "entries": [
+    {
+      "id": 0,
+      "name": "instance_create",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "instance",
+      "category": "instances",
+      "doc": "Makes a new instance of an object at (x, y) on the object's screen, runs its Create event and gives back its id.",
+      "example": "instance_create(272, 96, obj_pipe);",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 1,
+      "name": "instance_destroy",
+      "kind": "function",
+      "params": [
+        {
+          "name": "id",
+          "type": "instance",
+          "default": "self"
+        }
+      ],
+      "minArgs": 0,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "instances",
+      "doc": "Removes an instance (this one when you give no id) at the end of the event. Its Destroy event runs first.",
+      "example": "instance_destroy();",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 2,
+      "name": "instance_exists",
+      "kind": "function",
+      "params": [
+        {
+          "name": "obj",
+          "type": "any"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "bool",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 3,
+      "name": "instance_number",
+      "kind": "function",
+      "params": [
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 4,
+      "name": "instance_find",
+      "kind": "function",
+      "params": [
+        {
+          "name": "obj",
+          "type": "object"
+        },
+        {
+          "name": "n",
+          "type": "int"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "instance",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 5,
+      "name": "instance_nearest",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "instance",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 6,
+      "name": "instance_place",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "instance",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 7,
+      "name": "place_meeting",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "bool",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 8,
+      "name": "position_meeting",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "bool",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 9,
+      "name": "place_free",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "bool",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 10,
+      "name": "collision_rectangle",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number"
+        },
+        {
+          "name": "y1",
+          "type": "number"
+        },
+        {
+          "name": "x2",
+          "type": "number"
+        },
+        {
+          "name": "y2",
+          "type": "number"
+        },
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 5,
+      "maxArgs": 5,
+      "returns": "instance",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 11,
+      "name": "collision_point",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "instance",
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 12,
+      "name": "event_inherited",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "events",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 13,
+      "name": "event_user",
+      "kind": "function",
+      "params": [
+        {
+          "name": "n",
+          "type": "int"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "events",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 14,
+      "name": "motion_add",
+      "kind": "function",
+      "params": [
+        {
+          "name": "dir",
+          "type": "number"
+        },
+        {
+          "name": "speed",
+          "type": "number"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "void",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 15,
+      "name": "motion_set",
+      "kind": "function",
+      "params": [
+        {
+          "name": "dir",
+          "type": "number"
+        },
+        {
+          "name": "speed",
+          "type": "number"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "void",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 16,
+      "name": "move_towards_point",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "speed",
+          "type": "number"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "void",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 17,
+      "name": "move_wrap",
+      "kind": "function",
+      "params": [
+        {
+          "name": "hor",
+          "type": "bool"
+        },
+        {
+          "name": "vert",
+          "type": "bool"
+        },
+        {
+          "name": "margin",
+          "type": "number"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "void",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 18,
+      "name": "point_distance",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number"
+        },
+        {
+          "name": "y1",
+          "type": "number"
+        },
+        {
+          "name": "x2",
+          "type": "number"
+        },
+        {
+          "name": "y2",
+          "type": "number"
+        }
+      ],
+      "minArgs": 4,
+      "maxArgs": 4,
+      "returns": "number",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 19,
+      "name": "point_direction",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number"
+        },
+        {
+          "name": "y1",
+          "type": "number"
+        },
+        {
+          "name": "x2",
+          "type": "number"
+        },
+        {
+          "name": "y2",
+          "type": "number"
+        }
+      ],
+      "minArgs": 4,
+      "maxArgs": 4,
+      "returns": "number",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 20,
+      "name": "lengthdir_x",
+      "kind": "function",
+      "params": [
+        {
+          "name": "len",
+          "type": "number"
+        },
+        {
+          "name": "dir",
+          "type": "number"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "number",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 21,
+      "name": "lengthdir_y",
+      "kind": "function",
+      "params": [
+        {
+          "name": "len",
+          "type": "number"
+        },
+        {
+          "name": "dir",
+          "type": "number"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "number",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 22,
+      "name": "distance_to_object",
+      "kind": "function",
+      "params": [
+        {
+          "name": "obj",
+          "type": "object"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "motion",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 23,
+      "name": "button_check",
+      "kind": "function",
+      "params": [
+        {
+          "name": "btn",
+          "type": "button"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "bool",
+      "category": "input",
+      "doc": "true while the button is held down.",
+      "example": "if (button_check(btn_left)) x -= 2;",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 24,
+      "name": "button_pressed",
+      "kind": "function",
+      "params": [
+        {
+          "name": "btn",
+          "type": "button"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "bool",
+      "category": "input",
+      "doc": "true only in the frame the button goes down.",
+      "example": "if (button_pressed(btn_a)) vspeed = -4.5;",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 25,
+      "name": "button_released",
+      "kind": "function",
+      "params": [
+        {
+          "name": "btn",
+          "type": "button"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "bool",
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 26,
+      "name": "touch_check",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "bool",
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 27,
+      "name": "touch_pressed",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "bool",
+      "category": "input",
+      "doc": "true only in the frame the stylus touches the bottom screen, anywhere on it. Works in objects on either screen.",
+      "example": "if (touch_pressed()) vspeed = -4.5;",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 28,
+      "name": "touch_released",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "bool",
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 29,
+      "name": "touch_in_instance",
+      "kind": "function",
+      "params": [
+        {
+          "name": "id",
+          "type": "instance",
+          "default": "self"
+        }
+      ],
+      "minArgs": 0,
+      "maxArgs": 1,
+      "returns": "bool",
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 30,
+      "name": "draw_self",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 31,
+      "name": "draw_sprite",
+      "kind": "function",
+      "params": [
+        {
+          "name": "spr",
+          "type": "sprite"
+        },
+        {
+          "name": "subimg",
+          "type": "int"
+        },
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        }
+      ],
+      "minArgs": 4,
+      "maxArgs": 4,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 32,
+      "name": "draw_sprite_ext",
+      "kind": "function",
+      "params": [
+        {
+          "name": "spr",
+          "type": "sprite"
+        },
+        {
+          "name": "subimg",
+          "type": "int"
+        },
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "xscale",
+          "type": "number"
+        },
+        {
+          "name": "yscale",
+          "type": "number"
+        },
+        {
+          "name": "rot",
+          "type": "number"
+        }
+      ],
+      "minArgs": 7,
+      "maxArgs": 7,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 33,
+      "name": "draw_text",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "y",
+          "type": "number"
+        },
+        {
+          "name": "value",
+          "type": "any"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "Writes a value as text with the 8x8 DS font. x and y snap to 8-pixel cells. Numbers print like string() does.",
+      "example": "draw_text(112, 16, string(global.score));",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 34,
+      "name": "draw_set_screen",
+      "kind": "function",
+      "params": [
+        {
+          "name": "screen",
+          "type": "screen"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 35,
+      "name": "draw_set_color",
+      "kind": "function",
+      "params": [
+        {
+          "name": "col",
+          "type": "color"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 36,
+      "name": "draw_rectangle",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x1",
+          "type": "number"
+        },
+        {
+          "name": "y1",
+          "type": "number"
+        },
+        {
+          "name": "x2",
+          "type": "number"
+        },
+        {
+          "name": "y2",
+          "type": "number"
+        },
+        {
+          "name": "outline",
+          "type": "bool"
+        }
+      ],
+      "minArgs": 5,
+      "maxArgs": 5,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 37,
+      "name": "draw_clear",
+      "kind": "function",
+      "params": [
+        {
+          "name": "col",
+          "type": "color"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "drawing",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": [
+        "draw"
+      ],
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 38,
+      "name": "room_goto",
+      "kind": "function",
+      "params": [
+        {
+          "name": "room",
+          "type": "room"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "rooms",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 39,
+      "name": "room_goto_next",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "rooms",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 40,
+      "name": "room_goto_previous",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "rooms",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 41,
+      "name": "room_restart",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "rooms",
+      "doc": "Starts the current room again at the end of this frame. Room End runs; global variables stay.",
+      "example": "room_restart();",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 42,
+      "name": "game_restart",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "rooms",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 43,
+      "name": "game_end",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "rooms",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 44,
+      "name": "audio_play_sound",
+      "kind": "function",
+      "params": [
+        {
+          "name": "snd",
+          "type": "sound"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "audio",
+      "doc": "Plays a sound effect once. If all 16 channels are busy the sound is skipped.",
+      "example": "audio_play_sound(snd_flap);",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 45,
+      "name": "audio_stop_sound",
+      "kind": "function",
+      "params": [
+        {
+          "name": "snd",
+          "type": "sound"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "audio",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 46,
+      "name": "audio_play_music",
+      "kind": "function",
+      "params": [
+        {
+          "name": "mus",
+          "type": "sound"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "audio",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 47,
+      "name": "audio_stop_music",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "audio",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 48,
+      "name": "audio_set_volume",
+      "kind": "function",
+      "params": [
+        {
+          "name": "volume",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "audio",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 49,
+      "name": "audio_is_playing",
+      "kind": "function",
+      "params": [
+        {
+          "name": "snd",
+          "type": "sound"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "bool",
+      "category": "audio",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 50,
+      "name": "floor",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "math",
+      "doc": "Rounds down to a whole number.",
+      "example": "floor(2.7)   // 2",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 51,
+      "name": "ceil",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 52,
+      "name": "round",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "math",
+      "doc": "Rounds to the nearest whole number; halves round away from zero.",
+      "example": "round(2.5)   // 3",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 53,
+      "name": "abs",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "math",
+      "doc": "The value without its minus sign.",
+      "example": "abs(-3)   // 3",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 54,
+      "name": "sign",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 55,
+      "name": "frac",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 56,
+      "name": "sqrt",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 57,
+      "name": "min",
+      "kind": "function",
+      "params": [
+        {
+          "name": "a",
+          "type": "number"
+        },
+        {
+          "name": "b",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 16,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 58,
+      "name": "max",
+      "kind": "function",
+      "params": [
+        {
+          "name": "a",
+          "type": "number"
+        },
+        {
+          "name": "b",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 16,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 59,
+      "name": "clamp",
+      "kind": "function",
+      "params": [
+        {
+          "name": "x",
+          "type": "number"
+        },
+        {
+          "name": "lo",
+          "type": "number"
+        },
+        {
+          "name": "hi",
+          "type": "number"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "number",
+      "category": "math",
+      "doc": "Keeps a value between lo and hi.",
+      "example": "image_angle = clamp(-vspeed * 8, -30, 60);",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 60,
+      "name": "lerp",
+      "kind": "function",
+      "params": [
+        {
+          "name": "a",
+          "type": "number"
+        },
+        {
+          "name": "b",
+          "type": "number"
+        },
+        {
+          "name": "t",
+          "type": "number"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 61,
+      "name": "random",
+      "kind": "function",
+      "params": [
+        {
+          "name": "n",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 62,
+      "name": "random_range",
+      "kind": "function",
+      "params": [
+        {
+          "name": "lo",
+          "type": "number"
+        },
+        {
+          "name": "hi",
+          "type": "number"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 63,
+      "name": "irandom",
+      "kind": "function",
+      "params": [
+        {
+          "name": "n",
+          "type": "int"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 64,
+      "name": "irandom_range",
+      "kind": "function",
+      "params": [
+        {
+          "name": "lo",
+          "type": "int"
+        },
+        {
+          "name": "hi",
+          "type": "int"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "int",
+      "category": "math",
+      "doc": "A random whole number from lo to hi, both included.",
+      "example": "var gy = irandom_range(48, 144);",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 65,
+      "name": "choose",
+      "kind": "function",
+      "params": [
+        {
+          "name": "a",
+          "type": "any"
+        },
+        {
+          "name": "b",
+          "type": "any"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 16,
+      "returns": "any",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 66,
+      "name": "randomize",
+      "kind": "function",
+      "params": [],
+      "minArgs": 0,
+      "maxArgs": 0,
+      "returns": "void",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 67,
+      "name": "dsin",
+      "kind": "function",
+      "params": [
+        {
+          "name": "deg",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 68,
+      "name": "dcos",
+      "kind": "function",
+      "params": [
+        {
+          "name": "deg",
+          "type": "number"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "math",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 69,
+      "name": "string",
+      "kind": "function",
+      "params": [
+        {
+          "name": "value",
+          "type": "any"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "string",
+      "category": "strings",
+      "doc": "Turns a value into text. Fractions print with at most 2 decimals (0.125 prints 0.13).",
+      "example": "show_debug_message(\"Score: \" + string(global.score));",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 70,
+      "name": "real",
+      "kind": "function",
+      "params": [
+        {
+          "name": "s",
+          "type": "string"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "number",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 71,
+      "name": "string_length",
+      "kind": "function",
+      "params": [
+        {
+          "name": "s",
+          "type": "string"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 72,
+      "name": "string_char_at",
+      "kind": "function",
+      "params": [
+        {
+          "name": "s",
+          "type": "string"
+        },
+        {
+          "name": "index",
+          "type": "int"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "string",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 73,
+      "name": "string_upper",
+      "kind": "function",
+      "params": [
+        {
+          "name": "s",
+          "type": "string"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "string",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 74,
+      "name": "string_lower",
+      "kind": "function",
+      "params": [
+        {
+          "name": "s",
+          "type": "string"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "string",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 75,
+      "name": "string_repeat",
+      "kind": "function",
+      "params": [
+        {
+          "name": "s",
+          "type": "string"
+        },
+        {
+          "name": "count",
+          "type": "int"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 2,
+      "returns": "string",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 76,
+      "name": "chr",
+      "kind": "function",
+      "params": [
+        {
+          "name": "code",
+          "type": "int"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "string",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 77,
+      "name": "ord",
+      "kind": "function",
+      "params": [
+        {
+          "name": "s",
+          "type": "string"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "strings",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": true,
+      "since": "0.1"
+    },
+    {
+      "id": 78,
+      "name": "array_length",
+      "kind": "function",
+      "params": [
+        {
+          "name": "array",
+          "type": "array"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "int",
+      "category": "arrays",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 79,
+      "name": "array_push",
+      "kind": "function",
+      "params": [
+        {
+          "name": "array",
+          "type": "array"
+        },
+        {
+          "name": "value",
+          "type": "any"
+        }
+      ],
+      "minArgs": 2,
+      "maxArgs": 16,
+      "returns": "void",
+      "category": "arrays",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 80,
+      "name": "array_pop",
+      "kind": "function",
+      "params": [
+        {
+          "name": "array",
+          "type": "array"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "any",
+      "category": "arrays",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 81,
+      "name": "array_create",
+      "kind": "function",
+      "params": [
+        {
+          "name": "size",
+          "type": "int"
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "default": "0"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 2,
+      "returns": "array",
+      "category": "arrays",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 82,
+      "name": "array_delete",
+      "kind": "function",
+      "params": [
+        {
+          "name": "array",
+          "type": "array"
+        },
+        {
+          "name": "index",
+          "type": "int"
+        },
+        {
+          "name": "count",
+          "type": "int"
+        }
+      ],
+      "minArgs": 3,
+      "maxArgs": 3,
+      "returns": "void",
+      "category": "arrays",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 83,
+      "name": "show_debug_message",
+      "kind": "function",
+      "params": [
+        {
+          "name": "value",
+          "type": "any"
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 1,
+      "returns": "void",
+      "category": "debug",
+      "doc": "Prints a value in the Output panel (a DSD|LOG line). Any value works; numbers print like string() does.",
+      "example": "show_debug_message(\"hello\");",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 84,
+      "name": "assert",
+      "kind": "function",
+      "params": [
+        {
+          "name": "condition",
+          "type": "any"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "default": "\"\""
+        }
+      ],
+      "minArgs": 1,
+      "maxArgs": 2,
+      "returns": "void",
+      "category": "debug",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "allowedEvents": "*",
+      "pure": false,
+      "since": "0.1"
+    },
+    {
+      "id": 85,
+      "name": "id",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "instance",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 86,
+      "name": "object_index",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "object",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 87,
+      "name": "x",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "The instance's horizontal position in the room, in pixels.",
+      "example": "x += 2;",
+      "since": "0.1"
+    },
+    {
+      "id": 88,
+      "name": "y",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "The instance's vertical position in the room, in pixels (down is bigger).",
+      "example": "if (y < 0) y = 0;",
+      "since": "0.1"
+    },
+    {
+      "id": 89,
+      "name": "xprevious",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 90,
+      "name": "yprevious",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 91,
+      "name": "xstart",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 92,
+      "name": "ystart",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 93,
+      "name": "speed",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 94,
+      "name": "direction",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 95,
+      "name": "hspeed",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "Horizontal speed in pixels per frame; the engine adds it to x every step.",
+      "example": "hspeed = -2;",
+      "since": "0.1"
+    },
+    {
+      "id": 96,
+      "name": "vspeed",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "Vertical speed in pixels per frame; the engine adds it to y every step.",
+      "example": "vspeed = flap_power;",
+      "since": "0.1"
+    },
+    {
+      "id": 97,
+      "name": "gravity",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "Added to the speed every step, in the gravity_direction (270 = down).",
+      "example": "gravity = 0.25;",
+      "since": "0.1"
+    },
+    {
+      "id": 98,
+      "name": "gravity_direction",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 99,
+      "name": "friction",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 100,
+      "name": "sprite_index",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "sprite",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 101,
+      "name": "sprite_width",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 102,
+      "name": "sprite_height",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "The sprite's height in pixels, times image_yscale.",
+      "example": "if (y > room_height - sprite_height) die();",
+      "since": "0.1"
+    },
+    {
+      "id": 103,
+      "name": "image_index",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 104,
+      "name": "image_number",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "int",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 105,
+      "name": "image_speed",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "How many animation frames to advance per step (0.2 = one frame every 5 steps).",
+      "example": "image_speed = 0.2;",
+      "since": "0.1"
+    },
+    {
+      "id": 106,
+      "name": "image_xscale",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 107,
+      "name": "image_yscale",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "Vertical stretch; DS sprites can grow to at most 2x.",
+      "example": "image_yscale = 2;",
+      "since": "0.1"
+    },
+    {
+      "id": 108,
+      "name": "image_angle",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "Rotation in degrees, counter-clockwise.",
+      "example": "image_angle = clamp(-vspeed * 8, -30, 60);",
+      "since": "0.1"
+    },
+    {
+      "id": 109,
+      "name": "visible",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "bool",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 110,
+      "name": "depth",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "int",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 111,
+      "name": "screen",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "screen",
+      "readonly": false,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 112,
+      "name": "alarm",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "int",
+      "readonly": false,
+      "arrayLength": 8,
+      "category": "instance variables",
+      "doc": "Eight countdown timers. Set alarm[n] to a number of steps; when it reaches 0 the alarm_n event runs.",
+      "example": "alarm[0] = 60;   // one second",
+      "since": "0.1"
+    },
+    {
+      "id": 113,
+      "name": "bbox_left",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 114,
+      "name": "bbox_right",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 115,
+      "name": "bbox_top",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 116,
+      "name": "bbox_bottom",
+      "kind": "variable",
+      "scope": "instance",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "instance variables",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 117,
+      "name": "room",
+      "kind": "variable",
+      "scope": "global",
+      "type": "room",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "globals",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 118,
+      "name": "room_width",
+      "kind": "variable",
+      "scope": "global",
+      "type": "int",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "globals",
+      "doc": "The current room's width in pixels.",
+      "example": "x = clamp(x, 8, room_width - 8);",
+      "since": "0.1"
+    },
+    {
+      "id": 119,
+      "name": "room_height",
+      "kind": "variable",
+      "scope": "global",
+      "type": "int",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "globals",
+      "doc": "The current room's height in pixels.",
+      "example": "if (y > room_height - sprite_height) die();",
+      "since": "0.1"
+    },
+    {
+      "id": 120,
+      "name": "room_speed",
+      "kind": "variable",
+      "scope": "global",
+      "type": "int",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "globals",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 121,
+      "name": "view_x",
+      "kind": "variable",
+      "scope": "global",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 2,
+      "category": "globals",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 122,
+      "name": "view_y",
+      "kind": "variable",
+      "scope": "global",
+      "type": "number",
+      "readonly": false,
+      "arrayLength": 2,
+      "category": "globals",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 123,
+      "name": "touch_x",
+      "kind": "variable",
+      "scope": "global",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "globals",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 124,
+      "name": "touch_y",
+      "kind": "variable",
+      "scope": "global",
+      "type": "number",
+      "readonly": true,
+      "arrayLength": 0,
+      "category": "globals",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 125,
+      "name": "btn_a",
+      "kind": "constant",
+      "type": "button",
+      "value": 0,
+      "category": "input",
+      "doc": "The A button.",
+      "example": "if (button_pressed(btn_a)) vspeed = -4.5;",
+      "since": "0.1"
+    },
+    {
+      "id": 126,
+      "name": "btn_b",
+      "kind": "constant",
+      "type": "button",
+      "value": 1,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 127,
+      "name": "btn_x",
+      "kind": "constant",
+      "type": "button",
+      "value": 2,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 128,
+      "name": "btn_y",
+      "kind": "constant",
+      "type": "button",
+      "value": 3,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 129,
+      "name": "btn_l",
+      "kind": "constant",
+      "type": "button",
+      "value": 4,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 130,
+      "name": "btn_r",
+      "kind": "constant",
+      "type": "button",
+      "value": 5,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 131,
+      "name": "btn_start",
+      "kind": "constant",
+      "type": "button",
+      "value": 6,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 132,
+      "name": "btn_select",
+      "kind": "constant",
+      "type": "button",
+      "value": 7,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 133,
+      "name": "btn_up",
+      "kind": "constant",
+      "type": "button",
+      "value": 8,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 134,
+      "name": "btn_down",
+      "kind": "constant",
+      "type": "button",
+      "value": 9,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 135,
+      "name": "btn_left",
+      "kind": "constant",
+      "type": "button",
+      "value": 10,
+      "category": "input",
+      "doc": "Left on the D-pad.",
+      "example": "if (button_check(btn_left)) x -= 2;",
+      "since": "0.1"
+    },
+    {
+      "id": 136,
+      "name": "btn_right",
+      "kind": "constant",
+      "type": "button",
+      "value": 11,
+      "category": "input",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 137,
+      "name": "SCREEN_TOP",
+      "kind": "constant",
+      "type": "screen",
+      "value": 0,
+      "category": "screens",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 138,
+      "name": "SCREEN_BOTTOM",
+      "kind": "constant",
+      "type": "screen",
+      "value": 1,
+      "category": "screens",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 139,
+      "name": "self",
+      "kind": "constant",
+      "type": "instance",
+      "value": -1,
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 140,
+      "name": "other",
+      "kind": "constant",
+      "type": "instance",
+      "value": -2,
+      "category": "instances",
+      "doc": "In a collision event, the instance you hit; inside with(), the instance that ran the with.",
+      "example": "if (!other.scored) other.scored = true;",
+      "since": "0.1"
+    },
+    {
+      "id": 141,
+      "name": "all",
+      "kind": "constant",
+      "type": "instance",
+      "value": -3,
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    },
+    {
+      "id": 142,
+      "name": "noone",
+      "kind": "constant",
+      "type": "instance",
+      "value": -4,
+      "category": "instances",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.1"
+    }
+  ]
+}
