@@ -26,14 +26,14 @@ Legend: todo / in progress / done (<sha>).
   - `LICENSE`, `runtime/LICENSE`, `README.md`: done
   - lockfile (`chore(deps): regenerate lockfile`): done
   - spike 13 (WS0 part): done, PASS (results below)
-- Task 3. Hooks and governance tools: done except the cloud probe, which the user runs (47539d5, a0a259d)
+- Task 3. Hooks and governance tools: done (47539d5, a0a259d; cloud probe green, recorded in the next commit)
   - `tools/ownership.json`, `tools/check-ownership.ts` + walk test: done (47539d5)
   - `.githooks/pre-commit`, `commit-msg`, `pre-push` (+x): done
   - `tools/adr-pending.ts`, `tools/memsampler.ps1` (started 18:33, running), `tools/checkpoint.ps1` Day-1 part: done
   - `.claude/settings.json` cloud rules + SessionStart hook: done
   - spike 1 (`tools/phase0/spike1-hooks.ps1`): done, 11/11 PASS (results below)
   - cloud pieces (`tools/cloud/**`, `docs/status/cloud.md`, status stubs for WS2-WS8 and WS6b): done, pushed
-  - cloud probe (user runs it): todo, ready (see Cloud probe)
+  - cloud probe: done 2026-09-25, step 3 green (see Cloud probe)
 - Task 4. Small contracts, C4 types, project format, samples: done (5c71867, b06a127)
   - C9 `diagnostics.md` + `Diagnostic` type, C1 `Project` + schemas + load/save, C4 `api.ts` + `MockBuildService`, C10 `cli.md`: done (5c71867); WS1 was not launched yet at the end of Day 1, see the report
   - C13 `runtime-limits.json`, C8 `log-protocol.md`, C5 `ipc.md` + `ipc-contract` zod stubs, C12 `preview.ts`: done
@@ -63,8 +63,38 @@ Legend: todo / in progress / done (<sha>).
 
 ## Cloud probe
 
-Not run yet. The cloud pieces are on `origin/main` since `47539d5` (now `b06a127` and later), so the user can run it
-any time: README section 8.1 steps 1-3 (environments), then the probe prompt in `docs/kickoff/ws0.md` task 3.
+Run by the user on 2026-09-25: environment `dsdude-ws4` (variables DSDUDE_WS=WS4, DSDUDE_PORT_BASE=5140,
+DSDUDE_SKIP_ELECTRON=1, DSDUDE_MAKE_JOBS=4; README 8.1 setup script), repository `Dercen/DSDude`, branch `main`,
+mode Auto. **Step 3 is green, so no fallback is needed.**
+1. **Tools:** check-tools all OK; `node -v` v24.16.0 from /opt/node24/bin in a fresh Bash call; npm 11.13.0;
+   gcc 13.3.0 (Ubuntu); GNU Make 4.3; `CLAUDE_CODE_REMOTE=true`, `DSDUDE_WS=WS4`.
+2. **Clone:** not shallow; branches `main` + the session's own `claude/loving-archimedes-9m9ryx` (auto-created);
+   no tags (none existed yet); fetch refspec `+refs/heads/*:refs/remotes/origin/*` (a full clone).
+3. **Setup:** the SessionStart hook had already set `dsdude.ws=WS4`, `core.hooksPath` and `core.autocrlf`.
+   `bash tools/cloud/start.sh` exit 0 in ~20 s (531 packages; "push target: none yet; behind origin/main by 0;
+   latest checkpoint: none; open IF entries: 0"). `npm run check` passed (Biome 118 files, `tsc -b`);
+   `npm test` 18 files / 39 tests passed. Linux native binaries from the Windows lockfile worked.
+   - Finding: npm set the executable bit on the workspace bin target `packages/cli/src/main.ts` (100644 -> 100755),
+     so every clone showed it modified. Fixed on `main` by committing it as 100755. Every future workspace bin
+     (`packages/dsdb/src/cli-asm.ts`, `cli-dis.ts`) is committed with `git add --chmod=+x`.
+4. **Trailer:** the empty commit got `DSDude-WS: WS4` (pre-commit and commit-msg ran in the Linux clone).
+5. **Pushes:** `probe-plain` exit 0, `claude/probe-named` exit 0, the session's own branch exit 0. A plain
+   branch name works, so each cloud stream pushes its `wsN-<name>` line directly (push.sh's first choice).
+   WS0 deleted all three branches afterwards (2026-09-25).
+6. **Network:** under the first network setting, `cdn.playwright.dev` and `playwright.download.prss.microsoft.com`
+   were blocked (403, no `x-deny-reason`; "no rule or allowlist entry allows host"), and `npx playwright install
+   chromium` failed. The user switched the environment to **Full**. Then both hosts answered, `npx playwright install
+   chromium` exit 0 (Chrome for Testing 153.0.8010.12 in /opt/pw-browsers, ~650 MB per new container), and a plain
+   `chromium.launch()` rendered a page headless. `api.github.com` 400 and `raw.githubusercontent.com` 301
+   (reachable) under both settings. The image also has Chromium 141 at /opt/pw-browsers/chromium as a fallback.
+7. **Permission modes:** the session ran in Auto; the session API accepts default, plan, acceptEdits, dontAsk,
+   bypassPermissions and auto.
+- **P8 (branch selector):** only `main` was offered, but `main` was the only branch on origin at the time, so this
+  is inconclusive. start.sh adopts the stream line from `main` either way; the answer shows at the first launch.
+- **Working push order:** `wsN-<name>` (plain names are accepted); `claude/wsN-<name>` and the session's own
+  branch also work as fallbacks.
+- **Environments:** Network **Full** for all five (README 8.1 updated). Cloud gcc is 13.3 vs 15.2 locally; WS0's
+  Windows run of the host goldens covers the difference.
 
 ## Open ADRs
 

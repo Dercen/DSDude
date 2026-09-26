@@ -236,7 +236,7 @@ This is the canonical procedure for the cloud streams WS2, WS4, WS5, WS7 and the
 
 1. Sign in at claude.ai/code and authorize GitHub.
 2. Create five environments (cloud icon > Add cloud environment): `dsdude-ws2`, `-ws4`, `-ws5`, `-ws7`, `-ws6b`.
-   - **Network: Custom.** Keep the default package-manager list and add `cdn.playwright.dev` and `playwright.download.prss.microsoft.com`. Trusted has `nodejs.org`, npm and GitHub, but lacks the Playwright hosts and `deb.nodesource.com` (P5). The fallback is Full.
+   - **Network: Full.** The Day-1 probe (2026-09-25) found both Playwright hosts blocked by the proxy (403, "no rule or allowlist entry") under the first network setting, and `npx playwright install chromium` passing under Full. Use Full for all five environments. (The original plan was Custom: the default package-manager list plus `cdn.playwright.dev` and `playwright.download.prss.microsoft.com`.)
    - **Variables** (no secrets, because every user of the environment can read them): `DSDUDE_WS=WS4`, `DSDUDE_PORT_BASE=5140`, `DSDUDE_SKIP_ELECTRON=1`, `DSDUDE_MAKE_JOBS=4`, with the stream's own values. The WS/port pairs are WS2/5120, WS4/5140, WS5/5150, WS7/5180 and WS6b/5170.
    - **Setup script,** the same in all five. It runs as root once per cache, must exit 0 within about 5 minutes, and re-runs after edits, host changes or about 7 days.
      ```bash
