@@ -22,6 +22,9 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C4 Toolchain API (`packages/toolchain/src/api.ts`, `contracts/toolchain-api.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): api.ts types (BuildService, BuildEvent, ToolPaths, EmulatorHandle/Manager, provisional AssetManifest and RoomAssetSet, CompileFn, PackAssetsFn, CheckRoomBudgetsFn, CliCommand) and MockBuildService. toolchain-api.md owed by WS1 (CP-A).
 - 0.2.0 (2026-09-25, WS1, T1; line appended by WS0 at the merge of 4ddccb5): ToolPaths.arm7Elf/icon/gcc, RomHeaderInfo and RomInfo.header (all optional); contracts/toolchain-api.md 0.2.0 written. Reviewed and accepted by WS0 2026-09-25.
+- 0.3.0 (2026-09-26, WS1, T1): LaunchOptions.debug and BuildRequest.debug (melonDS GDB stub on 3333/3334; DeSmuME E623), optional EmulatorManager.reconcile() (PID + exe path + start time); ensureInstalled("melonds") downloads the 1.1 zip and checks its SHA-256; E623, E624. All additive.
+- 0.4.0 (2026-09-26, WS1, T1): PackAssetsFn gets a third argument outDir (the build folder; an implementation that takes two still type-checks, but must write there); the build-folder layout (nitrofs/, icon.png, cache/, assets.manifest.json by BuildService); the project.json build path; compileOnly with a provisional manifest; createFakeToolchain(), MOCK_EMULATOR_LINES, BUILD_PHASES and the FIXTURE_* paths exported; MockBuildService phases and ROM name (game.nds) now match LocalBuildService; DeSmuME [Controls] key map; E641.
+- 0.5.0 (2026-09-26, WS1, T1): runDoctor (dsdude doctor); the tools pack pinned by tools/tools-pack.json and built by tools/fetch-vendor.ps1 (spike 5 passes); E650/E651 doctor warnings (severity warning, the only non-error E6xx).
 
 ## C5 IPC (`contracts/ipc.md`, `packages/ipc-contract`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): channel list and zod stubs.
@@ -44,6 +47,9 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
 - 0.2.0 (2026-09-25, WS1, T1; line appended by WS0 at the merge of 4ddccb5): WS1's revision (see contracts/cli.md). Reviewed and accepted by WS0 2026-09-25.
+- 0.3.0 (2026-09-26, WS1, T1): `play --debug`; the `--keys` key-script format of ADR-0003 (proposed; adds TOUCH x y); `emulator install melonds` downloads and SHA-256-checks.
+- 0.3.0 T0 (2026-09-26, WS1): `--seed` is written into game.dsdb (also a reused one); DSDude projects need the injected compiler and asset pipeline, else E641.
+- 0.4.0 (2026-09-26, WS1, T1): `dsdude doctor [project]` implemented, `--json` field `checks`.
 
 ## C11 Platform seam (`runtime/core/include/dsd_platform.h`)
 - owed: WS2, by CP-A.

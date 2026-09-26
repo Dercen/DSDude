@@ -11,7 +11,7 @@
  */
 import type { Diagnostic, Project } from "@dsdude/project-format";
 
-export const CONTRACT_VERSION = "0.2.0";
+export const CONTRACT_VERSION = "0.5.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Tools
@@ -143,6 +143,8 @@ export type EmulatorKind = "melonds" | "desmume";
 export interface LaunchOptions {
   /** Extra environment for the emulator process. Emulators spawn WITHOUT windowsHide and with stdio 'pipe'. */
   env?: Record<string, string>;
+  /** Debug: melonDS starts its GDB stub on 3333 (ARM9) / 3334 (ARM7); DeSmuME has none (E623). 0.3.0. */
+  debug?: boolean;
 }
 
 /**
@@ -165,6 +167,11 @@ export interface EmulatorManager {
   /** Unpacks/copies the emulator into <DSDUDE_HOME>\emulators\ if needed; returns its exe. */
   ensureInstalled(kind: EmulatorKind): Promise<string>;
   launch(romPath: string, opts: LaunchOptions & { kind: EmulatorKind }): Promise<EmulatorHandle>;
+  /**
+   * Kills an emulator an earlier process left running (PID + exe + start time persisted under DSDUDE_HOME), with
+   * taskkill /F /T; the IDE calls it at startup and before quit. Resolves true when it killed one. 0.3.0.
+   */
+  reconcile?(): Promise<boolean>;
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -202,10 +209,20 @@ export interface CompileOutput {
 /** `compileProject` from @dsdude/compiler (WS4). Synchronous and Worker-safe: no fs, no Node imports. */
 export type CompileFn = (project: Project, manifest: AssetManifest) => CompileOutput;
 
-/** `packAssets` from @dsdude/asset-pipeline (WS5). Writes the NitroFS asset files; empty ToolPaths -> E6xx. */
+/**
+ * `packAssets` from @dsdude/asset-pipeline (WS5). Empty ToolPaths -> E6xx. It writes only under `outDir`, the
+ * project's build folder `<DSDUDE_HOME>\build\<project-hash>\` (0.4.0):
+ * - `nitrofs\gfx\`, `nitrofs\bg\` and `nitrofs\soundbank.bin`: the NitroFS asset files (C3);
+ * - `icon.png`: the ndstool -b icon, 32x32 with <= 15 colours + transparent (optional; the BlocksDS default is
+ *   used when it is absent);
+ * - its cache under `cache\`.
+ * - `assets.manifest.json` (docs/kickoff/ws5.md); BuildService rewrites it with checkRoomBudgets' figures.
+ * BuildService writes `nitrofs\game.dsdb` from the compiler.
+ */
 export type PackAssetsFn = (
   project: Project,
   toolPaths: ToolPaths,
+  outDir: string,
 ) => Promise<{ manifest: AssetManifest; diagnostics: Diagnostic[] }>;
 
 /** `checkRoomBudgets` from @dsdude/asset-pipeline (WS5); BuildService calls it after compileProject. */
@@ -253,6 +270,8 @@ export interface BuildRequest {
   skipAssets?: boolean;
   /** Runtime build parallelism (C10 --jobs). */
   jobs?: number;
+  /** play only: launch with the emulator's GDB stub (C10 --debug; melonDS only, else E623). 0.3.0. */
+  debug?: boolean;
 }
 
 export interface BuildResult {

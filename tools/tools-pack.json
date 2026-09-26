@@ -1,0 +1,116 @@
+{
+  "description": "DSDude tools pack pin (PLAN.md 6 WS1, 2.11; verification.md claim 7). tools/fetch-vendor.ps1 copies these files from one BlocksDS install into vendor/tools-pack/, checks every SHA-256, and fails when the DLL import walk no longer matches `files`.",
+  "blocksds": "1.24.0",
+  "wonderfulPackages": {
+    "blocksds-toolchain": "1.24.0-1",
+    "runtime-gcc-libs": "0.1.0-14"
+  },
+  "sourceRoot": "C:\\msys64\\opt\\wonderful",
+  "files": [
+    {
+      "name": "ndstool.exe",
+      "from": "thirdparty/blocksds/core/tools/ndstool/ndstool.exe",
+      "sha256": "a9e5ad7aba260f4fa9bce006b3abd6ade80ed7c73d56227d111035c45199e0cf",
+      "license": "GPL-3.0 (parts MIT)"
+    },
+    {
+      "name": "grit.exe",
+      "from": "thirdparty/blocksds/core/tools/grit/grit.exe",
+      "sha256": "14271f9901c5d7460176e8ca00061a7b8d29895241d50b30f96841ef55ae77c8",
+      "license": "GPL-2.0-only (parts MIT, libplum public domain)"
+    },
+    {
+      "name": "mmutil.exe",
+      "from": "thirdparty/blocksds/core/tools/mmutil/mmutil.exe",
+      "sha256": "d9f00c6bd1a91e21296ae59b7e6ef4fc3c47471e34543ddfb50060d124899ef0",
+      "license": "ISC"
+    },
+    {
+      "name": "libstdc++-6.dll",
+      "from": "bin/libstdc++-6.dll",
+      "sha256": "edd5cf93ff53ba56f2b6724aa55ecbdea6143e44a76a73049506b8bf5b82895c",
+      "license": "GPL-3.0 with GCC Runtime Library Exception 3.1",
+      "dll": true
+    },
+    {
+      "name": "libgcc_s_seh-1.dll",
+      "from": "bin/libgcc_s_seh-1.dll",
+      "sha256": "f30b01ff7edf5219ef50b22d8281a36ff0d478830d906bd9091b8455b04830e3",
+      "license": "GPL-3.0 with GCC Runtime Library Exception 3.1",
+      "dll": true
+    },
+    {
+      "name": "libiconv-2.dll",
+      "from": "bin/libiconv-2.dll",
+      "sha256": "89631776aff9d5e73328583f3a335f6a07619bcf4d2fda2538acea90c7c021c9",
+      "license": "LGPL-2.1",
+      "dll": true
+    },
+    {
+      "name": "libwinpthread-1.dll",
+      "from": "bin/libwinpthread-1.dll",
+      "sha256": "43921aab7967e44749d83c59f0486bb3b13b005b9f0dc2688de925bd29817844",
+      "license": "MIT (mingw-w64 winpthreads)",
+      "dll": true
+    },
+    {
+      "name": "arm7_maxmod.elf",
+      "from": "thirdparty/blocksds/core/sys/arm7/main_core/arm7_maxmod.elf",
+      "sha256": "1e10a1483b33f978e5c2587f188709811ce8da821490caa1da18dc986c1dcb7d",
+      "license": "Zlib (BlocksDS ARM7 core) with maxmod ISC"
+    },
+    {
+      "name": "icon.bmp",
+      "from": "thirdparty/blocksds/core/sys/icon.bmp",
+      "sha256": "0ba13664c4d8e0dae114ec94b60a64e8505db5c49a206d28562b1efb20e82ccd",
+      "license": "BlocksDS default icon"
+    }
+  ],
+  "licenses": [
+    {
+      "name": "ndstool-COPYING.gpl3",
+      "url": "https://raw.githubusercontent.com/blocksds/ndstool/master/COPYING.gpl3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "name": "ndstool-COPYING.mit",
+      "url": "https://raw.githubusercontent.com/blocksds/ndstool/master/COPYING.mit",
+      "sha256": "82a25d86256cbd5d8007a315ab9c3b8382b9676746b0b81d2e9f982a307918b8"
+    },
+    {
+      "name": "grit-COPYING",
+      "url": "https://raw.githubusercontent.com/blocksds/grit/master/COPYING",
+      "sha256": "231f7edcc7352d7734a96eef0b8030f77982678c516876fcb81e25b32d68564c"
+    },
+    {
+      "name": "grit-licence-mit.txt",
+      "url": "https://raw.githubusercontent.com/blocksds/grit/master/licence-mit.txt",
+      "sha256": "97d16b15e6dc1f85724f097b750f26b77a91dd734135b7724690a3019ec9a986"
+    },
+    {
+      "name": "grit-libplum-LICENSE",
+      "url": "https://raw.githubusercontent.com/blocksds/grit/master/libplum/LICENSE",
+      "sha256": "88d9b4eb60579c191ec391ca04c16130572d7eedc4a86daa58bf28c6e14c9bcd"
+    },
+    {
+      "name": "mmutil-COPYING",
+      "url": "https://raw.githubusercontent.com/blocksds/mmutil/master/COPYING",
+      "sha256": "c3971508b931a22acdff3eedcdeff554a08cba32af39886796b4093f79dc761a"
+    },
+    {
+      "name": "gcc-COPYING.RUNTIME",
+      "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/master/COPYING.RUNTIME",
+      "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74"
+    },
+    {
+      "name": "libiconv-LGPL-2.1.txt",
+      "url": "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt",
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95"
+    },
+    {
+      "name": "winpthreads-COPYING",
+      "url": "https://raw.githubusercontent.com/mingw-w64/mingw-w64/master/mingw-w64-libraries/winpthreads/COPYING",
+      "sha256": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177"
+    }
+  ]
+}
