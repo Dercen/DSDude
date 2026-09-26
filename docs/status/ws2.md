@@ -87,6 +87,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 - **Rule 8 (music) and the RNG seed rule, runtime side, 2026-09-26.** The host runner now models maxmod's module player (`host_music_playing`, `host_music_starts`; `dsd_plat_assets_free` stops the music as C11 says), so rule 8 is observable: `fixtures/bytecode/runtime/music` shows a second `audio_play_music` of the playing module is a no-op, a stop then play restarts it (3 starts in all). `runtime/rng-platform` / `rng-header` pin the seed rule: header seed 0 follows `--seed`, a non-zero header seed wins over it, `randomize()` is a no-op; the draws were checked against an independent xorshift32. **For WS4 (conformance programs, their paths):** the expected values in `fixtures/bytecode/README.md` are what a `v4` music program and a seed program should log; WS2 writes their `expected/*.log` when they land.
 
+- **Loader/verifier mutation fuzzing, 2026-09-26.** `test_mutations` (programs suite): 40 seeded mutants (1-4 random bytes each) of every case's DSDB are booted like games for up to 3 frames in all three test builds (-O2, UBSan trap, -O0). All 2,480 are either refused with an R58x code or run safely: no crash, no trap, only the documented end states.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -129,7 +131,7 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 
 ## Leftovers
 - **Collector design differs from PLAN 3.3** ("ref-counting plus a mark-sweep pass at room change"): WS2 uses a tracing mark-compact collector triggered when the arena fills. Reference counts would cost a tag check and a count update on every register write in the VM's hot path (the M1 gate), while collecting only at room change would let a room that builds text every frame (`draw_text("Score: " + string(score))`) exhaust the arena. Internal to the runtime (no contract changes); WS0 may want a PLAN note.
-- Every builtin function is implemented (a future one without an implementation would raise R582 when called). Unimplemented bytecodes (reserved 51-54) are R582 at load, with the detail "bytecode N" (C9 bans the word opcode).
+- Every builtin function is implemented; a future one without an implementation is refused at load with R582 naming it (since 06f668d). Unimplemented bytecodes (reserved 51-54) are R582 at load, with the detail "bytecode N" (C9 bans the word opcode).
 
 ## Next
 - CP-A (2026-09-28): C11 0.3.0 freezes (ADR-0004 closed by the user).
