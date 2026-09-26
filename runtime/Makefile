@@ -7,6 +7,8 @@
 #   make -j4 DSD_VM_BL=1      the M1 switch: vm.arm.c without -mlong-calls (plain BL to builtins)
 #   make -j4 DSD_SELFTEST=1   the selftest ROM dsdude_selftest.nds (runtime/selftest/, no core; NitroFS from
 #                             fixtures/runtime/selftest/nitrofs, made by runtime/selftest/make_assets.py)
+#   make -j4 DSD_SCRIPTED=1   a test runtime build/dsdude_runtime_scripted.elf whose input replays nitro:/input.keys
+#                             per core frame (C8 key scripts, runtime/host/keys.c); `npm run conformance:ds`
 #   make -j4 DSD_BENCH=1      the M1 timer harness ELF build/dsdude_bench.elf (build/dsdude_bench_bl.elf with
 #                             DSD_VM_BL=1): the core + platform + runtime/selftest/bench; `npm run bench -w runtime`
 #   make clean
@@ -45,6 +47,12 @@ endif
 # The M1 timer harness: the core and the platform layer with runtime/selftest/bench/bench.c as main(). The BL variant
 # gets its own NAME, so the two builds never share objects.
 DSD_VM_BL	?= 0
+DSD_SCRIPTED	?= 0
+ifeq ($(DSD_SCRIPTED),1)
+NAME		:= dsdude_runtime_scripted
+INCLUDEDIRS	:= core/include gen host
+SOURCES_C	:= host/keys.c
+endif
 DSD_BENCH	?= 0
 ifeq ($(DSD_BENCH),1)
 NAME		:= dsdude_bench$(if $(filter 1,$(DSD_VM_BL)),_bl)
@@ -68,6 +76,9 @@ CFLAGS		:= -std=c11 -fwrapv -fno-strict-aliasing -funsigned-char -Wextra \
 DEFINES		:= -DDSD_RUNTIME_VERSION=\"$(DSD_RUNTIME_VERSION)\"
 ifeq ($(DSD_VM_BL),1)
 DEFINES		+= -DDSD_VM_CALLS_BL
+endif
+ifeq ($(DSD_SCRIPTED),1)
+DEFINES		+= -DDSD_SCRIPTED_INPUT
 endif
 
 # ---- DTCM layout (PLAN.md 3.3; $(BLOCKSDS)/sys/crts/ds_arm9.ld) ------------------------------------------------
@@ -105,6 +116,8 @@ DIST		:= dist
 ifeq ($(DSD_SELFTEST),1)
 .DEFAULT_GOAL	:= $(ROM)
 else ifeq ($(DSD_BENCH),1)
+.DEFAULT_GOAL	:= $(ELF)
+else ifeq ($(DSD_SCRIPTED),1)
 .DEFAULT_GOAL	:= $(ELF)
 else
 .DEFAULT_GOAL	:= runtime

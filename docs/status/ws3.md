@@ -75,6 +75,12 @@ Legend: todo / in progress / done (<sha>).
     frame count, so `ds_plat.c` infers the frame height (square when it divides the sheet, else the tallest OBJ
     height that does; `ADR-pending ADR-0004`); (2) the UI colour index order (PLAN 5.2 order, c_white 0 .. c_navy
     15) to be stated in `dsd_platform.h`.
+  - **Key-script cases on the DS: done** (see the next commit). `make DSD_SCRIPTED=1` builds a test runtime
+    (`build/dsdude_runtime_scripted.elf`) whose `dsd_plat_read_input` replays `nitro:/input.keys` per core frame
+    through WS2's own parser (`runtime/host/keys.c`, linked unchanged), so host frame numbers line up exactly;
+    `conformance:ds` uses it for cases with a key script. **41 of 41 pass, none skipped** (v2-05 input, v3-02
+    anim/outside/touch included). The shipped `dist/` ELFs contain none of it (byte-identical; no `host_keys`
+    symbols).
   - **`DSD|MEM` `snd` on the DS: done** (see the next commit). `ds_snd.c` indexes `soundbank.bin` at start-up
     (header counts + `*maxmod*`, entry sizes, each module's sample ids from its MAS sample info, msl_id at byte 10)
     and `dsd_plat_mem_report` counts every distinct resident sample once plus each loaded module. Checked: the
@@ -180,6 +186,5 @@ Legend: todo / in progress / done (<sha>).
 
 ## Leftovers
 
-- v2-05 (key script) on the DS: needs a way to align host frame 0 with an emulated frame.
 
 ## Integration feedback

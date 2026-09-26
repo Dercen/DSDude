@@ -20,6 +20,32 @@
 #include "ds_ui.h"
 #include "ds_video.h"
 
+#ifdef DSD_SCRIPTED_INPUT
+// Test builds only (runtime/Makefile DSD_SCRIPTED=1): input replays nitro:/input.keys per core frame, in the C8 key
+// format, through WS2's own parser (runtime/host/keys.c, linked unchanged), so a host key script lines up with the
+// DS frame for frame. The shipped runtime never contains this.
+#include "host.h"
+static HostKeyScript g_keys;
+static bool g_keys_loaded;
+static uint32_t g_core_frame; // frames completed since dsd_plat_init, the host's frame number
+static char g_keys_text[64 * 1024];
+static char g_keys_err[HOST_KEY_ERR_MAX];
+
+static void load_key_script(void)
+{
+    g_keys_loaded = false;
+    g_core_frame = 0;
+    FILE *f = fopen("nitro:/input.keys", "rb");
+    if (f == NULL)
+        return;
+    size_t n = fread(g_keys_text, 1, sizeof(g_keys_text) - 1, f);
+    fclose(f);
+    g_keys_loaded = host_keys_parse(&g_keys, g_keys_text, (uint32_t)n, g_keys_err, sizeof(g_keys_err));
+    if (!g_keys_loaded)
+        ds_log_linef("DSD|LOG|input.keys: %s", g_keys_err);
+}
+#endif
+
 #define DS_MAX_SPRITES 128  // sprite handles per room (both screens)
 #define DS_MAX_SOUNDS 64    // effects/modules loaded per room
 #define DS_SFX_TRACKED 16   // effect handles kept for dsd_plat_sfx_stop (maxmod has 16 channels)
@@ -84,7 +110,12 @@ int32_t dsd_plat_init(void)
     irqEnable(IRQ_VBLANK);
     g_vblanks_at_init = g_vblanks;
     // NitroFS and maxmod start once; later calls return the first result.
-    return ds_platform_init();
+    int32_t rc = ds_platform_init();
+#ifdef DSD_SCRIPTED_INPUT
+    if (rc == DSD_PLAT_OK)
+        load_key_script();
+#endif
+    return rc;
 }
 
 void dsd_plat_frame_begin(void)
@@ -116,6 +147,9 @@ static void build_oam(int s)
 
 void dsd_plat_frame_end(void)
 {
+#ifdef DSD_SCRIPTED_INPUT
+    g_core_frame++;
+#endif
     for (int s = 0; s < DS_SCREENS; s++)
     {
         build_oam(s);
@@ -135,6 +169,13 @@ void dsd_plat_read_input(dsd_input *out)
     static const uint32_t keys[DSD_BTN_COUNT] = {
         KEY_A, KEY_B, KEY_X, KEY_Y, KEY_L, KEY_R, KEY_START, KEY_SELECT, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
     };
+#ifdef DSD_SCRIPTED_INPUT
+    if (g_keys_loaded)
+    {
+        host_keys_state(&g_keys, g_core_frame, out);
+        return;
+    }
+#endif
     scanKeys();
     uint32_t held = keysHeld();
     memset(out, 0, sizeof(*out));
