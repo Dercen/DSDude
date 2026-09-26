@@ -1,5 +1,7 @@
 # WS5 asset pipeline status
 
+Cloud push target: `ws5-assets`
+
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
