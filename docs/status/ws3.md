@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `91fc4c9`, checkpoint-7, after WS0 merged `ws3-platform` at `d8c5367`). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `b8ba3e1`, after checkpoint-8 merged `ws3-platform` at `32c931d`; ADR-0004 closed as resolved). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -29,6 +29,9 @@ Legend: todo / in progress / done (<sha>).
     tree of `runtime/` without `dist/`; checked equal to the committed tree.
   - **DS compile of WS2's core** at `829b00d` (`fixed.c`, `number.c`, `numfmt.c`, `vendor/trig.c`): clean with
     `-Wall -Wextra`.
+- **After checkpoint-8** (`main` `b8ba3e1`): WS2's new `test_programs.c` cases pass on the DS too,
+  `conformance:ds` **37 of 37** (v2-05, v3-02 skipped: key scripts); `dist/VERSION` refreshed for the new tree
+  (the ELFs are unchanged).
 - **C11 0.3.0 (WS0 relay, checkpoint-7): done** (e777050).
   - `dsd_plat_sprite_load` takes the OBJ box and frame count from the core (`dsd_sprite_info` in: width, height,
     frames; out: bpp) and returns `DSD_PLAT_ELOAD` when the GRF does not match (width != box width, fewer than
