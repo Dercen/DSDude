@@ -21,6 +21,7 @@
 #include <nds.h>
 
 #include "builtins_table.h"
+#include "dsd_platform.h"
 #include "ds_gfx.h"
 #include "ds_log.h"
 #include "ds_mem.h"
@@ -446,7 +447,12 @@ int main(int argc, char **argv)
     ds_log_init();
     ds_video_init();
     ds_ui_init();
-    ds_platform_init();
+    if (ds_platform_init() != DSD_PLAT_OK)
+    {
+        ds_log_linef("DSD|ERR|R584||||0|selftest: NitroFS or the soundbank did not start");
+        ds_log_pad();
+        ds_error_screen("R584", "selftest", "NitroFS or the soundbank did not start.");
+    }
     irqSet(IRQ_VBLANK, on_vblank);
     irqEnable(IRQ_VBLANK);
 
@@ -460,6 +466,9 @@ int main(int argc, char **argv)
     log_checks();
     log_mem();
 
+    // Start the fps window on a VBlank: sampled mid-frame, a VBlank during the first iteration would make its
+    // swiWaitForVBlank wait for the next one, and the first second would read 59.
+    swiWaitForVBlank();
     uint32_t frame = 0, second_start = vblanks, frames_this_second = 0, mm_checked = 0;
     for (;;)
     {

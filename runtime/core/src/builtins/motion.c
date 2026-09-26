@@ -1,6 +1,7 @@
 // motion.c: motion builtins over the instance's speed/direction and hspeed/vspeed (two views of one motion,
 // contracts/events.md step 6). Directions are degrees, counter-clockwise, y pointing down.
 #include "bi.h"
+#include "geometry.h"
 #include "engine.h"
 #include "fixed.h"
 
@@ -89,6 +90,7 @@ bool dsd_bi_move_wrap(DsdVm *vm, DsdValue *args, uint32_t argc) {
     DsdInstance *in = me(vm);
     if (in != 0) {
         const DsdRoom *rm = &vm->world->rooms[dsd_engine.room];
+        dsd_geom_epoch++; // x and y may change (the collision broadphase rebuilds its boxes)
         if (dsd_truthy(args[0])) in->x = wrap_axis(in->x, (int64_t)rm->width * DSD_FX_ONE, margin);
         if (dsd_truthy(args[1])) in->y = wrap_axis(in->y, (int64_t)rm->height * DSD_FX_ONE, margin);
     }

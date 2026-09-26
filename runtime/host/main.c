@@ -143,6 +143,11 @@ int main(int argc, char **argv) {
         fprintf(stderr, "dsdude-host: can't write %s\n", o.trace);
         return EXIT_USAGE;
     }
+    // --png-dir: the screens after the last completed frame (none for a program-form game, which runs no frames).
+    if (o.png_dir != NULL && host_frame_count() > 0 && !host_png_screens(o.png_dir)) {
+        fprintf(stderr, "dsdude-host: can't write the screens into %s\n", o.png_dir);
+        return EXIT_USAGE;
+    }
     fflush(stdout);
     return st == DSD_GAME_FAILED ? EXIT_RUNTIME_ERROR : EXIT_OK;
 }

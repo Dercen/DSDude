@@ -14,7 +14,7 @@
  * which report E492 instead.
  *
  * Instances (slots, builtin variables of other instances, `with`) use provisional opcodes whose operands are
- * proposed in docs/adr/0003-provisional-opcode-operands.md.
+ * set by docs/adr/0005-provisional-opcode-operands.md (accepted; still provisional until WS2 implements them).
  */
 import type { Const, Func, Instr, Loc, Operand } from "@dsdude/dsdb";
 import type { CompilerCode } from "../diagnostics/catalog.ts";
@@ -37,7 +37,7 @@ import type {
 } from "../syntax/ast.ts";
 import { FIXED_ONE } from "../syntax/lexer.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./builtins.ts";
-import type { CodegenEnv, ObjectInfo } from "./env.ts";
+import type { CodegenEnv, FunctionOverride, ObjectInfo, UserFunction } from "./env.ts";
 import { accepts, category, describeParam, describeType, fromBuiltinType, ordinal, type ValueType } from "./types.ts";
 
 /** Registers in one frame (contracts/runtime-limits.json `registersPerFrame`, dsdb.md section 6). */
@@ -459,7 +459,7 @@ class FunctionCompiler {
     const body = this.newLabel();
     const next = this.newLabel();
     const end = this.newLabel();
-    // ADR-pending ADR-0005: WITHBEGIN/WITHNEXT/WITHEND operands and loop shape.
+    // ADR-0005: WITHBEGIN/WITHNEXT/WITHEND operands and loop shape.
     this.jump("WITHBEGIN", end, reg);
     this.place(body);
     const depth = this.withRegs.length;
@@ -654,7 +654,7 @@ class FunctionCompiler {
       this.unknownName(name, at, known);
       return null;
     }
-    // ADR-pending ADR-0005: GETDYN/SETDYN take the symbol by name (operand kind `sym`).
+    // ADR-0005: GETDYN/SETDYN take the symbol by name (operand kind `sym`).
     const reg = this.targetReg(target);
     return {
       load: (dst) => void this.emit("GETDYN", dst, reg, name),
@@ -690,7 +690,7 @@ class FunctionCompiler {
         store: (src) => void this.emit("SETBI", src, bv.name),
         localReg: null,
       };
-    // ADR-pending ADR-0005: GETBIO/SETBIO, a builtin variable of another instance.
+    // ADR-0005: GETBIO/SETBIO, a builtin variable of another instance.
     const reg = this.targetReg(target);
     return {
       load: (dst) => void this.emit("GETBIO", dst, reg, bv.name),
@@ -713,7 +713,7 @@ class FunctionCompiler {
           return null;
         }
         const i = this.valueAny(index);
-        // ADR-pending ADR-0005: GETBIX/SETBIX, an element of a builtin array variable of self.
+        // ADR-0005: GETBIX/SETBIX, an element of a builtin array variable of self.
         return {
           load: (dst) => void this.emit("GETBIX", dst, bv.name, i),
           store: (src) => void this.emit("SETBIX", src, bv.name, i),
@@ -1110,13 +1110,7 @@ class FunctionCompiler {
       const required = user.defaults.filter((d) => d === null).length;
       if (e.args.length < required || e.args.length > user.params)
         this.report("E301", { name, expected: countText(required, user.params), count: givenText(e.args.length) }, e);
-      for (let i = 0; i < user.params; i++) {
-        const arg = e.args[i] ?? user.defaults[i] ?? null;
-        const reg = i === 0 ? base : this.alloc();
-        if (arg === null) this.emit("LOADUNDEF", reg);
-        else this.valueTo(arg, reg);
-      }
-      this.emit("CALL", base, user.funcName);
+      this.userCall(e, base, user, this.env.overridesOf?.(name) ?? []);
     } else if (builtin !== undefined) {
       if (e.args.length < builtin.minArgs || e.args.length > builtin.maxArgs)
         this.report(
@@ -1129,6 +1123,56 @@ class FunctionCompiler {
       this.emit("CALLN", base, e.args.length, name);
     }
     if (dst !== null && dst !== base) this.emit("MOV", dst, base);
+  }
+
+  /**
+   * Calls a user function with the given arguments in `base`, `base+1`, ... When descendants of self's object
+   * override it (events.md section 3: "a child function with the same name overrides it"), the call dispatches on
+   * `object_index`: each overriding object (and its own descendants) gets its version, everyone else `user`. The
+   * objects are known at compile time, so the dispatch is a few compares, and only where an override exists.
+   */
+  private userCall(e: Call, base: number, user: UserFunction, overrides: readonly FunctionOverride[]): void {
+    const variants = [user, ...overrides.map((o) => o.fn)];
+    const width = Math.max(e.args.length, ...variants.map((v) => v.params));
+    const regs = Array.from({ length: width }, (_, i) => (i === 0 ? base : this.alloc()));
+    // The arguments are evaluated once, in order, whatever version ends up being called.
+    for (const [i, arg] of e.args.entries()) this.valueTo(arg, regs[i] as number);
+    /** Fills `fn`'s missing parameters with its defaults (or undefined) and calls it. */
+    const call = (fn: UserFunction): void => {
+      for (let i = e.args.length; i < fn.params; i++) {
+        const init = fn.defaults[i] ?? null;
+        if (init === null) this.emit("LOADUNDEF", regs[i] as number);
+        else this.valueTo(init, regs[i] as number);
+      }
+      this.emit("CALL", base, fn.funcName);
+    };
+    if (overrides.length === 0) {
+      call(user);
+      return;
+    }
+    const end = this.newLabel();
+    const labels = overrides.map(() => this.newLabel());
+    const mark = this.top;
+    const kind = this.alloc();
+    const candidate = this.alloc();
+    const same = this.alloc();
+    this.emit("GETBI", kind, "object_index");
+    overrides.forEach((o, i) => {
+      for (const object of o.objects) {
+        this.emit("LOADK", candidate, { kind: "asset", name: object } satisfies Const);
+        this.emit("EQ", same, kind, candidate);
+        this.jump("JMPT", labels[i] as Label, same);
+      }
+    });
+    this.release(mark);
+    call(user);
+    this.jump("JMP", end);
+    overrides.forEach((o, i) => {
+      this.place(labels[i] as Label);
+      call(o.fn);
+      if (i < overrides.length - 1) this.jump("JMP", end);
+    });
+    this.place(end);
   }
 }
 

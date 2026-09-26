@@ -11,18 +11,23 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.1.0 (2026-09-25, WS0, Phase 0): header, ten sections (incl. KONS), 8-byte cells, instruction encoding, calling convention, event ids, OBJS/ROOM/ASET, program form, `.dsda` grammar and canonical form, ABI hash.
 - 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): section 5 operand kinds `sym` and `bivar` (names in `.dsda`); packages/dsdb encodes, decodes and assembles them (`BuiltinsEnv.variables`).
 - 0.3.0 (2026-09-26, WS4, T1, ADR-0006 proposed by WS2, co-signed by WS4): header offset 28 becomes the extension-table offset; the `SPRG` sprite-geometry extension (frame size, origin, bbox per ASET sprite); `.dsda` `.asset sprite ... origin= size= bbox=`; format minor 2 only in files that carry extensions. packages/dsdb encodes, decodes and assembles it; the compiler writes SPRG from sprite.json; fixtures/compiler goldens with sprites regenerated.
+- 0.3.0 T0 (2026-09-26, WS4): ADR-0006 accepted by the user (option A; format minor 2 only in files with extensions); dsdb.md says "accepted" and the ADR-pending markers are gone.
+- 0.4.0 (2026-09-26, WS4, T1, with WS2): section 5 lists the promoted stable opcodes (see opcodes.json 0.3.0), CMPJ's encoding, and WS2's runtime notes on ADR-0005 (never-assigned slots and globals, GETDYN/GETBIO on noone, the WITHBEGIN handle in rA).
 
 ## C2 opcodes (`contracts/opcodes.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): 29 stable opcodes (0-28), 22 provisional (29-50), 4 reserved int-specialised (51-54).
 - 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): operand kinds `sym` (GETDYN/SETDYN C) and `bivar` (GETBI/SETBI Bx); new provisional GETBIX/SETBIX (55-56, builtin array variables) and GETBIO/SETBIO (57-58, builtin variables of another instance); stated meanings for WITHBEGIN/WITHNEXT/WITHEND, NEWARR and SETIDX; runtime/gen/opcodes.h and packages/dsdb/src/gen/opcodes.ts regenerated.
 - 0.2.0 T0 (2026-09-26, WS4): WS0 renumbered the opcode-operands ADR from 0003 to **ADR-0005** (co-signed by WS2); the "ADR-0003" in the two WS4 lines of 2026-09-26 above (C2 container and opcodes) means ADR-0005.
+- 0.3.0 (2026-09-26, WS4, T1, co-signed by WS2 in docs/status/ws2.md): ADR-0005 accepted; the opcodes WS2's engine implements are promoted to stable: 29-50 (CALL, ADDI/SUBI/MULI, CMPJ, GETSLOT/SETSLOT(O), GETDYN/SETDYN, GETBI/SETBI, WITH*, NEWARR/GETIDX/SETIDX/LEN, TOINT/TOFIXED) and 55-58 (GETBIX/SETBIX, GETBIO/SETBIO); CMPJ gets WS2's compare-and-skip encoding (C = relation 0-5, always followed by a JMP). 51-54 stay reserved. runtime/gen/opcodes.h and packages/dsdb/src/gen/opcodes.ts regenerated.
 
 ## C2 builtins (`contracts/builtins.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): ids 0-84 the 85 section-4 functions, 85-116 instance variables, 117-124 globals, 125-142 constants; ABI hash 0x0dd9987a; docs for the 30 builtins the samples use, TODO(WS7) elsewhere.
+- 0.2.0 (2026-09-26, WS0, T1): ids 143-158 append the 16 UI colours as constants of type color, c_white = 0, c_black 1, c_red 2, c_green 3, c_blue 4, c_yellow 5, c_orange 6, c_purple 7, c_gray 8, c_ltgray 9, c_dkgray 10, c_aqua 11, c_fuchsia 12, c_lime 13, c_maroon 14, c_navy 15 (the order of C11 dsd_platform.h; asked by WS3). ABI hash 0x0dd9987a -> 0xf1d376bb; every fixtures/**/*.dsdb regenerated.
 
 ## C3 Asset pack (`contracts/assetpack.md`)
 - owed: WS5 writes 0.1.0 on its first day (CP-A).
 - 0.1.0 (2026-09-26, WS5, day 1): assetpack.md written: build-folder layout, names, sprite conversion (transparency, RGB555, 16/256 mode, median-cut reduction, palette order, OBJ-size padding, vertical stitch, grit lines, frame/VRAM stride), backgrounds (text-BG padding, tile count), sounds (WAV rewrite, module pass-through, mmutil line, ids from soundbank.h, RAM bytes), icon, assets.manifest.json schema (a superset of C4's provisional AssetManifest), cache key, per-room budgets and E401-E422.
+- 0.1.0 T0 (2026-09-26, WS5): section 5 states the resampler (box filter, then linear interpolation), the WAV chunk order (fmt, data, smpl, as wavefile writes it) and the RAM estimate; no manifest field changes.
 
 ## C4 Toolchain API (`packages/toolchain/src/api.ts`, `contracts/toolchain-api.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): api.ts types (BuildService, BuildEvent, ToolPaths, EmulatorHandle/Manager, provisional AssetManifest and RoomAssetSet, CompileFn, PackAssetsFn, CheckRoomBudgetsFn, CliCommand) and MockBuildService. toolchain-api.md owed by WS1 (CP-A).
@@ -54,10 +59,13 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.1.0 (2026-09-25, WS0, Phase 0): READY/LOG/ERR/MEM/STAT/PAD/EXIT lines, one protocol from 0x04FFFA00, >= 5 KB flush pad.
 - 0.2.0 (2026-09-26, WS2, T1): "Host runner" section: dsdude-host command line (a `.dsdb` path as the root), LF-only stdout, exit codes 0/1/2, empty ERR fields in program form and load errors, the `--input` key-script format, the `--trace` JSONL schema (one integer-only object per frame, fixed key order), and `--png-dir` (from tier v4).
 - 0.2.0 T0 (2026-09-26, WS2): a trace line is written when the frame has ended (after a pending room change); DSD|STAT comes every 60th frame; DSD|MEM comes after Room Start and its `inst` counts instance blocks in use.
+- 0.2.0 T0 (2026-09-26, WS2, from WS1): the flush pad is >= 5120 bytes, at least six DSD|PAD| lines (five 1023-char lines are 5,115 characters). DSD|STAT's spr_top/spr_bot/oam_drop/aff_drop describe the last frame (oam_drop and aff_drop summed over both screens).
+- 0.2.0 T0 (2026-09-26, WS2): "Screens" describes what `--png-dir` writes now that tier v4 has it: the layer order, RGB555 widening (`c5 << 3 | c5 >> 2`, compare in RGB555), no files for program form, and magenta box outlines for sprites without GRFs (a `.dsdb` root).
 
 ## C8 Runtime artifact (`contracts/runtime-artifact.md`)
 - owed: WS3, with its first runtime/dist build.
 - 0.1.0 (2026-09-26, WS3, first build): runtime/dist/arm9.elf (stripped) + arm9-debug.elf + VERSION (key=value: runtime, abi, tree = git tree of runtime/ without dist/, blocksds, arm7, arm9_sha256, itcm/dtcm/dtcm_data/cstack/image); paired ARM7 arm7_maxmod.elf; `npm run build:runtime -w runtime`; DTCM data 0x1200 with an 11,200-byte C stack; reproducible across folders; boot errors R580-R582 provisional (ADR-0004).
+- 0.2.0 (2026-09-26, WS3, T1): VERSION key `loaded` (code + data, which carries the 0.7 MB budget); `image` stays (everything static, now information only: the core's static pools are budgeted separately, PLAN 3.3); boot via the core's dsd_core_main (C11 0.2.0), errors are the core's R5xx (R584/R571), provisional R580-R582 dropped.
 
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.
@@ -66,6 +74,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - R5xx catalog 0.1.0 (2026-09-26, WS2, T0): `runtime/core/diagnostics/catalog.json` created with R500-R590 (sub-ranges R50x variables, R51x runaway scripts, R52x number range, R53x division and roots, R54x wrong kinds of value, R55x lists, R56x memory, R58x the game file, R59x script checks).
 - R5xx catalog (2026-09-26, WS2, T0): R551 "Not a list" ([] or a length on a value that is not a list).
 - R5xx catalog (2026-09-26, WS2, T0): R502 instance not found, R503 no instance of that object, R504 too many extra variables, R505 read-only variable, R561 too many instances, R570/R571 picture/sound could not be loaded, R572 asset not loaded in this room.
+- 0.1.0 T0 (2026-09-26, WS5): asset catalog `packages/asset-pipeline/src/diagnostics/catalog.ts` started: E401-E422 (E407, E418, E419 warnings), listed in contracts/assetpack.md section 10.
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
@@ -78,14 +87,18 @@ builtins for its doc/example fills); existing lines never change. Format:
 - owed: WS2, by CP-A.
 - 0.1.0 (2026-09-26, WS2, publication; frozen at CP-A): lifecycle and frame (`dsd_plat_init/frame_begin/frame_end/read_input` with `dsd_input`), files (`dsd_plat_read_file`), C8 output (`dsd_plat_log`, `dsd_plat_log_flush` for the DS pad), `dsd_plat_fatal` (`dsd_fatal`), `dsd_plat_mem_report`, sprites/backgrounds/shadow OAM (`dsd_sprite_info`, `dsd_oam_entry`, `dsd_affine`), UI layer, sound (incl. `dsd_plat_music_active`), room-load primitives (`dsd_plat_screens_blank`, `dsd_plat_assets_free`, `dsd_plat_sfx_load`, `dsd_plat_music_load`), `dsd_plat_millis`, `dsd_plat_rng_seed`, and the `DSD_ITCM_CODE`/`DSD_DTCM_DATA`/`DSD_DTCM_BSS` placement macros (libnds section names under `ARM9`, empty on the host).
 - 0.2.0 (2026-09-26, WS2, T1; answers WS3's ADR-0004): `int dsd_core_main(void)`, the core's entry point that runs the whole game and re-initialises all core state (the DS `main()` only calls it; the host runner keeps `dsd_game_boot`/`dsd_game_frame` for per-frame traces); `dsd_plat_init` results defined: `DSD_PLAT_ENOENT` = NitroFS not mounted (R584 "file system"), `DSD_PLAT_ELOAD` = soundbank not loaded (R571).
+- 0.3.0 (2026-09-26, WS2, T1 before the CP-A freeze; no platform implements it yet): `dsd_sprite_info` width/height/frames become inputs the core fills before `dsd_plat_sprite_load` (width/height = the frame's C3 OBJ box, frames = the ASET count), because a GRF holds only the padded sheet and cannot tell the frame height; the platform fills `bpp`. Layout unchanged (8 bytes).
+- 0.3.0 T0 (2026-09-26, WS2, for ADR-0004): the UI colour numbers of `dsd_plat_ui_text`/`dsd_plat_ui_fill` are written down: 0-15 in the PLAN 5.2 order (c_white 0 ... c_navy 15) with GameMaker's RGB values, others wrap (& 15); `dsd_plat_sprite_load` returns DSD_PLAT_ELOAD for a GRF that does not match `info`.
 
 ## C12 EditorPanel host API + preview API (`apps/ide/src/renderer/panels/api.ts`, `packages/asset-pipeline/src/preview.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): preview types (`PreviewSpriteFn`, `SpritePreview`). Panel API + mock-host owed by WS6 (CP-A).
 - panel API 0.1.0 (2026-09-26, WS6, CP-A delivery): `apps/ide/src/renderer/panels/api.ts` (`@dsdude/ide/panels`): ResourceRef/resourceId/resourceFile; EditorPanel {id, kind, open, save, dispose, onDirty}, EditorPanelFactory {kind, canOpen, create({element, host})}; PanelHost {project: ProjectStore (get/dir/subscribe/update/isDirty/save), files (read/write via C5 project.*File), ipc, undo: UndoStack, toast, openLearn, openResource}; editor modules = default export of `editors/<name>/index.ts(x)`; Learn links `dsdude-learn:/docs/...md#anchor`, headingSlug (GitHub-style), learnTargetForCode (docs/reference/errors.md#<code>), learnTargetForBuiltin (functions.md / variables.md). Helpers (kit.ts): createUndoStack, updateWithUndo (immer patches). `fixtures/ide/mock-host` (= `@dsdude/ide/mock-host`): createMockHost -> mountEditor / mountLearn / mountShell in headless Chromium, in-memory C5 handlers behind createLocalBridge. Freezes at CP-A.
+- 0.1.0 T0 (2026-09-26, WS5): `previewSprite` implemented (preview-sprite.ts; the frames are every whole frame across the PNG, padded to the OBJ size). Beside the unchanged C12 types, `previewSpriteDetails` adds original vs converted RGBA, source colour count, E401/E407 diagnostics and optional dithering; `spriteDefaults` gives the C1 import defaults.
 
 ## C13 Runtime limits (`contracts/runtime-limits.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): the 22 PLAN 5.2 C13 keys and values.
 
 ## C14 Phase-0 fixtures
 - 0.1.0 (2026-09-25, WS0, Phase 0): samples/minimal, samples/flappy v0 (ADR-0001 applied), fixtures/bytecode hello + conformance/v0-01, fixtures/assets, fixtures/conformance v0.
+- 0.1.0 T0 (2026-09-26, WS4): samples/flappy `spr_bird` bbox left 2 -> 1 (the wing reaches column 1; from WS5); fixtures/compiler/samples/flappy goldens regenerated.
 - hello (2026-09-26, WS1, producer of samples/hello and the hello fixtures): samples/hello also logs every key press as DSD|LOG|key <buttons> (ADR-0003 names) plus the pad; fixtures/runtime/hello and fixtures/build/hello regenerated (ROM SHA-256 2b2eb01c...; header, NitroFS layout and the DSD|LOG|hello line unchanged).

@@ -17,6 +17,7 @@ import {
   memoryReport,
   parseNm,
   parseSizeA,
+  parseSizeBerkeley,
   readAbiHash,
   reportProblems,
   run,
@@ -61,7 +62,8 @@ async function main(): Promise<number> {
   const debugElf = path.join(runtimeDir, "dist", "arm9-debug.elf");
   const sizes = parseSizeA((await run(exe("size"), ["-A", debugElf], { timeoutMs: TOOL_TIMEOUT_MS })).stdout);
   const symbols = parseNm((await run(exe("nm"), [debugElf], { timeoutMs: TOOL_TIMEOUT_MS })).stdout);
-  const report = memoryReport(sizes, symbols);
+  const totals = parseSizeBerkeley((await run(exe("size"), [debugElf], { timeoutMs: TOOL_TIMEOUT_MS })).stdout);
+  const report = memoryReport(sizes, symbols, totals);
 
   const abi = readAbiHash(readFileSync(path.join(runtimeDir, "gen", "builtins_table.h"), "utf8"));
   const pkg = JSON.parse(readFileSync(path.join(runtimeDir, "package.json"), "utf8")) as { version: string };

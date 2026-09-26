@@ -5,10 +5,11 @@
  * log with the case's patterns. `--update` rewrites the goldens instead of comparing them. Local machine only.
  * Exit 0 all pass, 1 a check failed, 2 tool/environment failure (C10 codes).
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { detectToolchain, dsdudeHome, formatDiagnostic, runMake, takeScreenshot } from "@dsdude/toolchain";
+import { parseKeyScript, screenshotUsesRanges, toRangeScript } from "./keys.ts";
 import { decodePng, diffPixels, type Rgba } from "./png.ts";
 import { checkLog, SELFTEST_CASES } from "./selftest-cases.ts";
 
@@ -65,14 +66,23 @@ async function main(): Promise<number> {
     return 2;
   }
 
+  // The fixtures' key scripts are C8 format; the screenshot tool may still want ADR-0003 ranges (keys.ts).
+  const ranges = screenshotUsesRanges(readFileSync(path.join(repoRoot, "tools", "screenshot.py"), "utf8"));
   let failed = 0;
   for (const c of SELFTEST_CASES) {
     if (only && c.name !== only) continue;
     const out = path.join(dsdudeHome(), "selftest", c.name);
+    let keys = c.keys ? path.join(fixtureDir, "keys", c.keys) : undefined;
+    if (keys && ranges) {
+      mkdirSync(out, { recursive: true });
+      const translated = path.join(out, "keys-ranges.txt");
+      writeFileSync(translated, toRangeScript(parseKeyScript(readFileSync(keys, "utf8")), c.frames));
+      keys = translated;
+    }
     const shot = await takeScreenshot({
       rom: path.join(runtimeDir, ROM),
       frames: c.frames,
-      keys: c.keys ? path.join(fixtureDir, "keys", c.keys) : undefined,
+      keys,
       out,
       python: status.paths.python,
     });

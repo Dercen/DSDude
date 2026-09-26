@@ -1,6 +1,6 @@
 # C8: Runtime artifact
 
-Version: 0.1.0 · Owner: WS3 · Changes: see the tiers in contracts/README.md
+Version: 0.2.0 · Owner: WS3 · Changes: see the tiers in contracts/README.md
 
 What `runtime/dist/` holds, how it is built, and what a ROM packed around it expects. Written by WS3 with the first
 `runtime/dist` build (2026-09-26). The protocol half of C8 is `contracts/log-protocol.md` (WS2). Sources: PLAN.md
@@ -59,7 +59,8 @@ UTF-8 `key=value` lines, LF, in this order. Readers ignore unknown keys.
 | `dtcm` | `.dtcm` + `.sbss` bytes. Ceiling `dtcm_data`. |
 | `dtcm_data` | `__dtcm_data_size` in bytes. |
 | `cstack` | The C stack in bytes: `__sp_usr - __dtcm_start`. It is the total in `DSD\|MEM`'s `cstack=used/total` (KB there). |
-| `image` | The ARM9 static image in main RAM, loaded sections plus `.bss`: `__end__ - 0x02000000`. Budget 0.7 MB (716,800 bytes, PLAN.md 3.3). |
+| `image` | Everything static in main RAM, loaded sections plus `.bss` (the core's static pools: the DSDB buffer, instance pool, string arena): `__end__ - 0x02000000`. Information only; PLAN.md 3.3 budgets those pools separately. |
+| `loaded` | The ARM9 binary itself, code and data (ITCM/DTCM copies included): `arm-none-eabi-size` text + data. Budget 0.7 MB (716,800 bytes, PLAN.md 3.3 "ARM9 image"). |
 
 **Which tree `tree` covers.** `runtime/dist/` sits inside `runtime/`, and a commit cannot contain its own hash, so
 `tree` is the hash `git write-tree --prefix=runtime/` gives for `runtime/` **with `runtime/dist/` removed**: the core,
@@ -73,14 +74,15 @@ from, `tree` equals `git rev-parse <commit>:runtime` computed with `dist/` left 
 
 - NitroFS (C3 layout, `contracts/assetpack.md`). The runtime reads `nitro:/game.dsdb` (required) and
   `nitro:/soundbank.bin` (optional: without it maxmod is not started and sound calls do nothing).
-- Boot order: log protocol chosen from `0x04FFFA00` (C8) → `nitroFSInit(NULL)` → `soundEnable()` →
-  `mmInitDefault("nitro:/soundbank.bin")` when the file exists → load `game.dsdb` → `DSD|READY|<runtime>|<abi>`.
-- A boot failure prints one `DSD|ERR|<code>||||0|<message>` line (no object, event or file) and stops. The codes
-  are provisional until WS2's R5xx catalog has them (ADR-0004): R580 NitroFS not mounted (the message names
-  `strerror(errno)`), R581 `game.dsdb` missing, damaged or built for another ABI, R582 soundbank not loaded.
-
-Until WS2's loader and VM are linked, the runtime checks only the `game.dsdb` header (magic, major 0, ABI hash),
-prints `DSD|READY` and idles (ADR-0004).
+- Boot: `main()` chooses the log protocol from `0x04FFFA00` (C8) and calls the core's `dsd_core_main()` (C11
+  0.2.0). The core calls `dsd_plat_init()`: video, the UI layer, then once per power-on `nitroFSInit(NULL)` →
+  `soundEnable()` → `mmInitDefault("nitro:/soundbank.bin")` when the file exists. Then the core loads `game.dsdb`
+  and prints `DSD|READY|<runtime>|<abi>`.
+- Errors are the core's (its R5xx catalog): NitroFS not mounted is R584 (the platform first logs
+  `DSD|LOG|nitroFSInit failed: <strerror(errno)>`), a soundbank that does not load R571, a missing or damaged
+  `game.dsdb` the loader's codes. After the `DSD|ERR` line `dsd_plat_fatal` shows the red error box on the bottom
+  screen; START runs `dsd_core_main()` again from the start (NitroFS and maxmod stay up).
+- After `DSD|EXIT` the last frame stays on screen.
 
 ## How to change me
 

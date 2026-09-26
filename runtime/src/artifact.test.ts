@@ -10,6 +10,7 @@ import {
   memoryReport,
   parseNm,
   parseSizeA,
+  parseSizeBerkeley,
   parseVersion,
   readAbiHash,
   reportProblems,
@@ -42,11 +43,16 @@ const NM = `00001200 A __dtcm_data_size
 02016544 B fake_heap_end
 `;
 
+// arm-none-eabi-size (Berkeley) of the first runtime with WS2's core linked (2026-09-26).
+const BERKELEY = `   text	   data	    bss	    dec	    hex	filename
+ 155760	   1420	 818444	 975624	  ee308	dist/arm9-debug.elf
+`;
+
 describe("memory report", () => {
-  const report = memoryReport(parseSizeA(SIZE_A), parseNm(NM));
+  const report = memoryReport(parseSizeA(SIZE_A), parseNm(NM), parseSizeBerkeley(BERKELEY));
 
   it("reads ITCM, DTCM, the C stack and the image from size -A and nm", () => {
-    expect(report).toEqual({ itcm: 1088, dtcm: 0, dtcmData: 0x1200, cstack: 11200, image: 0x16a14 });
+    expect(report).toEqual({ itcm: 1088, dtcm: 0, dtcmData: 0x1200, cstack: 11200, image: 0x16a14, loaded: 157180 });
   });
 
   it("ignores header, Total and undefined-symbol lines", () => {
@@ -54,19 +60,22 @@ describe("memory report", () => {
     expect(parseNm(NM).has("some_undefined")).toBe(false);
   });
 
-  it("flags ITCM over 24 KB, DTCM data over its reservation and an image over 0.7 MB", () => {
+  it("flags ITCM over 24 KB, DTCM data over its reservation and a binary over 0.7 MB, not big static pools", () => {
     expect(reportProblems(report)).toEqual([]);
-    const bad = { ...report, itcm: ITCM_CEILING_BYTES + 4, dtcm: 0x1204, image: 800 * 1024 };
+    expect(reportProblems({ ...report, image: 950 * 1024 })).toEqual([]);
+    const bad = { ...report, itcm: ITCM_CEILING_BYTES + 4, dtcm: 0x1204, loaded: 800 * 1024 };
     expect(reportProblems(bad)).toHaveLength(3);
     expect(reportProblems({ ...report, itcm: ITCM_CEILING_BYTES })).toEqual([]);
   });
 
   it("fails loudly when a layout symbol is missing", () => {
-    expect(() => memoryReport(parseSizeA(SIZE_A), parseNm("02016a14 A __end__\n"))).toThrow(/__dtcm_data_size/);
+    const totals = { text: 0, data: 0 };
+    expect(() => memoryReport(parseSizeA(SIZE_A), parseNm("02016a14 A __end__\n"), totals)).toThrow(/__dtcm_data_size/);
+    expect(() => parseSizeBerkeley("nothing")).toThrow(/no totals/);
   });
 
   it("prints one line per figure", () => {
-    expect(formatReport(report).split("\n")).toHaveLength(4);
+    expect(formatReport(report).split("\n")).toHaveLength(5);
     expect(formatReport(report)).toContain("itcm   1088 B (1.1 KB of 24.0 KB)");
   });
 });
@@ -79,7 +88,7 @@ describe("VERSION", () => {
       tree: "a".repeat(40),
       blocksds: "1.24.0",
       arm9Sha256: "b".repeat(64),
-      report: { itcm: 1088, dtcm: 0, dtcmData: 4608, cstack: 11200, image: 92692 },
+      report: { itcm: 1088, dtcm: 0, dtcmData: 4608, cstack: 11200, image: 92692, loaded: 90000 },
     });
     expect(text.endsWith("\n")).toBe(true);
     expect(text).not.toContain("\r");
@@ -88,6 +97,7 @@ describe("VERSION", () => {
     expect(v.abi).toBe("0dd9987a");
     expect(v.arm7).toBe("$BLOCKSDS/sys/arm7/main_core/arm7_maxmod.elf");
     expect(v.cstack).toBe("11200");
+    expect(v.loaded).toBe("90000");
   });
 
   it("takes the ABI hash from builtins_table.h as 8 lowercase hex digits", () => {

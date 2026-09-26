@@ -93,6 +93,21 @@ void ds_ui_text_panel(int screen, int cx, int cy, const char *str, int colour, i
     }
 }
 
+void ds_ui_textn(int screen, int cx, int cy, const char *str, uint32_t len, int colour)
+{
+    if (cy < 0 || cy >= DS_UI_ROWS)
+        return;
+    for (uint32_t i = 0; i < len && cx < DS_UI_COLS; i++, cx++)
+    {
+        if (cx < 0)
+            continue;
+        unsigned char c = (unsigned char)str[i];
+        if (c < DS_UI_FIRST_CHAR || c > 0x7E)
+            c = '?';
+        ds_ui_map[screen][cy * 32 + cx] = ds_ui_entry(1 + (c - DS_UI_FIRST_CHAR), colour);
+    }
+}
+
 void ds_ui_text(int screen, int cx, int cy, const char *str, int colour)
 {
     ds_ui_text_panel(screen, cx, cy, str, colour, DS_UI_PANEL_NONE);
@@ -118,15 +133,17 @@ void ds_ui_commit(void)
         dmaCopy(ds_ui_map[s], bgGetMapPtr(ds_bg0[s]), sizeof(ds_ui_map[s]));
 }
 
-// Writes `text` into rows [row, row_end) at `col`, wrapping at `width` (at a space when there is one); returns
-// the next free row.
+// Writes `text` into rows [row, row_end) at `col`, wrapping at `width` (at a space when there is one) and at
+// '\n'; returns the next free row.
 static int ds_ui_wrap(int screen, int col, int width, int row, int row_end, const char *text, int colour, int panel)
 {
     char line[DS_UI_COLS + 1];
     while (*text != '\0' && row < row_end)
     {
-        int n = (int)strnlen(text, (size_t)width);
-        if (text[n] != '\0')
+        int n = 0;
+        while (n < width && text[n] != '\0' && text[n] != '\n')
+            n++;
+        if (text[n] != '\0' && text[n] != '\n')
         {
             int cut = n;
             while (cut > 0 && text[cut] != ' ')
@@ -138,7 +155,7 @@ static int ds_ui_wrap(int screen, int col, int width, int row, int row_end, cons
         line[n] = '\0';
         ds_ui_text_panel(screen, col, row++, line, colour, panel);
         text += n;
-        while (*text == ' ')
+        while (*text == ' ' || *text == '\n')
             text++;
     }
     return row;

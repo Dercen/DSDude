@@ -1,0 +1,158 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_ball "gfx/spr_ball.grf" 1 origin=8,8 size=16,16 bbox=2,2,13,13
+.asset sprite spr_rock "gfx/spr_rock.grf" 1 origin=16,16 size=32,32 bbox=0,0,31,31
+.global hits
+.global frames
+
+.func ctrl_create 0 4
+    .loc "objects/obj_ctrl/create.dss" 1
+    LOADI r0, 0
+    SETGLOB r0, hits
+    SETGLOB r0, frames
+    .loc "objects/obj_ctrl/create.dss" 2
+    LOADI r3, 0
+  L0:
+    LOADI r0, 150
+    LT r0, r3, r0
+    JMPF r0, L1
+    .loc "objects/obj_ctrl/create.dss" 3
+    LOADI r0, 496
+    CALLN r0, 1, irandom
+    ADDI r0, r0, 8
+    LOADI r1, 368
+    CALLN r1, 1, irandom
+    ADDI r1, r1, 8
+    LOADK r2, @obj_ball
+    CALLN r0, 3, instance_create
+    .loc "objects/obj_ctrl/create.dss" 4
+    LOADI r0, 496
+    CALLN r0, 1, irandom
+    ADDI r0, r0, 8
+    LOADI r1, 368
+    CALLN r1, 1, irandom
+    ADDI r1, r1, 8
+    LOADK r2, @obj_ball_low
+    CALLN r0, 3, instance_create
+    ADDI r3, r3, 1
+    JMP L0
+  L1:
+    .loc "objects/obj_ctrl/create.dss" 5
+    LOADI r3, 0
+  L2:
+    LOADI r0, 20
+    LT r0, r3, r0
+    JMPF r0, L3
+    .loc "objects/obj_ctrl/create.dss" 6
+    LOADI r0, 24
+    MUL r0, r3, r0
+    ADDI r0, r0, 16
+    LOADI r1, 192
+    LOADK r2, @obj_rock
+    CALLN r0, 3, instance_create
+    ADDI r3, r3, 1
+    JMP L2
+  L3:
+    RET r0, 0
+.end
+
+.func ctrl_step 0 3
+    .loc "objects/obj_ctrl/step.dss" 1
+    GETGLOB r0, frames
+    ADDI r0, r0, 1
+    SETGLOB r0, frames
+    .loc "objects/obj_ctrl/step.dss" 2
+    LOADI r1, 60
+    MOD r1, r0, r1
+    LOADI r2, 0
+    EQ r1, r1, r2
+    JMPF r1, L0
+    .loc "objects/obj_ctrl/step.dss" 3
+    LOADK r1, "frame "
+    TOSTR r0, r0
+    CONCAT r0, r1, r0
+    LOADK r1, " hits "
+    CONCAT r0, r0, r1
+    GETGLOB r1, hits
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    LOADK r1, " left "
+    CONCAT r0, r0, r1
+    LOADK r1, @obj_ball
+    CALLN r1, 1, instance_number
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+  L0:
+    RET r0, 0
+.end
+
+.func ball_create 0 2
+    .loc "objects/obj_ball/create.dss" 1
+    LOADI r0, -3
+    LOADI r1, 3
+    CALLN r0, 2, irandom_range
+    SETBI r0, hspeed
+    .loc "objects/obj_ball/create.dss" 2
+    LOADI r0, -3
+    LOADI r1, 3
+    CALLN r0, 2, irandom_range
+    SETBI r0, vspeed
+    RET r0, 0
+.end
+
+.func ball_end_step 0 3
+    .loc "objects/obj_ball/end_step.dss" 1
+    LOADB r0, true
+    LOADB r1, true
+    LOADI r2, 0
+    CALLN r0, 3, move_wrap
+    RET r0, 0
+.end
+
+.func ball_hit_ball 0 1
+    .loc "objects/obj_ball/collision_obj_ball.dss" 1
+    GETGLOB r0, hits
+    ADDI r0, r0, 1
+    SETGLOB r0, hits
+    .loc "objects/obj_ball/collision_obj_ball.dss" 2
+    GETBI r0, x
+    ADDI r0, r0, 1
+    SETBI r0, x
+    RET r0, 0
+.end
+
+.func ball_hit_rock 0 1
+    .loc "objects/obj_ball/collision_obj_rock.dss" 1
+    CALLN r0, 0, instance_destroy
+    RET r0, 0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event create ctrl_create
+    .event step ctrl_step
+.end
+
+.object obj_ball sprite=spr_ball parent=- visible=1 screen=top depth=0
+    .event create ball_create
+    .event end_step ball_end_step
+    .event collision_obj_ball ball_hit_ball
+    .event collision_obj_rock ball_hit_rock
+.end
+
+.object obj_ball_low sprite=spr_ball parent=obj_ball visible=1 screen=bottom depth=0
+.end
+
+.object obj_rock sprite=spr_rock parent=- visible=1 screen=top depth=5
+.end
+
+.room rm_stress 512 384
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .set top spr_ball+spr_rock -
+    .set bottom spr_ball -
+    .sounds -
+.end
+
+.first rm_stress

@@ -1,0 +1,78 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_box "gfx/spr_box.grf" 2 origin=0,0 size=16,16 bbox=0,0,15,15
+
+.func runner_create 0 1
+    .loc "objects/obj_runner/create.dss" 1
+    LOADI r0, -3
+    SETBI r0, hspeed
+    .loc "objects/obj_runner/create.dss" 2
+    LOADK r0, 0.5
+    SETBI r0, image_speed
+    RET r0, 0
+.end
+
+.func runner_anim_end 0 2
+    .loc "objects/obj_runner/animation_end.dss" 1
+    LOADK r0, "anim end "
+    GETBI r1, image_index
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func runner_outside 0 2
+    .loc "objects/obj_runner/outside_room.dss" 1
+    LOADK r0, "outside "
+    GETBI r1, x
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func button_pressed 0 1
+    .loc "objects/obj_button/touch_pressed.dss" 1
+    LOADK r0, "button pressed"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func button_released 0 1
+    .loc "objects/obj_button/touch_released.dss" 1
+    LOADK r0, "button released"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func button_held 0 1
+    .loc "objects/obj_button/touch_held.dss" 1
+    LOADK r0, "button held"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_runner sprite=spr_box parent=- visible=1 screen=top depth=0
+    .event create runner_create
+    .event animation_end runner_anim_end
+    .event outside_room runner_outside
+.end
+
+.object obj_button sprite=spr_box parent=- visible=1 screen=bottom depth=0
+    .event touch_pressed button_pressed
+    .event touch_released button_released
+    .event touch_held button_held
+.end
+
+.room rm_a 64 64
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_runner 8 0 top -
+    .instance obj_button 100 100 bottom -
+    .set top spr_box -
+    .set bottom spr_box -
+    .sounds -
+.end
+
+.first rm_a

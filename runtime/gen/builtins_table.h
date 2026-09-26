@@ -2,11 +2,11 @@
 #ifndef DSD_GEN_BUILTINS_TABLE_H
 #define DSD_GEN_BUILTINS_TABLE_H
 
-#define DSD_BUILTINS_VERSION "0.1.0"
-#define DSD_ABI_HASH 0x0dd9987au
+#define DSD_BUILTINS_VERSION "0.2.0"
+#define DSD_ABI_HASH 0xf1d376bbu
 #define DSD_BUILTIN_FUNC_COUNT 85
 #define DSD_BUILTIN_VAR_COUNT 40
-#define DSD_BUILTIN_CONST_COUNT 18
+#define DSD_BUILTIN_CONST_COUNT 34
 
 /* X(index, name, minArgs, maxArgs, pure): index is the dense runtime index, CALLN's C operand. */
 #define DSD_BUILTIN_FUNCS(X) \
@@ -158,6 +158,22 @@
   X(self, -1) \
   X(other, -2) \
   X(all, -3) \
-  X(noone, -4)
+  X(noone, -4) \
+  X(c_white, 0) \
+  X(c_black, 1) \
+  X(c_red, 2) \
+  X(c_green, 3) \
+  X(c_blue, 4) \
+  X(c_yellow, 5) \
+  X(c_orange, 6) \
+  X(c_purple, 7) \
+  X(c_gray, 8) \
+  X(c_ltgray, 9) \
+  X(c_dkgray, 10) \
+  X(c_aqua, 11) \
+  X(c_fuchsia, 12) \
+  X(c_lime, 13) \
+  X(c_maroon, 14) \
+  X(c_navy, 15)
 
 #endif

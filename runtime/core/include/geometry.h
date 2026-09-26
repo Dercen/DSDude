@@ -32,6 +32,13 @@ typedef struct DsdBox {
     int64_t bottom;
 } DsdBox;
 
+// Incremented whenever an input of an instance's box changes (x, y, sprite_index, image_xscale, image_yscale,
+// screen), so the collision broadphase knows when its cached boxes are stale. Only its changes matter; it wraps.
+extern uint32_t dsd_geom_epoch;
+
+// The OBJ box of a width x height frame: the smallest of the 12 hardware OBJ sizes that contains it (C3 section 3,
+// "Padding"; 64x64 for larger frames, which C3 refuses). The GRF holds frames padded to this box, and OAM draws it.
+void dsd_geom_obj_box(uint32_t width, uint32_t height, uint32_t *box_w, uint32_t *box_h);
 // Geometry of sprite asset `asset`.
 void dsd_geom_sprite(const DsdWorld *w, uint32_t asset, DsdSpriteGeom *out);
 // An instance's bbox at its position, or at (x, y) (Q20.12) when `at` is set; false when it has no sprite.

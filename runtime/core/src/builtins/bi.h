@@ -116,6 +116,10 @@ bool dsd_bi_draw_set_screen(DsdVm *vm, DsdValue *args, uint32_t argc);
 bool dsd_bi_draw_set_color(DsdVm *vm, DsdValue *args, uint32_t argc);
 bool dsd_bi_draw_rectangle(DsdVm *vm, DsdValue *args, uint32_t argc);
 bool dsd_bi_draw_clear(DsdVm *vm, DsdValue *args, uint32_t argc);
+// sprites.c (the draw list)
+bool dsd_bi_draw_self(DsdVm *vm, DsdValue *args, uint32_t argc);
+bool dsd_bi_draw_sprite(DsdVm *vm, DsdValue *args, uint32_t argc);
+bool dsd_bi_draw_sprite_ext(DsdVm *vm, DsdValue *args, uint32_t argc);
 // output.c
 bool dsd_bi_show_debug_message(DsdVm *vm, DsdValue *args, uint32_t argc);
 bool dsd_bi_string(DsdVm *vm, DsdValue *args, uint32_t argc);

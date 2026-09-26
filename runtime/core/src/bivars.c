@@ -207,7 +207,21 @@ static int32_t normalize_degrees(int32_t d) {
     return (int32_t)(r < 0 ? r + DSD_DEG_FULL_FX : r);
 }
 
+// The instance variables a bounding box depends on (geometry.h's dsd_geom_epoch).
+static bool shapes_box(uint32_t var) {
+    return var == DSD_BV_x || var == DSD_BV_y || var == DSD_BV_sprite_index || var == DSD_BV_image_xscale ||
+           var == DSD_BV_image_yscale || var == DSD_BV_screen;
+}
+
+static bool set_var(uint32_t idx, uint32_t var, int32_t index, DsdValue v);
+
 bool dsd_bivar_set(uint32_t idx, uint32_t var, int32_t index, DsdValue v) {
+    if (shapes_box(var)) dsd_geom_epoch++; // counted even when the set fails: the collision grid only rebuilds
+    return set_var(idx, var, index, v);
+}
+
+// dsd_bivar_set without the epoch bookkeeping.
+static bool set_var(uint32_t idx, uint32_t var, int32_t index, DsdValue v) {
     DsdEngine *e = &dsd_engine;
     if (!g_q20_ready) init_q20_fields();
     if (VARS[var].readonly) {

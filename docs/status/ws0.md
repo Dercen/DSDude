@@ -135,6 +135,16 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   needs an ADR. The mock host is `@dsdude/ide/mock-host` (`fixtures/ide/mock-host`).
 - The c_* colour constants arrive in builtins.json once WS2's tests stop hard-coding the ABI hash (ADR-0004 notes).
 
+## Integration log (continued)
+
+- 2026-09-26 checkpoints 4-7 (event-driven, batch merges): every stream merged green; the c_* colours landed as
+  builtins 0.2.0 (ABI hash 0xf1d376bb) once WS2's goldens stopped hard-coding the hash. WS5's Windows checks pass
+  (real grit/mmutil, exact soundbank, cached packAssets 34 ms in-process). **`npx dsdude build samples/minimal`
+  builds a real ROM end to end**, and its screenshot shows the player sprite at (128,96), 60 fps.
+- Deviation noted (WS3): sound effects are not `mmEffectRelease`d after starting (PLAN.md 3.3 says release), so
+  C11's `dsd_plat_sfx_stop` can still cancel them.
+- Open ADR: ADR-0007 emulator key rebinding (WS6 -> WS1, C4 T1): WS0 recommends accept; the user decides.
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
