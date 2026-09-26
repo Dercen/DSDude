@@ -288,6 +288,12 @@ static const OpCheck OP_CHECKS[DSD_OPCODE_COUNT] = {
     [DSD_OP_WITHNEXT] = {1, V_REG, V_LABEL, V_NONE},
     [DSD_OP_WITHEND] = {1, V_REG, V_NONE, V_NONE},
     [DSD_OP_CMPJ] = {1, V_REG, V_REG, V_NONE}, // relation and the JMP after it checked below
+    // Int-specialised arithmetic and compare-and-jump (reserved 51-54, the M1 fallback; encoding provisional until
+    // WS4's T1 promotes them): the compiler emits them only when both operands are proven ints.
+    [DSD_OP_ADDII] = {1, V_REG, V_REG, V_REG},
+    [DSD_OP_SUBII] = {1, V_REG, V_REG, V_REG},
+    [DSD_OP_MULII] = {1, V_REG, V_REG, V_REG},
+    [DSD_OP_CMPJII] = {1, V_REG, V_REG, V_NONE}, // relation and the following JMP checked like CMPJ
 };
 
 // Array length of each built-in variable (0 = not an array), from the generated table.
@@ -354,7 +360,7 @@ static int32_t verify_function(const DsdProgram *p, uint32_t index, DsdLoadError
             // The callee's parameters are the caller's rA..rA+params-1 (its frame starts at rA).
             ok = DSD_A(ins) + p->funcs[DSD_BX(ins)].params <= fn->regs;
         }
-        if (ok && op == DSD_OP_CMPJ) {
+        if (ok && (op == DSD_OP_CMPJ || op == DSD_OP_CMPJII)) {
             // Relation 0-5 (== != < <= > >=), and the next word, inside the function, is the JMP it guards.
             ok = DSD_C(ins) <= DSD_CMPJ_REL_MAX && pc + 1 < end && DSD_OP(p->code[pc + 1]) == DSD_OP_JMP;
         }
