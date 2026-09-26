@@ -100,11 +100,7 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Compiler: every project sprite gets its `sprite.json` geometry, so every project DSDB with sprites carries SPRG
     (Flappy, minimal, v3/09 goldens regenerated). `make -f runtime/Makefile.host test` stays green on WS2's current
     loader (115,719 checks).
-- **BLOCKER push.sh (for WS0, again):** `bash tools/cloud/push.sh` refuses any branch that merged `origin/main`,
-  because its range `origin/ws4-compiler..HEAD` contains main's own `chore(deps): regenerate lockfile` commits
-  (`b23a325`, `7fd898f`): "7fd898f changes package-lock.json: revert it". The relay asked for this merge, so the
-  batch is committed but could not go out through push.sh. Suggested fix in push.sh: `git rev-list --no-merges HEAD
-  ^"$B" ^origin/main`. WS4's own commits touch no lockfile and all carry the trailer.
+- push.sh range check fixed by WS0 (`5b09e6c`); the checkpoint-3 batch went out through push.sh after merging main.
 
 ## Next
 
