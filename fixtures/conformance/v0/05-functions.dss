@@ -1,0 +1,22 @@
+// v0/05: global functions, default parameters, recursion, globals, math builtins
+function add(a, b = 10) {
+    return a + b;
+}
+function fact(n) {
+    if (n <= 1) return 1;
+    return n * fact(n - 1);
+}
+function bump() {
+    global.count += 1;
+}
+global.count = 0;
+show_debug_message(add(1, 2));
+show_debug_message(add(5));
+show_debug_message(fact(6));
+bump();
+bump();
+show_debug_message(global.count);
+show_debug_message(max(3, 9, 4));
+show_debug_message(floor(-2.5));
+show_debug_message(round(-2.5));
+show_debug_message(abs(-7));

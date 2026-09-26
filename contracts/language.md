@@ -45,7 +45,7 @@ statement   = block
             | "if" "(" condition ")" statement [ "else" statement ]
             | "while" "(" condition ")" statement
             | "do" statement "until" "(" condition ")" [ ";" ]
-            | "for" "(" [ simple ] ";" [ condition ] ";" [ simple ] ")" statement
+            | "for" "(" [ forinit ] ";" [ condition ] ";" [ simple ] ")" statement
             | "repeat" "(" expression ")" statement
             | "switch" "(" expression ")" "{" { ( "case" expression | "default" ) ":" { statement } } "}"
             | "with" "(" expression ")" statement
@@ -53,6 +53,7 @@ statement   = block
             | simple [ ";" ]
             | ";" ;
 vardecl     = NAME [ "=" expression ] ;
+forinit     = "var" vardecl { "," vardecl } | simple ;
 simple      = lvalue ( "=" | "+=" | "-=" | "*=" | "/=" ) expression
             | lvalue ( "++" | "--" )
             | call ;
@@ -157,7 +158,8 @@ W04x when the checker can tell.
 
 ## 6. Statements
 
-- `if`/`else`, `while`, `do ... until (c)`, `for (init; cond; step)` (init and step are simple statements),
+- `if`/`else`, `while`, `do ... until (c)`, `for (init; cond; step)` (init is a simple statement or a `var` declaration scoped to the enclosing
+  event or function; step is a simple statement),
   `repeat (n)` (n evaluated once, floored), `switch` (case values are compared with `==`; execution falls through to
   the next case until `break`, as in GML), `break`, `continue`, `return`, `exit`, `with`.
 - `=` inside an `if`/`while`/`until`/`for` condition or a `?:` condition is compared, not assigned, with W030.

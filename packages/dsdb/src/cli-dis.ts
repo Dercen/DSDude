@@ -6,7 +6,7 @@ import { loadBuiltinsEnv } from "./node.ts";
 
 const args = process.argv.slice(2);
 const o = args.indexOf("-o");
-const input = args.find((a, i) => a !== "-o" && i !== o + 1);
+const input = args.find((a, i) => a !== "-o" && (o < 0 || i !== o + 1));
 if (!input) {
   console.error("usage: dsdb-dis in.dsdb [-o out.dsda]");
   process.exit(2);

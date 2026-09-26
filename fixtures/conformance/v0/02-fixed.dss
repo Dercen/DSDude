@@ -1,0 +1,11 @@
+// v0/02: fixed point (Q20.12) and the two-decimal printing rule
+var h = 1 / 2;
+show_debug_message(h);
+show_debug_message(7 / 2);
+show_debug_message(0.25 + 0.25);
+show_debug_message(1.5 * 4);
+show_debug_message(10 / 4);
+show_debug_message(7.5 mod 2);
+show_debug_message(0.125);      // exactly 0.125: rounds half away from zero to 0.13
+show_debug_message(-0.125);
+show_debug_message(0.5 - 0.5);  // never prints -0

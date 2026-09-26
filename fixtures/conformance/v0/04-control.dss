@@ -1,0 +1,30 @@
+// v0/04: if/else, for, repeat, while, do-until and switch fall-through
+var sum = 0;
+for (var i = 1; i <= 10; i++) sum += i;
+show_debug_message(sum);
+var n = 0;
+repeat (4) n += 3;
+show_debug_message(n);
+var k = 10;
+while (k > 1) {
+    k = k div 2;
+}
+show_debug_message(k);
+var j = 0;
+do {
+    j += 1;
+} until (j >= 3);
+show_debug_message(j);
+switch (j) {
+    case 1:
+        show_debug_message("one");
+        break;
+    case 3:
+        show_debug_message("three");
+    case 4:
+        show_debug_message("four");
+        break;
+    default:
+        show_debug_message("other");
+}
+if (sum > 50) show_debug_message("big"); else show_debug_message("small");

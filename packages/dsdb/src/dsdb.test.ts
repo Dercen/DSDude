@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { abiHash, abiLine, type BuiltinsFile, builtinsEnv, fnv1a32 } from "./abi.ts";
@@ -110,6 +112,40 @@ describe("hello.dsda", () => {
     expect(v.getUint32(16, true)).toBe(bytes.length);
     expect(v.getUint16(20, true)).toBe(10);
     expect(v.getUint32(24, true)).toBe(0xffffffff);
+  });
+});
+
+describe("conformance v0-01 (hand-assembled)", () => {
+  const text = readFileSync(resolve(repo, "fixtures/bytecode/conformance/v0-01.dsda"), "utf8");
+  const bytes = new Uint8Array(readFileSync(resolve(repo, "fixtures/bytecode/conformance/v0-01.dsdb")));
+
+  it("assembles with stable opcodes only and round-trips byte for byte", () => {
+    const stable = new Set(OPCODES.filter((o) => o.status === "stable").map((o) => o.name));
+    const m = assemble(text);
+    expect(m.functions.flatMap((f) => f.code).every((i) => stable.has(i.op))).toBe(true);
+    expect(Buffer.from(encode(m, env)).equals(Buffer.from(bytes))).toBe(true);
+    expect(disassemble(decode(bytes, env))).toBe(text);
+  });
+});
+
+describe("CLIs", () => {
+  const run = (cli: string, ...args: string[]) =>
+    spawnSync(process.execPath, [resolve(import.meta.dirname, cli), ...args], {
+      cwd: repo,
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+
+  it("dsdb-dis prints to stdout without -o, and dsdb-asm writes -o", () => {
+    const dis = run("cli-dis.ts", "fixtures/bytecode/hello.dsdb");
+    expect(dis.status).toBe(0);
+    expect(dis.stdout).toBe(readFileSync(resolve(repo, "fixtures/bytecode/hello.dsda"), "utf8"));
+    const out = resolve(tmpdir(), `dsdb-cli-${process.pid}.dsdb`);
+    const asm = run("cli-asm.ts", "fixtures/bytecode/hello.dsda", "-o", out);
+    expect(asm.status).toBe(0);
+    expect(readFileSync(out).equals(readFileSync(resolve(repo, "fixtures/bytecode/hello.dsdb")))).toBe(true);
+    rmSync(out, { force: true });
+    expect(run("cli-asm.ts", "fixtures/bytecode/hello.dsda").status).toBe(2);
   });
 });
 

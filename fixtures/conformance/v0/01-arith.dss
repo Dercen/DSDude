@@ -1,0 +1,10 @@
+// v0/01: integer arithmetic and printing
+var a = 7;
+var b = 3;
+show_debug_message(a + b);
+show_debug_message(a - b);
+show_debug_message(a * b);
+show_debug_message(a div b);
+show_debug_message(a mod b);
+show_debug_message(-a mod b);
+show_debug_message(a / 7);

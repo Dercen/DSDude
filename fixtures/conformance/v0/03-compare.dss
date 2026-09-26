@@ -1,0 +1,14 @@
+// v0/03: comparisons, truthiness, bool and undefined printing
+show_debug_message(3 < 5);
+show_debug_message(2 == 2.0);
+show_debug_message(0.5 > 0.25);
+show_debug_message(1 != 1);
+show_debug_message(-1 <= -1);
+show_debug_message(!0);
+show_debug_message(!0.5);
+show_debug_message(!undefined);
+var u;
+show_debug_message(u);
+show_debug_message(true && false);
+show_debug_message(false || 7);
+show_debug_message(3 > 2 ? 10 : 20);
