@@ -96,7 +96,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 - **For WS0/WS3:** the cheaper watchdog (WS3's lever 1) is already pushed as **f22071e** (M1 step 4 below); please re-bench from it.
 
 - **M1 after step 4 (WS3): 33.20 cycles/op = 33,744 ops/frame** (history 39.84 -> 35.06 -> 33.20; gate ~25.5). CALLN got 5 cycles slower (64.8 -> 69.7) because it settled the watchdog.
-  - Step 5 (this batch): CALLN no longer settles. It hands the builtin the budget as it stands and keeps `seg`, so the next transfer charges the straight run's steps and the count stays exact (every golden and trace unchanged); a nested event's watchdog just sees those steps one run later. **Please re-measure.**
+  - Step 6 (82488bc's successor): GETSLOT/SETSLOT use a cached pointer to self's slot cells (`self_slots`, NULL without a self), refreshed only at run() entry and by WITHBEGIN/WITHNEXT/WITHEND (the only places vm->self changes inside a run; event runners restore it). This drops the per-op load of vm->self, the no-instance comparison against it, the pool address and the 384-byte block multiply. **Please re-measure GETSLOT/SETSLOT.**
+  - Step 5 (82488bc): CALLN no longer settles. It hands the builtin the budget as it stands and keeps `seg`, so the next transfer charges the straight run's steps and the count stays exact (every golden and trace unchanged); a nested event's watchdog just sees those steps one run later. **Please re-measure.**
 
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.

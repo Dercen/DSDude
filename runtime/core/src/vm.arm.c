@@ -454,6 +454,9 @@ static bool enter_frame(DsdVm *vm, uint32_t func, uint32_t base) {
 // and its base is held in a register for the whole run (see dispatch_base below).
 static const void *g_dispatch[DSD_OPCODE_COUNT] DSD_DTCM_DATA;
 
+// The slot cells of vm->self, or NULL when there is none (GETSLOT/SETSLOT's cached base).
+#define SELF_SLOTS(vm) ((vm)->self != DSD_VM_NO_INST ? dsd_instances.pool[(vm)->self].slots : (DsdValue *)0)
+
 // Keeps `p` in a register (or a DTCM stack slot) across the handlers: the empty asm hides where the value came
 // from, so the compiler cannot re-materialise it from a literal pool at each use. No code is emitted.
 #define DSD_OPAQUE(p) __asm__("" : "+r"(p))
@@ -491,6 +494,10 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     const uint32_t entry_depth = vm->depth;
     const uint32_t *ip = code + prog->funcs[func].code_start;
     DsdValue *R = vm->regs + base; // the running frame's r0
+    // self's slot cells (NULL without a self): GETSLOT/SETSLOT index it directly instead of reloading vm->self and
+    // locating the instance block each time. vm->self changes inside run() only through the `with` opcodes (which
+    // refresh this); builtins that run events restore it before returning, and error paths leave run().
+    DsdValue *self_slots = SELF_SLOTS(vm);
     int32_t budget = (int32_t)vm->budget; // steps left this frame, settled at transfers (never more than 200,000)
     const uint32_t *seg = ip;              // the first step of the current straight run, not yet charged
     uint32_t ins;
@@ -820,8 +827,8 @@ op_CMPJ: {
 
 // User variables of self/other by slot: the hot path reads the cell straight from the instance block.
 op_GETSLOT:
-    if (vm->self != DSD_VM_NO_INST) {
-        a = dsd_instances.pool[vm->self].slots[DSD_B(ins)];
+    if (self_slots != 0) {
+        a = self_slots[DSD_B(ins)];
         if (a.tag != DSD_TAG_UNSET) {
             RA = a;
             DISPATCH();
@@ -832,12 +839,12 @@ op_GETSLOT:
     DISPATCH();
 
 op_SETSLOT:
-    if (vm->self == DSD_VM_NO_INST) {
+    if (self_slots == 0) {
         SYNC_PC();
         no_instance(vm);
         goto failed;
     }
-    dsd_instances.pool[vm->self].slots[DSD_B(ins)] = RA;
+    self_slots[DSD_B(ins)] = RA;
     DISPATCH();
 
 op_GETSLOTO:
@@ -905,16 +912,19 @@ op_WITHBEGIN: {
     bool empty;
     SYNC_PC();
     if (!dsd_with_begin(RA, &RA, &empty)) goto failed;
+    self_slots = SELF_SLOTS(vm); // the loop's first instance (or the outer self when the loop is empty)
     if (empty) TRANSFER(ip + DSD_SBX(ins));
     DISPATCH();
 }
 
 op_WITHNEXT:
     if (dsd_with_next(RA)) TRANSFER(ip + DSD_SBX(ins));
+    self_slots = SELF_SLOTS(vm); // the next instance, or the outer self again after the last one
     DISPATCH();
 
 op_WITHEND:
     dsd_with_end(RA);
+    self_slots = SELF_SLOTS(vm);
     DISPATCH();
 
 watchdog_fired:
@@ -935,6 +945,7 @@ failed:
     return vm->err_code;
 
 #undef DISPATCH
+#undef SELF_SLOTS
 #undef SETTLE
 #undef TRANSFER
 #undef SYNC_PC
