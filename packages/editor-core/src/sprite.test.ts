@@ -13,6 +13,7 @@ import {
   paletteIndex,
   renderFrame,
   type SpriteDoc,
+  sameSprite,
   setFrame,
   sheetIndices,
   spriteDocFromPreview,
@@ -98,6 +99,20 @@ describe("sprite document", () => {
     expect(paletteIndex(doc, existing).index).toBe(1);
     const full = { ...doc, palette: Array.from({ length: 16 }, (_, i) => i) };
     expect(paletteIndex(full, 0x7fff, 16).index).toBe(-1);
+  });
+});
+
+describe("sameSprite", () => {
+  it("compares content, not identity", () => {
+    const doc = load();
+    const copy = {
+      ...doc,
+      frames: doc.frames.map((f) => ({ ...f, pixels: f.pixels.slice() })),
+      palette: [...doc.palette],
+    };
+    expect(sameSprite(doc, copy)).toBe(true);
+    expect(sameSprite(doc, setFrame(doc, 0, pencil(frame(doc, 0), 0, 0, 1)))).toBe(false);
+    expect(sameSprite(doc, addFrame(doc, 0))).toBe(false);
   });
 });
 

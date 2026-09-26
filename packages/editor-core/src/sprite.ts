@@ -57,7 +57,7 @@ export function renderFrame(
   doc: SpriteDoc,
   index: number,
   opts: { onion?: boolean; onionAlpha?: number } = {},
-): Uint8ClampedArray {
+): Uint8ClampedArray<ArrayBuffer> {
   const frame = doc.frames[index];
   const out = new Uint8ClampedArray(doc.frameWidth * doc.frameHeight * 4);
   if (!frame) return out;
@@ -76,6 +76,21 @@ export function renderFrame(
     out.set([c[0], c[1], c[2], a], i * 4);
   }
   return out;
+}
+
+/** Whether two docs have the same frames, pixels and palette (undo rebuilds equal docs as new objects). */
+export function sameSprite(a: SpriteDoc, b: SpriteDoc): boolean {
+  if (a === b) return true;
+  if (a.frameWidth !== b.frameWidth || a.frameHeight !== b.frameHeight) return false;
+  if (a.frames.length !== b.frames.length || a.palette.length !== b.palette.length) return false;
+  if (a.palette.some((c, i) => c !== b.palette[i])) return false;
+  return a.frames.every((f, i) => {
+    const g = b.frames[i];
+    if (!g) return false;
+    if (f.pixels === g.pixels) return true;
+    for (let p = 0; p < f.pixels.length; p++) if (f.pixels[p] !== g.pixels[p]) return false;
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------

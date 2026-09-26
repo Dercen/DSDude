@@ -913,3 +913,171 @@ canvas.pixelated {
 .controls-shared td {
   color: #ffe08a;
 }
+
+.sprite-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: 13px;
+  outline: none;
+}
+
+.se-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid #333;
+}
+
+.se-toolbar button,
+.se-strip button {
+  background: #3a3d41;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.se-toolbar button.active {
+  background: #0e639c;
+  border-color: #1177bb;
+}
+
+.se-gap {
+  width: 12px;
+}
+
+.se-zoom {
+  min-width: 3em;
+  text-align: center;
+}
+
+.se-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.se-palette {
+  width: 120px;
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  padding: 8px;
+  overflow: auto;
+  border-right: 1px solid #333;
+}
+
+.se-swatch {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.se-swatch.transparent {
+  background: repeating-conic-gradient(#777 0% 25%, #bbb 0% 50%) 50% / 8px 8px;
+}
+
+.se-swatch.active {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.se-add-color {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #777;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.se-add-color input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.se-colors {
+  width: 100%;
+  margin: 6px 0 0;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.se-colors.over {
+  color: #f48771;
+  opacity: 1;
+}
+
+.se-canvas-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.se-canvas {
+  position: relative;
+  background: repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 0 0 / 16px 16px;
+  outline: none;
+}
+
+.se-canvas canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.se-overlay {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.se-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  border-top: 1px solid #333;
+}
+
+.se-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px;
+  background: none;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.se-thumb.active {
+  border-color: #3794ff;
+}
+
+.se-thumb canvas,
+.se-anim canvas {
+  image-rendering: pixelated;
+  background: repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%) 0 0 / 8px 8px;
+}
+
+.se-strip-buttons,
+.se-anim {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: 8px;
+}

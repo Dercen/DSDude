@@ -239,10 +239,29 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
     - The Controls card and the first Output line use `effectiveControls`: letters case-insensitive, an unsupported key falling back to the default, as C4 does.
   - Tests: node 94, browser 13, ipc-contract 75, Playwright 13 (settings.spec: rebind A to K, an unsupported key refused, the shared-key warning, the next Play's Controls line). Screenshot checked.
 
+- **Task 7 (visual editors; the user decided on 2026-09-26 that WS6 builds them, WS6b does not launch), batch A, the sprite editor: done.**
+  - `packages/editor-core` (pure, node-tested):
+    - DS colours with the pipeline's exact rounding.
+    - Pixel tools over Uint8Array index frames: pencil, line, rect, fill, select/copy/paste/move, mirror.
+    - The sprite document: frames plus a DS palette, the animation strip, the colour limit, onion-skin rendering, and `sameSprite`.
+    - It loads from the C12 preview and saves a DS indexed PNG that the pipeline reads back with the same pixels and colours.
+    - `edit`: immer-patch undo.
+  - `apps/ide/src/renderer/editors/sprite/`, a C12 EditorPanel (Canvas 2D, pixelated, pixel and 8x8 tile grid):
+    - tools with shortcuts (P, E, L, R, Shift+R, F, S); mirror; onion skin; zoom;
+    - a palette with colours added within the sprite's colour mode, and a colour counter;
+    - the animation strip (add, copy, delete, reorder) with an animated preview;
+    - one undo entry per stroke;
+    - save writes sheet.png through `host.files` and updates `sprite.json` frames.
+    - It opens ahead of the property forms.
+  - Fixes along the way:
+    - Dirty state compares content, since undo rebuilds equal documents.
+    - The pointer handlers read the tool, colour and preview from refs, so events between renders are handled right.
+  - Tests: editor-core 14; browser 15 (sprite editor 2: stroke plus undo/redo, line, new frame, save PNG + frames; mirror, onion, animate); node 94; Playwright 13 (the import test now opens the sprite editor). Screenshots checked.
+
 ## Next
 - Task 6: done.
 - CP-A (2026-09-28): the C12 panel API and mock host freeze; WS0 runs the e2e suite locally.
-- Task 7 (visual editors) unless WS6b runs (WS0 decides at CP-B).
+- Task 7 continues: batch B the room core + PixiJS room view (60 fps check), batch C the background editor + sound panel, batch D in-editor meters.
 - Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
