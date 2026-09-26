@@ -10,6 +10,7 @@
 import { DiagnosticSchema } from "@dsdude/project-format";
 import {
   type BuildService,
+  type BuildServiceDeps,
   createFakeToolchain,
   type EmulatorHandle,
   type EmulatorKind,
@@ -19,6 +20,8 @@ import {
   LocalEmulatorManager,
   MOCK_EMULATOR_LINES,
   MockBuildService,
+  type PackAssetsFn,
+  provisionalManifest,
 } from "@dsdude/toolchain";
 import { z } from "zod";
 import type { BuildServiceMode } from "./protocol.ts";
@@ -36,14 +39,28 @@ function mockDiagnostics(env: Env) {
   return z.array(DiagnosticSchema).parse(JSON.parse(env.DSDUDE_MOCK_DIAGNOSTICS));
 }
 
-/** The BuildService the worker runs (steps 3-6). */
-export function createWorkerBuildService(mode: BuildServiceMode, home: string, env: Env): BuildService {
-  if (mode === "fake") return createFakeToolchain({ home }).service;
-  if (mode === "real")
-    // deps (compileProject, packAssets, checkRoomBudgets) are injected once WS4/WS5 land (task 5).
-    return new LocalBuildService({ home, runtimeDir: env.DSDUDE_RUNTIME_DIR, deps: null, env });
+/**
+ * The BuildService the worker runs (steps 3-6). `deps` are WS4's compileProject and WS5's packAssets and
+ * checkRoomBudgets, injected by the worker entry (C4: the toolchain never imports them). Fake mode swaps packAssets
+ * for `fakePackAssets`, so it compiles DSS for real without grit or mmutil.
+ */
+export function createWorkerBuildService(
+  mode: BuildServiceMode,
+  home: string,
+  env: Env,
+  deps: BuildServiceDeps | null = null,
+): BuildService {
+  if (mode === "fake")
+    return createFakeToolchain({ home, deps: deps ? { ...deps, packAssets: fakePackAssets } : null }).service;
+  if (mode === "real") return new LocalBuildService({ home, runtimeDir: env.DSDUDE_RUNTIME_DIR, deps, env });
   return new MockBuildService({ diagnostics: mockDiagnostics(env) });
 }
+
+/** packAssets without tools (fake mode): the provisional manifest from the project, no NitroFS asset files. */
+export const fakePackAssets: PackAssetsFn = async (project) => ({
+  manifest: provisionalManifest(project),
+  diagnostics: [],
+});
 
 export type IdeEmulatorManager = EmulatorManager & { stopCurrent?: () => Promise<void> };
 
