@@ -110,10 +110,12 @@ background uses one 256-colour background set on its screen.
 Input: `sounds/<n>/sound.json` (`kind`, `file`) and the file.
 
 - **Effects** (`kind: "effect"`, `.wav` or `.mp3`): decoded with `@audio/decode-wav` 1.5.0 / `@audio/decode-mp3`
-  1.3.1, mixed to mono (the channel average) and resampled to `min(source rate, 22050)` Hz by linear interpolation
-  in integer maths, then written as 16-bit PCM with only the `fmt `, `smpl` and `data` chunks (mmutil is not RIFF
-  pad-byte aware; claim 9). A loop comes from the source's `smpl` chunk (the first loop, scaled to the new rate);
-  a loop shorter than 16 samples is dropped with the warning E419. The file is written as `<name>.wav`.
+  1.3.1, mixed to mono (each channel rounded to 16 bits, then averaged) and resampled to `min(source rate, 22050)`
+  Hz: a box filter `ceil(source / target)` samples wide, then linear interpolation at exact rational positions, in
+  integer maths. It is written as 16-bit PCM with only the `fmt `, `data` and `smpl` chunks, in that order (mmutil
+  is not RIFF pad-byte aware; claim 9). A loop comes from the source's `smpl` chunk (the first loop, its dwStart
+  and dwEnd scaled to the new rate, rounding down); a loop shorter than 16 samples is dropped with the warning E419.
+  The file is written as `<name>.wav`.
 - **Music** (`kind: "music"`, `.xm`, `.mod`, `.it` or `.s3m`): the file passes through unchanged as
   `<name>.<ext>` (extension lower-cased).
 - `.mp3` as music is E408 ("The DS can't play MP3 music. Music must be a tracker file (.xm/.mod/.it/.s3m); pick one
@@ -134,8 +136,8 @@ Input: `sounds/<n>/sound.json` (`kind`, `file`) and the file.
 - `soundbank.bin` larger than `soundbankMaxBytes` (1 MB) is E410.
 - **RAM per sound** (`ramBytes`) is what maxmod allocates when the sound is loaded: for an effect its sample entry
   in the soundbank; for music the module entry plus the sample entries it uses. It is read from `soundbank.bin`
-  when it exists, else estimated from the converted data (section 7, `estimated`). One sound above `soundRamBytes`
-  is E411.
+  when it exists, else estimated (section 7, `estimated`): an effect as a 12-byte sample header plus its 16-bit
+  data rounded up to 4 bytes, music as the module file's size. One sound above `soundRamBytes` is E411.
 
 ## 6. Icon (`icon.png`)
 

@@ -14,9 +14,12 @@ export interface Problem {
 /** The C9 `source` of every asset diagnostic. */
 export const DIAGNOSTIC_SOURCE = "assets";
 
-/** Builds the Diagnostic for a problem: `name` fills `{name}`, `file` is the project-relative path or null. */
+/**
+ * Builds the Diagnostic for a problem: `name` fills `{name}`, and `file` (the project-relative path, or null) is both
+ * the location and `{file}`. The problem's own arguments win over both.
+ */
 export function toDiagnostic(problem: Problem, name: string | null, file: string | null): Diagnostic {
-  const args = name === null ? problem.args : { name, ...problem.args };
+  const args = { ...(name === null ? {} : { name }), ...(file === null ? {} : { file }), ...problem.args };
   return makeDiagnostic(ASSET_CATALOG[problem.code], DIAGNOSTIC_SOURCE, args, { file });
 }
 
