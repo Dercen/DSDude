@@ -2,6 +2,8 @@
 import "dockview/dist/styles/dockview.css";
 import { DockviewReact, type DockviewReadyEvent, themeDark } from "dockview-react";
 import { useEffect } from "react";
+import { ControlsCard } from "./help/ControlsCard.tsx";
+import { HelpMenu } from "./help/HelpMenu.tsx";
 import { IdeContext, useActions, useIde } from "./ide-context.tsx";
 import { ipc } from "./ipc.ts";
 import { LearnPanel } from "./learn/LearnPanel.tsx";
@@ -67,6 +69,7 @@ function Toolbar() {
       <button type="button" data-testid="learn-button" onClick={() => actions.openLearn(null)} title="Learn (F1)">
         Learn
       </button>
+      <HelpMenu />
       <span className="toolbar-gap" />
       {status === "running" ? (
         <button type="button" className="stop" data-testid="stop" onClick={() => void actions.stop()}>
@@ -172,6 +175,7 @@ export function App() {
         </div>
         <StatusBar />
         <ToastView />
+        <ControlsCard />
       </div>
     </IdeContext.Provider>
   );

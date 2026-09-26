@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createLocalBridge } from "@dsdude/ipc-contract";
@@ -29,6 +29,27 @@ function setup(dialogResult = { canceled: false, filePaths: ["C:/picked"] }) {
   const settings = new SettingsStore(join(temp(), "settings.json"));
   return { ...createLocalBridge(createCoreHandlers({ settings, dialog, learnRoot: repo })), calls };
 }
+
+describe("learn.openAssets", () => {
+  it("opens docs/tutorial/assets under the learn root, or says it is missing", async () => {
+    const root = temp();
+    const opened: string[] = [];
+    const shell = {
+      openPath: async (p: string) => {
+        opened.push(p);
+        return "";
+      },
+    };
+    const settings = new SettingsStore(join(root, "settings.json"));
+    const dialog: DialogLike = { showOpenDialog: async () => ({ canceled: true, filePaths: [] }) };
+    const { bridge } = createLocalBridge(createCoreHandlers({ settings, dialog, shell, learnRoot: root }));
+    await expect(bridge.invoke("learn.openAssets", {})).rejects.toThrow("not installed");
+    mkdirSync(join(root, "docs", "tutorial", "assets"), { recursive: true });
+    const { path } = await bridge.invoke("learn.openAssets", {});
+    expect(opened).toEqual([path]);
+    expect(path).toBe(join(root, "docs", "tutorial", "assets"));
+  });
+});
 
 describe("core handlers over the C5 validation path", () => {
   it("opens samples/flappy, edits an event and saves it back through project-format", async () => {

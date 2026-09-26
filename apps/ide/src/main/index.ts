@@ -14,10 +14,11 @@ import {
   net,
   protocol,
   session,
+  shell,
   utilityProcess,
   type WebContents,
 } from "electron";
-import { controlsLine } from "../shared/controls.ts";
+import { controlsLine, effectiveControls } from "../shared/controls.ts";
 import { buildServiceMode, createEmulatorManager } from "./build/modes.ts";
 import { PlayController } from "./build/play.ts";
 import { BuildWorkerHost, type WorkerChild } from "./build/worker-host.ts";
@@ -116,7 +117,7 @@ app.whenReady().then(() => {
     worker,
     emulators,
     send: sendEvent,
-    controlsLine: async () => controlsLine(await settings.get("controls")),
+    controlsLine: async () => controlsLine(effectiveControls({ controls: await settings.get("controls") })),
     defaultEmulator: () => settings.get("emulator"),
   });
   // An emulator an earlier IDE left running is killed at startup and before quit (C4 reconcile).
@@ -148,7 +149,10 @@ app.whenReady().then(() => {
   );
   registerIpc(
     ipcMain,
-    { ...createCoreHandlers({ settings, dialog, learnRoot: learnRoot() }), ...createBuildHandlers(play, emulators) },
+    {
+      ...createCoreHandlers({ settings, dialog, shell, learnRoot: learnRoot() }),
+      ...createBuildHandlers(play, emulators),
+    },
     (event: IpcMainInvokeEvent) => ({
       url: event.senderFrame?.url ?? null,
       isMainFrame: !!event.senderFrame && event.senderFrame.parent === null,

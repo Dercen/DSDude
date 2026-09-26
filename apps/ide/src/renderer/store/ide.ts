@@ -44,6 +44,8 @@ export interface IdeState {
   reveal: { docId: string; line: number; col: number; seq: number } | null;
   /** What the Learn panel shows: a document (and anchor), or the contents when `target` is null. */
   learn: { target: LearnTarget | null; seq: number };
+  /** The Controls card overlay is showing (first Play of the session, or Help > Controls). */
+  controlsCard: boolean;
 }
 
 /** What the store needs from the dockview layout. */
@@ -78,6 +80,10 @@ export interface IdeActions {
   revealDiagnostic(d: Diagnostic): void;
   clearOutput(): void;
   showToast(message: string, kind?: Toast["kind"]): void;
+  showControls(): void;
+  hideControls(): void;
+  /** Help > Tutorial assets: opens docs/tutorial/assets/ in the file manager. */
+  openTutorialAssets(): Promise<void>;
   dismissToast(): void;
   /** Subscribes to the C5 events; returns the unsubscribe. */
   connect(): () => void;
@@ -103,6 +109,7 @@ const initial = (): IdeState => ({
   toast: null,
   reveal: null,
   learn: { target: null, seq: 0 },
+  controlsCard: false,
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -128,6 +135,7 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
   let toastSeq = 0;
   let revealSeq = 0;
   let exitSeq = 0;
+  let controlsShown = false;
 
   const append = (...lines: OutputLine[]) => {
     if (lines.length === 0) return;
@@ -230,6 +238,8 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
         }
         // The game may already have ended (emulator.exit arrived while build.play was answering).
         set({ build: { ...get().build, status: exitSeq === seq ? "running" : "idle" } });
+        // The Controls card appears on the first Play of each session (PLAN.md 6 WS6).
+        if (!controlsShown) actions.showControls();
       } catch (err) {
         set({ build: { ...get().build, status: "idle" } });
         actions.showToast(`Play failed: ${parseIpcError(err).message}`, "error");
@@ -290,6 +300,23 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
 
     dismissToast() {
       set({ toast: null });
+    },
+
+    showControls() {
+      controlsShown = true;
+      set({ controlsCard: true });
+    },
+
+    hideControls() {
+      set({ controlsCard: false });
+    },
+
+    async openTutorialAssets() {
+      try {
+        await ipc.invoke("learn.openAssets", {});
+      } catch (err) {
+        actions.showToast(`Could not open the tutorial assets: ${parseIpcError(err).message}`, "error");
+      }
     },
 
     connect() {

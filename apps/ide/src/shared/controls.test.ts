@@ -1,6 +1,6 @@
 import { ControlsSchema } from "@dsdude/ipc-contract";
 import { describe, expect, it } from "vitest";
-import { controlsLine, controlsRows, keyLabel } from "./controls.ts";
+import { controlsLine, controlsRows, DEFAULT_CONTROLS, effectiveControls, keyLabel } from "./controls.ts";
 
 describe("Controls text", () => {
   it("matches the PLAN.md 6 WS6 mapping with the default keys", () => {
@@ -19,5 +19,12 @@ describe("Controls text", () => {
     ]);
     expect(keyLabel(" ")).toBe("Space");
     expect(keyLabel("ArrowLeft")).toBe("Left");
+  });
+});
+
+describe("effective controls", () => {
+  it("are the defaults until C4 can apply rebound keys (ADR-0007)", () => {
+    expect(effectiveControls({ controls: ControlsSchema.parse({ a: "k" }) })).toEqual(DEFAULT_CONTROLS);
+    expect(effectiveControls(null).a).toBe("x");
   });
 });

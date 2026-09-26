@@ -239,6 +239,33 @@ describe("IDE store", () => {
     expect(readFileSync(join(projectDir, "objects/obj_bird/step.dss"), "utf8")).toBe("// a\n");
   });
 
+  it("shows the Controls card on the first successful Play of the session only", async () => {
+    const { store, actions, projectDir } = setup();
+    await actions.openProject(projectDir);
+    await actions.play();
+    expect(store.getState().controlsCard).toBe(true);
+    actions.hideControls();
+    await actions.stop();
+    await actions.play();
+    expect(store.getState().controlsCard).toBe(false);
+    actions.showControls(); // Help > Controls
+    expect(store.getState().controlsCard).toBe(true);
+    await actions.stop();
+  });
+
+  it("does not show the Controls card when Play fails", async () => {
+    const { store, actions, projectDir } = setup({ diagnostics: [compileError] });
+    await actions.openProject(projectDir);
+    await actions.play();
+    expect(store.getState().controlsCard).toBe(false);
+  });
+
+  it("reports a missing tutorial assets folder in a toast", async () => {
+    const { store, actions } = setup();
+    await actions.openTutorialAssets();
+    expect(store.getState().toast?.message).toMatch(/Could not open the tutorial assets: .*not installed/);
+  });
+
   it("asks for a project before Play", async () => {
     const { store, actions } = setup();
     await actions.play();

@@ -34,11 +34,24 @@ test("open, edit, save, Play and Stop against the mock", async () => {
     await expect(output).toContainText("hello");
     await expect(output).not.toContainText("DSD|PAD|");
     await expect(page.getByTestId("status")).toContainText("Game running");
+    // The Controls card appears on the first Play of the session.
+    const card = page.getByTestId("controls-card");
+    await expect(card).toContainText("Arrows");
+    await expect(card).toContainText("Touch the bottom screen");
+    await page.screenshot({ path: test.info().outputPath("controls-card.png") });
+    await page.getByTestId("controls-ok").click();
+    await expect(card).toBeHidden();
     await page.screenshot({ path: test.info().outputPath("play-running.png") });
 
     await page.getByTestId("stop").click();
     await expect(output).toContainText("Game ended (exit code 0)");
     await expect(page.getByTestId("play")).toBeVisible();
+    // Help > Controls shows the card again; Escape closes it.
+    await page.getByTestId("help-menu").click();
+    await page.getByTestId("help-controls").click();
+    await expect(card).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(card).toBeHidden();
     expect(launched.stdout.filter((l) => /renderer\|error\|/.test(l))).toEqual([]);
   } finally {
     await launched.close();
