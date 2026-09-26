@@ -62,6 +62,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 - **C11 0.3.0 (T1, before the CP-A freeze), 2026-09-26. For WS3:** `dsd_sprite_info`'s width/height/frames are now inputs: the core fills the frame's C3 OBJ box (e.g. 16x16 for a 12x10 frame) and the ASET frame count before `dsd_plat_sprite_load`, because a GRF holds only the padded sheet (`gfxWidth` x `frames * boxHeight`) and cannot tell the frame height; the platform fills `bpp` from the GRF header. That is exactly what `ds_obj_upload(screen, grf, w, h, out)` needs. The OBJ-size rule lives once in the core (`dsd_geom_obj_box`, `geometry.h`). WS0: `contracts/README.md`'s C11 row may need 0.3.0.
 
+- **`--png-dir` (tier v4 screens), 2026-09-26.** `runtime/host/gfx.c` (the host's C11 graphics: GRF reader for grit's RIFF/HDRX files, sprites decoded per frame with their own palettes, BG1 with the -mLs screen-block map, flips and scroll wrap, the shadow OAM incl. affine sampling from the double-size centre, the UI layer cleared at `dsd_plat_frame_begin`, and the compositor) and `runtime/host/png.c` (a library-free RGB PNG writer: stored deflate, CRC-32, Adler-32). The UI font is `runtime/host/font8x8.h`, generated from WS3's `runtime/data/font8x8.bin` by `node runtime/host/gen_font.mjs` (the tests compare the two). Fixture `fixtures/runtime-core/v4-screens/` (WS3's selftest GRFs + a room using them); `runtime/tests/check_screens.mjs` checked a render against the source PNGs (81,820 pixels exact; the rotated sprite agrees 82% with a pixel-centre model, the rest being edge pixels of the DS's corner sampling), and `test_screens` pins both screens by FNV. C8 "Screens" documents the composition (T0).
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -95,6 +97,7 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 - `mkdir "runtime/build-host"`: relies on cmd.exe accepting a quoted forward-slash path.
 - The `test` recipe runs `runtime/build-host/dsdude-tests.exe` by a forward-slash path (make should spawn it directly, without cmd.exe).
 - `dsdude-host.exe` output must be byte-identical to Linux (`_setmode(_O_BINARY)` on stdout); the `programs` suite compares it through the capture sink either way.
+- `--png-dir` against an emulator: build a ROM from `fixtures/runtime-core/v4-screens` (its `game.dsdb` and GRFs as the NitroFS root), `dsdude screenshot <rom> --frames 1`, and compare with `dsdude-host fixtures/runtime-core/v4-screens --frames 1 --seed 1 --png-dir <dir>` in RGB555 (`c8 >> 3`). Differences in the rotated sprite's edge pixels or its centre (the core floors the centre to whole pixels) are what to report.
 - If any fails, an IF entry with the error text is enough; the fix stays inside WS2's paths.
 
 ## Leftovers
@@ -103,7 +106,7 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 
 ## Next
 - CP-A (2026-09-28): C11 (now 0.2.0) freezes; fold in anything WS3 still needs from ADR-0004 first.
-- Task 6, part 2b: `--png-dir` (the host renders the last frame's screens from the NitroFS GRFs, the shadow OAM, the backgrounds and the UI layer), the collision grid broadphase, a 300-instance stress fixture, then the rest of tier v4 (rooms and draw) with PNG goldens.
+- Task 6, part 2c: the collision grid broadphase and a 300-instance stress fixture; then the rest of tier v4 (room changes with backgrounds, views) with PNG hashes.
 - WS4's conformance programs 6-10 (v1): run them and write `fixtures/conformance/expected/v1/*.log` when they land; ADR draft if they are not on `main` by D+5 (2026-09-30).
 - With WS4: promote the provisional opcodes the VM now implements (CALL, ADDI/SUBI/MULI, CMPJ, slots, GETDYN/SETDYN, GETBI*, WITH*, arrays, TOINT/TOFIXED) to stable in one T1, once WS4 has co-signed the CMPJ proposal and WS2's notes on ADR-0005.
 

@@ -14,3 +14,11 @@ Inputs and fingerprints for WS2's host runs of whole games (docs/kickoff/ws2.md,
   fingerprints and skips the trace comparison; WS2 then checks the new trace and copies the printed lines here.
 - `flappy-nitrofs/`: WS0's row (GRFs and soundbank built locally with grit/mmutil); not written by WS2. The host's
   results do not depend on it: game logic takes sprite geometry from the DSDB (ADR-0006), never from GRFs.
+- `v4-screens/`: a NitroFS directory for the host renderer (`--png-dir`, tier v4). `game.dsda` (and the generated
+  `game.dsdb`) is one room with a scrolled background on both screens, a plain, a mirrored (frame 1) and a rotated
+  (45 degrees, scale 2) 16x16 8bpp sprite, an 8x8 4bpp sprite, a 64x64 sprite on the bottom screen, `draw_text` and
+  a filled `draw_rectangle`. The GRFs are copies of WS3's selftest grit output
+  (`fixtures/runtime/selftest/nitrofs`, made from `fixtures/runtime/selftest/src/*.png` with the C3 grit lines):
+  `gfx/spr16.grf` sha256 `6202600c...`, `gfx/spr8x8.grf` `96dd084c...`, `gfx/spr64.grf` `fca15594...`,
+  `bg/bg.grf` `69512af1...`. `runtime/tests/check_screens.mjs` compares a render with those source PNGs (81,820
+  pixels exact; the rotated sprite within the DS's corner sampling), and `test_screens` pins the renders by hash.

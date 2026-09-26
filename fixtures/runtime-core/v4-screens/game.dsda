@@ -1,0 +1,97 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr16 "gfx/spr16.grf" 3 origin=0,0 size=16,16 bbox=0,0,15,15
+.asset sprite spr8x8 "gfx/spr8x8.grf" 1 origin=0,0 size=8,8 bbox=0,0,7,7
+.asset sprite spr64 "gfx/spr64.grf" 1 origin=0,0 size=64,64 bbox=0,0,63,63
+.asset background bg_room "bg/bg.grf" 0
+
+.func still_create 0 1
+    .loc "objects/obj_still/create.dss" 1
+    LOADI r0, 0
+    SETBI r0, image_speed
+    RET r0, 0
+.end
+
+.func mirror_create 0 1
+    .loc "objects/obj_mirror/create.dss" 1
+    LOADI r0, 0
+    SETBI r0, image_speed
+    .loc "objects/obj_mirror/create.dss" 2
+    LOADI r0, -1
+    SETBI r0, image_xscale
+    .loc "objects/obj_mirror/create.dss" 3
+    LOADI r0, 1
+    SETBI r0, image_index
+    RET r0, 0
+.end
+
+.func spin_create 0 1
+    .loc "objects/obj_spin/create.dss" 1
+    LOADI r0, 0
+    SETBI r0, image_speed
+    .loc "objects/obj_spin/create.dss" 2
+    LOADI r0, 45
+    SETBI r0, image_angle
+    .loc "objects/obj_spin/create.dss" 3
+    LOADI r0, 2
+    SETBI r0, image_xscale
+    SETBI r0, image_yscale
+    RET r0, 0
+.end
+
+.func hud_draw 0 5
+    .loc "objects/obj_hud/draw.dss" 1
+    LOADI r0, 8
+    LOADI r1, 160
+    LOADK r2, "HELLO DS 12"
+    CALLN r0, 3, draw_text
+    .loc "objects/obj_hud/draw.dss" 2
+    LOADI r0, 5
+    CALLN r0, 1, draw_set_color
+    .loc "objects/obj_hud/draw.dss" 3
+    LOADI r0, 8
+    LOADI r1, 176
+    LOADI r2, 39
+    LOADI r3, 183
+    LOADB r4, false
+    CALLN r0, 5, draw_rectangle
+    RET r0, 0
+.end
+
+.object obj_still sprite=spr16 parent=- visible=1 screen=top depth=0
+    .event create still_create
+.end
+
+.object obj_mirror sprite=spr16 parent=- visible=1 screen=top depth=0
+    .event create mirror_create
+.end
+
+.object obj_spin sprite=spr16 parent=- visible=1 screen=top depth=0
+    .event create spin_create
+.end
+
+.object obj_small sprite=spr8x8 parent=- visible=1 screen=top depth=0
+.end
+
+.object obj_big sprite=spr64 parent=- visible=1 screen=bottom depth=0
+.end
+
+.object obj_hud sprite=- parent=- visible=1 screen=top depth=0
+    .event draw hud_draw
+.end
+
+.room rm_screens 512 384
+    .screen top bg_room 8 4
+    .screen bottom bg_room 0 0
+    .instance obj_still 48 44 top -
+    .instance obj_mirror 96 44 top -
+    .instance obj_spin 148 64 top -
+    .instance obj_small 208 104 top -
+    .instance obj_big 104 64 bottom -
+    .instance obj_hud 0 0 top -
+    .set top spr16+spr8x8 bg_room
+    .set bottom spr64 bg_room
+    .sounds -
+.end
+
+.first rm_screens

@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
 
 #include "dsd_limits.h"
@@ -52,6 +53,12 @@ bool host_fatal_seen(void);
 // Frames completed (dsd_plat_frame_end calls).
 uint32_t host_frame_count(void);
 
+// Longest file path the host builds.
+#define HOST_PATH_MAX 1024
+// The host path of NitroFS path `path` (the root directory plus the path). False when the root is a .dsdb file,
+// which has no NitroFS directory (only "game.dsdb" resolves, to the root itself).
+bool host_nitro_path(const char *path, char *full, size_t cap);
+
 // ---- Shadow OAM ---------------------------------------------------------------------------------------------------
 
 // The last list the core submitted for one screen (dsd_plat_oam_submit), kept for tests and the PNG renderer.
@@ -62,8 +69,25 @@ typedef struct HostScreenOam {
     uint32_t naffine;
 } HostScreenOam;
 
-// Screen `screen`'s last submitted shadow OAM (empty before the first Draw stage).
+// Screen `screen`'s last submitted shadow OAM (empty before the first Draw stage and after a room's assets are
+// freed).
 const HostScreenOam *host_oam(uint32_t screen);
+
+// ---- Graphics state and screens (gfx.c, png.c; contracts/log-protocol.md "Screens") ------------------------------
+
+// Pixels of one rendered screen: RGB555 (bit 15 clear), row-major.
+typedef uint16_t HostScreen[DSD_SCREEN_H][DSD_SCREEN_W];
+
+// Forgets every loaded sprite and background, the OAM lists and the UI maps (host_configure calls it).
+void host_gfx_reset(void);
+// Composes screen `screen` as the DS shows it after the last dsd_plat_frame_end: the backdrop (black), the room
+// background (BG1), the sprites (OAM entry 0 in front) and the UI layer (BG0) on top. A sprite whose GRF is not
+// in the NitroFS directory (a .dsdb root) draws as the outline of its OBJ box in HOST_PLACEHOLDER_RGB.
+void host_render_screen(uint32_t screen, HostScreen out);
+// Writes an RGB555 image as an 8-bit RGB PNG (each channel c5 becomes c5 << 3 | c5 >> 2). False on an I/O error.
+bool host_png_write(const char *path, const uint16_t *pixels, uint32_t width, uint32_t height);
+// Renders both screens into `dir` (created if missing) as top.png and bottom.png. False on an I/O error.
+bool host_png_screens(const char *dir);
 
 // ---- Traces (--trace; schema in contracts/log-protocol.md "Traces") ---------------------------------------------
 

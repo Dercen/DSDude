@@ -8,6 +8,7 @@
 
 #include "drawlist.h"
 #include "engine.h"
+#include "font8x8.h"
 #include "game.h"
 #include "host.h"
 #include "test.h"
@@ -19,6 +20,8 @@
 #define LOG_PREFIX "DSD|LOG|"
 #define RUN_SEED 1u // every run passes a seed (CLAUDE.md: always --seed N)
 #define DRAW_FRAMES 60 // tier v4 runs: one DSD|STAT period
+#define FNV_OFFSET 0x811C9DC5u // FNV-1a 32 offset basis
+#define FNV_PRIME 0x01000193u  // FNV-1a 32 prime
 
 static char g_capture[CAPTURE_MAX];
 static uint32_t g_capture_len;
@@ -242,10 +245,10 @@ static bool trace_run(const char *dsdb, uint32_t frames, const char *keys, const
 
 // FNV-1a 32 of n bytes (the same hash C2 uses for the ABI hash).
 static uint32_t fnv1a(const char *p, int32_t n) {
-    uint32_t h = 0x811C9DC5u;
+    uint32_t h = FNV_OFFSET;
     for (int32_t i = 0; i < n; i++) {
         h ^= (uint8_t)p[i];
-        h *= 0x01000193u;
+        h *= FNV_PRIME;
     }
     return h;
 }
@@ -347,10 +350,71 @@ static void test_draw_oam(void) {
     }
 }
 
+// ---- Tier v4: screens (runtime/host/gfx.c, png.c; C8 "Screens") --------------------------------------------------
+
+#define SCREENS_ROOT "fixtures/runtime-core/v4-screens"
+#define SCREENS_DIR "runtime/build-host/screens" // exists whenever the tests run (the build directory)
+#define FONT_BIN "runtime/data/font8x8.bin"
+#define RGB555_YELLOW 0x03FFu        // c_yellow (31, 31, 0), red in the low bits as the DS stores it
+#define RGB555_PLACEHOLDER 0x7C1Fu   // the host's outline for sprites without a GRF (magenta)
+// Pinned renders of v4-screens after frame 1 (FNV-1a 32 over the RGB555 pixels, little-endian). The pixels were
+// checked against the source PNGs by runtime/tests/check_screens.mjs (81,820 pixels exact, the rotated sprite
+// within the DS's corner sampling); re-check with it before re-pinning.
+#define SCREENS_TOP_FNV 0xee384e63u
+#define SCREENS_BOTTOM_FNV 0xa6e26ecdu
+// A 256x192 RGB PNG from host_png_write: signature 8, IHDR 12 + 13, IDAT 12 + 2 + 192 * 769 + 3 stored-block
+// headers of 5 + Adler-32 4, IEND 12.
+#define SCREEN_PNG_BYTES (8 + 25 + 12 + 2 + 192 * 769 + 3 * 5 + 4 + 12)
+
+static HostScreen g_screen;
+
+// FNV-1a 32 of one rendered screen's pixels, byte order fixed (low byte first) so both compilers agree.
+static uint32_t screen_hash(uint32_t screen) {
+    host_render_screen(screen, g_screen);
+    uint32_t h = FNV_OFFSET;
+    for (int32_t y = 0; y < DSD_SCREEN_H; y++) {
+        for (int32_t x = 0; x < DSD_SCREEN_W; x++) {
+            h = (h ^ (g_screen[y][x] & 0xFFu)) * FNV_PRIME;
+            h = (h ^ (uint32_t)(g_screen[y][x] >> 8)) * FNV_PRIME;
+        }
+    }
+    return h;
+}
+
+static void test_screens(void) {
+    // The host's font copy matches the DS build's.
+    static char font[HOST_FONT_BYTES + 1];
+    CHECK_EQ(dsd_test_read_file(FONT_BIN, font, sizeof font), HOST_FONT_BYTES);
+    CHECK(memcmp(font, HOST_FONT8X8, HOST_FONT_BYTES) == 0);
+
+    CHECK_EQ(run_frames(SCREENS_ROOT, 1, NULL), DSD_GAME_RUNNING);
+    uint32_t top = screen_hash(DSD_SCREEN_TOP);
+    // draw_rectangle's yellow cells, and the top view's rows past the background image (grit padding: backdrop).
+    CHECK_EQ(g_screen[168][0], RGB555_YELLOW);
+    CHECK_EQ(g_screen[190][0], 0);
+    uint32_t bottom = screen_hash(DSD_SCREEN_BOTTOM);
+    bool pinned = CHECK_EQ(top, SCREENS_TOP_FNV);
+    pinned = CHECK_EQ(bottom, SCREENS_BOTTOM_FNV) && pinned;
+    if (!pinned) {
+        fprintf(stderr, "  v4-screens: top 0x%08x, bottom 0x%08x\n", top, bottom);
+    }
+    CHECK(host_png_screens(SCREENS_DIR));
+    static char png[SCREEN_PNG_BYTES + 1];
+    CHECK_EQ(dsd_test_read_file(SCREENS_DIR "/top.png", png, sizeof png), SCREEN_PNG_BYTES);
+    CHECK(memcmp(png + 1, "PNG", 3) == 0 && memcmp(png + SCREEN_PNG_BYTES - 8, "IEND", 4) == 0);
+
+    // Without GRFs (a .dsdb root) sprites draw as outlines of their boxes: v4-01's obj_plain at (16, 42).
+    CHECK_EQ(run_frames("fixtures/bytecode/v4-01-draw.dsdb", 1, NULL), DSD_GAME_RUNNING);
+    host_render_screen(DSD_SCREEN_TOP, g_screen);
+    CHECK_EQ(g_screen[42][16], RGB555_PLACEHOLDER);
+    CHECK_EQ(g_screen[43][17], 0);
+}
+
 void suite_programs(void) {
     test_cases();
     test_collector_ran();
     test_draw_oam();
+    test_screens();
     test_flappy_deterministic();
     test_missing_file();
     test_core_main();

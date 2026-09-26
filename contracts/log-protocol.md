@@ -122,7 +122,14 @@ the object; consumers compare whole lines.
 
 From tier v4 (rooms and draw): after the last frame, the runner writes that frame's screens as `top.png` and
 `bottom.png` (256x192, 8-bit RGB) into the directory, creating it if needed; the same frame `dsdude screenshot
---frames N` captures on an emulator. Until then the option is accepted and writes nothing.
+--frames N` captures on an emulator. A program-form game runs no frames and writes none. The screens are composed
+as the DS shows them in 0.1, back to front: the backdrop (black), the room background (BG1, scrolled by the view,
+wrapping at its 256/512 size; colour index 0 is transparent), the sprites (the core's shadow OAM, entry 0 in front;
+affine entries sample from the centre of their double-size area as the DS does), and the UI layer (BG0: the 8x8
+font of `runtime/data/font8x8.bin` and solid cells, in the 16 UI colours). Colours are RGB555 widened as
+`c8 = c5 << 3 | c5 >> 2`, so compare emulator screenshots after reducing both to RGB555 (`c8 >> 3`). Sprites and
+backgrounds come from the GRFs in the NitroFS directory; with a `game.dsdb` root there are none, and each sprite
+draws as a 1-pixel magenta (RGB555 31, 0, 31) outline of its OBJ box instead.
 
 ## How to change me
 
