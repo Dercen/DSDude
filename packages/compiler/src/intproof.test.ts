@@ -3,14 +3,18 @@
  * M1 fallback). ADDII/SUBII/MULII/CMPJII skip the VM's tag checks, so they may appear only where both operands are
  * proved int; everything else keeps the tag-checked opcode.
  */
+import { disassemble } from "@dsdude/dsdb";
+import type { AssetManifest } from "@dsdude/toolchain";
 import { describe, expect, it } from "vitest";
 import type { CodegenEnv } from "./codegen/env.ts";
 import { compileFunction } from "./codegen/function.ts";
 import { IntProof } from "./codegen/intproof.ts";
 import { Reporter } from "./diagnostics/report.ts";
+import { compileProjectModule, GAME_OPTIONS } from "./project.ts";
 import type { Stmt } from "./syntax/ast.ts";
 import { parse } from "./syntax/parser.ts";
 import { localsOf } from "./syntax/walk.ts";
+import { makeProject } from "./testing.ts";
 
 /** Top-level statements of a snippet. */
 function body(text: string): Stmt[] {
@@ -97,5 +101,46 @@ describe("int-specialised opcodes", () => {
     expect(loop).toContain("ADDII 0, 0, 1");
     expect(instructions("repeat (3) show_debug_message(1)").some((i) => i.startsWith("CMPJII "))).toBe(true);
     expect(instructions("var f = 0.5\nif (f < 1) f = 0").some((i) => i.startsWith("CMPJ "))).toBe(true);
+  });
+});
+
+describe("int variables (project-wide)", () => {
+  const MANIFEST: AssetManifest = { provisional: true, sprites: {}, backgrounds: {}, sounds: {} };
+
+  /** The disassembly of a two-object project compiled as a game, and its diagnostics. */
+  function game(a: Record<string, string>, b: Record<string, string> = {}): string {
+    const project = makeProject({ obj_a: { events: a }, obj_b: { events: b } });
+    const r = compileProjectModule(project, MANIFEST, GAME_OPTIONS);
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    return r.module === null ? "" : disassemble(r.module);
+  }
+
+  it("proves an instance variable whose every store, in every object, is an int", () => {
+    const code = game({
+      create: "score = 0\nlives = 3\n",
+      step: "score = score + lives\nif (score > lives) lives -= 1\n",
+    });
+    expect(code).toMatch(/ADDII /);
+    expect(code).toMatch(/CMPJII /);
+  });
+
+  it("drops it when any object stores a fraction, even through other.", () => {
+    const code = game(
+      { create: "score = 0\nlives = 3\n", step: "score = score + lives\n" },
+      { step: "other.lives = 1.5\n" },
+    );
+    expect(code).not.toMatch(/ADDII /);
+    expect(code).toMatch(/\bADD /);
+  });
+
+  it("proves globals the same way, and treats an element write as a non-int store", () => {
+    expect(game({ create: "global.hi = 0\nglobal.hi = global.hi + irandom(3)\n" })).toMatch(/ADDII /);
+    expect(game({ create: "global.hi = 0\nglobal.hi[0] = 1\nglobal.hi = global.hi + irandom(3)\n" })).not.toMatch(
+      /ADDII /,
+    );
+  });
+
+  it("never proves builtin variables the engine writes (x moves by hspeed)", () => {
+    expect(game({ step: "x = 0\nx = x + irandom(3)\n" })).not.toMatch(/ADDII /);
   });
 });

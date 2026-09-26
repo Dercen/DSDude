@@ -243,6 +243,23 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     keeps them off). Goldens regenerated: v0/01, 03, 04, v1/07, 11, v3/09, Flappy. `make -f runtime/Makefile.host
     test` green: 120,002 checks in each of -O2, UBSan and -O0.
   - Flappy gets one II op: nearly all its arithmetic is on instance variables, which the proof does not cover yet.
+- **Int proof widened to instance variables and globals (WS0 relay: "keep widening"), 2026-09-26.**
+  `intVariables` in `codegen/intproof.ts`: a user instance variable (by name, whichever object holds it) or a
+  global is int when every store into it anywhere in the project (every event, function, script and creation code,
+  through bare names, `other.`/`obj.` members, `with` bodies and compound assignments) stores a proved int. It is
+  solved as one optimistic fixpoint together with each unit's int locals. An element write (`a[i] = v`) counts as a
+  non-int store. No definite-assignment rule is needed: an unassigned slot or global stops with R500/R501.
+  - Not provable, deliberately: builtin variables such as `x`, `y`, `hspeed` and `vspeed`. The engine writes them
+    itself (`x += hspeed` each step, gravity), and their type is "number", so they may hold fractions. Only the
+    read-only int ones (room_width, room_height, room_speed, image_number) count. Flappy's arithmetic is almost all
+    on these (`vspeed`, `y`), so it keeps its one II op; its only user counter, `global.score += 1`, is already
+    ADDI.
+  - Goldens: v3/09 and v4/10 gain II ops from instance variables; host tests green (120,002 checks x3).
+    Tests: four more in `src/intproof.test.ts`.
+  - **Next lever, for WS0 to weigh (needs a contract change):** declared types for builtin variables whose
+    values really are whole numbers in DSS (e.g. `depth` is typed int but writable). Or a `var`-style int
+    declaration for instance variables. Either would let game code with `x`/`y` on a pixel grid use the II
+    forms; today nothing proves those int.
 
 ## Next
 

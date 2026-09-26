@@ -176,6 +176,7 @@ class FunctionCompiler {
     if (this.env.intOps === true)
       this.ints = new IntProof(this.source.params, this.source.body, new Set(this.locals.keys()), {
         isUserFunction: (name) => this.env.lookupFunction(name) !== null,
+        isIntVariable: (kind, name) => this.env.isIntVariable?.(kind, name) ?? false,
       });
     this.top = this.locals.size;
     this.maxTop = this.top;

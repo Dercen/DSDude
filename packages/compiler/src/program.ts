@@ -8,6 +8,7 @@ import { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
 import { declareFunction } from "./codegen/declare.ts";
 import type { CodegenEnv, UserFunction } from "./codegen/env.ts";
 import { compileFunction } from "./codegen/function.ts";
+import { intVariables } from "./codegen/intproof.ts";
 import { finishModule } from "./codegen/module.ts";
 import { Reporter } from "./diagnostics/report.ts";
 import type { CodeUnit, DeclaredFunction, ProjectIndex, SourceLocation, SourceText } from "./project-index.ts";
@@ -53,6 +54,20 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
   const functions = new Map<string, UserFunction>();
   for (const fn of decls) functions.set(fn.name, declareFunction(fn, fn.name, reporter, noAssets));
 
+  // Globals whose every store is a proved int (the program form has no instances).
+  const ints = options.intOps
+    ? intVariables(
+        [
+          { params: [], body: statements, isUserFunction: (n: string) => functions.has(n) },
+          ...decls.map((fn) => ({
+            params: fn.params.map((p) => p.name),
+            body: fn.body.body,
+            isUserFunction: (n: string) => functions.has(n),
+          })),
+        ],
+        () => true,
+      )
+    : null;
   const env: CodegenEnv = {
     file: options.file,
     reporter,
@@ -69,6 +84,7 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
     isInstanceVariableName: () => false,
     fold: options.fold === true,
     intOps: options.intOps === true,
+    isIntVariable: (kind, name) => ints?.[kind].has(name) ?? false,
   };
   const module = emptyModule();
   module.seed = options.seed ?? 0;
