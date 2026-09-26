@@ -47,6 +47,9 @@ async function main(): Promise<number> {
     const rom = await packBench(name, elf, BENCH_NITROFS);
     const log = await runRom(rom, emulator, status.paths.python);
     for (const l of log.filter((x) => x.startsWith("DSD|LOG|bench: "))) console.log(`${name}: ${l.slice(15)}`);
+    // Each workload's room start prints DSD|MEM; its predecode= figure shows the VM's pre-decoded code is in use.
+    const mems = [...new Set(log.filter((x) => x.startsWith("DSD|MEM|")).map((x) => /predecode=[^,]*/.exec(x)?.[0]))];
+    console.log(`${name}: DSD|MEM ${mems.join(" ") || "(no predecode key)"}`);
     const sums = log.map(parseSummaryLine).filter((x) => x !== null);
     if (sums.length === 0) {
       console.log(`FAIL ${name}: no summary line`);

@@ -29,7 +29,11 @@ import {
 } from "./bench-rom.ts";
 import { compareLogs } from "./conformance.ts";
 
-const OUT = path.join(dsdudeHome(), "hardware");
+// `-- --out <name>` writes the set to <DSDUDE_HOME>/<name> instead (e.g. a new set while an older one is with the
+// user); its working folders get the same suffix.
+const OUT_ARG = process.argv.includes("--out") ? process.argv[process.argv.indexOf("--out") + 1] : "hardware";
+const OUT = path.join(dsdudeHome(), OUT_ARG);
+const WORK = `${OUT_ARG}-work`;
 
 interface Rom {
   file: string;
@@ -56,7 +60,7 @@ async function main(): Promise<number> {
   const selftestRom = await buildElf(status.paths, { DSD_SELFTEST: "1" }, "dsdude_selftest.nds");
   roms.push({
     file: "1-selftest.nds",
-    packed: { dir: path.join(dsdudeHome(), "hardware-work", "selftest"), rom: selftestRom },
+    packed: { dir: path.join(dsdudeHome(), WORK, "selftest"), rom: selftestRom },
     frames: 120,
     check: (log) => (has(log, /^DSD\|LOG\|nitrofs: read 1048576 B sum=133693440 ok/) ? null : "no 1 MB read line"),
   });
@@ -66,7 +70,7 @@ async function main(): Promise<number> {
   const benchElf = await buildBenchElf(status.paths, false, w);
   roms.push({
     file: "2-bench.nds",
-    packed: await packBench("bench", benchElf, BENCH_NITROFS, "hardware-work"),
+    packed: await packBench("bench", benchElf, BENCH_NITROFS, WORK),
     frames: 700,
     check: (log) => {
       const sets = log.map(parseSummaryLine).filter((s) => s && s.vmOpsPerFrame > 0);
@@ -83,12 +87,7 @@ async function main(): Promise<number> {
   const fixture = (rel: string) => readFileSync(path.join(repoRoot, rel));
   roms.push({
     file: "3-hello.nds",
-    packed: await packBench(
-      "hello",
-      screenElf,
-      { "game.dsdb": fixture("fixtures/bytecode/hello.dsdb") },
-      "hardware-work",
-    ),
+    packed: await packBench("hello", screenElf, { "game.dsdb": fixture("fixtures/bytecode/hello.dsdb") }, WORK),
     frames: 90,
     check: (log) => (has(log, /^DSD\|LOG\|hello$/) && has(log, /^DSD\|EXIT\|0$/) ? null : "no hello / EXIT line"),
   });
@@ -99,7 +98,7 @@ async function main(): Promise<number> {
       "numeric",
       screenElf,
       { "game.dsdb": fixture("fixtures/bytecode/runtime/numeric-hashes.dsdb") },
-      "hardware-work",
+      WORK,
     ),
     frames: 120,
     check: (log) =>
@@ -123,7 +122,7 @@ async function main(): Promise<number> {
   }
   roms.push({
     file: "5-flappy.nds",
-    packed: { dir: path.join(dsdudeHome(), "hardware-work", "flappy"), rom: flappy.ndsPath },
+    packed: { dir: path.join(dsdudeHome(), WORK, "flappy"), rom: flappy.ndsPath },
     frames: 120,
     check: (log) => (has(log, /^DSD\|STAT\|fps=\d+,inst=/) ? null : "no DSD|STAT line"),
   });
