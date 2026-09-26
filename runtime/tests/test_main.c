@@ -1,0 +1,78 @@
+// test_main.c: the host unit-test runner (`make -f runtime/Makefile.host test` builds and runs it twice: -O2 and the
+// UBSan trap variant). Exit status 0 = every check passed, 1 = at least one failed; a UBSan trap kills the process
+// with SIGILL (Linux) or 0xC000001D (Windows), which make also reports as a failure.
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "test.h"
+
+// Seed for dsd_test_rand when a suite does not pick its own (any non-zero value; fixed so runs are reproducible).
+#define TEST_DEFAULT_SEED 0x2545F491u
+
+static int32_t g_checks;   // checks run
+static int32_t g_failures; // checks failed
+static uint32_t g_rng = TEST_DEFAULT_SEED;
+
+int dsd_test_check(int ok, const char *file, int line, const char *expr) {
+    g_checks++;
+    if (!ok) {
+        g_failures++;
+        printf("FAIL %s:%d: %s\n", file, line, expr);
+    }
+    return ok;
+}
+
+int dsd_test_check_i64(int64_t got, int64_t want, const char *file, int line, const char *expr) {
+    g_checks++;
+    if (got != want) {
+        g_failures++;
+        printf("FAIL %s:%d: %s (got %lld, want %lld)\n", file, line, expr, (long long)got, (long long)want);
+        return 0;
+    }
+    return 1;
+}
+
+int dsd_test_check_str(const char *got, const char *want, const char *file, int line, const char *expr) {
+    g_checks++;
+    if (strcmp(got, want) != 0) {
+        g_failures++;
+        printf("FAIL %s:%d: %s (got \"%s\", want \"%s\")\n", file, line, expr, got, want);
+        return 0;
+    }
+    return 1;
+}
+
+uint32_t dsd_test_rand(void) {
+    // xorshift32 (Marsaglia), shifts 13/17/5.
+    g_rng ^= g_rng << 13;
+    g_rng ^= g_rng >> 17;
+    g_rng ^= g_rng << 5;
+    return g_rng;
+}
+
+void dsd_test_seed(uint32_t seed) { g_rng = seed != 0 ? seed : TEST_DEFAULT_SEED; }
+
+// One row per suite: its name (printed) and its entry point.
+typedef struct Suite {
+    const char *name;
+    void (*run)(void);
+} Suite;
+
+static const Suite SUITES[] = {
+    {"fixed", suite_fixed},
+    {"number", suite_number},
+    {"numfmt", suite_numfmt},
+    {"trig", suite_trig},
+};
+
+int main(void) {
+    for (size_t i = 0; i < sizeof SUITES / sizeof SUITES[0]; i++) {
+        int32_t before = g_failures;
+        dsd_test_seed(TEST_DEFAULT_SEED); // each suite sees the same random stream whatever runs before it
+        SUITES[i].run();
+        printf("%-8s %s\n", SUITES[i].name, g_failures == before ? "ok" : "FAILED");
+    }
+    printf("%d checks, %d failed\n", (int)g_checks, (int)g_failures);
+    return g_failures == 0 ? 0 : 1;
+}
