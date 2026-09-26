@@ -50,3 +50,22 @@ them in the header rather than WS3 guessing.
 
 None yet: C11 is not published. When WS2 publishes `dsd_platform.h` with these (or other) answers, WS3 deletes
 `ds_boot_stub.c`, renames its codes if needed, and removes the markers.
+
+## WS0 notes (2026-09-26): status before the CP-A freeze
+
+- WS2 answered with C11 0.2.0 (`dsd_core_main`, `dsd_plat_log` + `dsd_plat_log_flush`, `dsd_plat_fatal`,
+  `dsd_plat_mem_report`, core error codes R584/R571 and friends). WS3 adopts 0.2.0 and drops its provisional
+  R580-R583 (WS3 status file).
+- Two gaps remain, for WS2 to settle in `dsd_platform.h` before 2026-09-28:
+  1. **Sprite frame size.** `dsd_plat_sprite_load` cannot tell a 16x32 sheet of two 16x16 frames from one 16x32
+     frame: a GRF holds `paddedWidth x (frames * paddedHeight)` and records neither. WS3 proposes passing the frame
+     count (from ASET `aux`), e.g. `int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path,
+     uint32_t frames, dsd_sprite_info *info)`, with `DSD_PLAT_ELOAD` when `gfxHeight / frames` is not an OBJ height.
+     (The core also has the frame size from the ADR-0006 `SPRG` extension.) Until then WS3 infers it, marked
+     `ADR-pending ADR-0004`.
+  2. **UI colour numbering.** `dsd_plat_ui_text`/`ui_fill` take a colour 0-15 whose meaning is not written down.
+     Proposal (WS0 + WS3): PLAN.md 5.2 order, c_white 0, c_black 1, c_red 2, c_green 3, c_blue 4, c_yellow 5,
+     c_orange 6, c_purple 7, c_gray 8, c_ltgray 9, c_dkgray 10, c_aqua 11, c_fuchsia 12, c_lime 13, c_maroon 14,
+     c_navy 15, with GameMaker's RGB values; WS2 states it in the header, and WS0 appends the matching `c_*`
+     constants to `contracts/builtins.json` once WS2's tests no longer hard-code the ABI hash (they compare
+     `DSD|READY|0.1.0|0dd9987a` literally in `runtime/tests/test_host.c` and `test_programs.c`).
