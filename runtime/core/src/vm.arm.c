@@ -265,7 +265,7 @@ static bool get_index(DsdVm *vm, DsdValue arr, DsdValue idx, DsdValue *out) {
     return true;
 }
 
-// SETIDX: (*target)[idx] = v, growing the list; an undefined target first becomes a new empty list (ADR-0003).
+// SETIDX: (*target)[idx] = v, growing the list; an undefined target first becomes a new empty list (WS4's ADR-0005).
 static bool set_index(DsdVm *vm, DsdValue *target, DsdValue idx, DsdValue v) {
     int64_t i;
     if (target->tag == DSD_TAG_UNDEF && !dsd_arr_new(vm, 0, target)) return false;
@@ -869,7 +869,7 @@ op_SETBIO:
     if (!set_bio(RB, DSD_C(ins), RA)) goto failed;
     DISPATCH();
 
-// `with` (WS4's ADR-0003 shape): rA holds the target, then the loop's state until WITHEND.
+// `with` (WS4's ADR-0005 shape): rA holds the target, then the loop's state until WITHEND.
 op_WITHBEGIN: {
     bool empty;
     SYNC_PC();

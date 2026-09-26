@@ -1,0 +1,145 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_box "gfx/spr_box.grf" 2 origin=0,0 size=16,16 bbox=0,0,15,15
+
+.func mover_create 0 1
+    .loc "objects/obj_mover/create.dss" 1
+    LOADI r0, 4
+    SETBI r0, hspeed
+    RET r0, 0
+.end
+
+.func mover_end_step 0 2
+    .loc "objects/obj_mover/end_step.dss" 1
+    GETBI r0, x
+    LOADI r1, 30
+    GT r0, r0, r1
+    JMPF r0, L0
+    LOADI r0, 0
+    SETBI r0, x
+  L0:
+    RET r0, 0
+.end
+
+.func mover_hit 0 2
+    .loc "objects/obj_mover/collision_obj_wall.dss" 1
+    LOADK r0, "hit "
+    GETBI r1, x
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func wall_hit 0 3
+    .loc "objects/obj_wall/collision_obj_mover.dss" 1
+    LOADK r0, "wall hit by "
+    LOADI r2, -2
+    GETBIO r1, r2, x
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_room_start 0 5
+    .loc "objects/obj_ctrl/room_start.dss" 1
+    LOADK r4, @obj_mover
+    WITHBEGIN r4, L1
+  L0:
+    .loc "objects/obj_ctrl/room_start.dss" 2
+    LOADI r0, 30
+    LOADI r1, 0
+    LOADK r2, @obj_wall
+    CALLN r0, 3, place_meeting
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 3
+    LOADI r0, 24
+    LOADI r1, 0
+    LOADK r2, @obj_wall
+    CALLN r0, 3, place_meeting
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 4
+    LOADI r0, 30
+    LOADI r1, 0
+    LOADK r2, @obj_wall
+    CALLN r0, 3, instance_place
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 5
+    LOADK r0, @obj_wall
+    CALLN r0, 1, distance_to_object
+    CALLN r0, 1, show_debug_message
+    WITHNEXT r4, L0
+    WITHEND r4
+  L1:
+    .loc "objects/obj_ctrl/room_start.dss" 7
+    LOADI r0, 45
+    LOADI r1, 5
+    LOADK r2, @obj_wall
+    CALLN r0, 3, collision_point
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 8
+    LOADI r0, 39
+    LOADI r1, 5
+    LOADK r2, @obj_wall
+    CALLN r0, 3, collision_point
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 9
+    LOADI r0, 40
+    LOADI r1, 0
+    LOADK r2, @obj_wall
+    CALLN r0, 3, position_meeting
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 10
+    LOADI r0, 0
+    LOADI r1, 0
+    LOADI r2, 39
+    LOADI r3, 15
+    LOADK r4, @obj_wall
+    CALLN r0, 5, collision_rectangle
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 11
+    LOADI r0, 0
+    LOADI r1, 0
+    LOADI r2, 41
+    LOADI r3, 15
+    LOADK r4, @obj_wall
+    CALLN r0, 5, collision_rectangle
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 12
+    LOADK r1, @obj_wall
+    GETBIO r0, r1, bbox_left
+    CALLN r0, 1, show_debug_message
+    GETBIO r0, r1, bbox_right
+    CALLN r0, 1, show_debug_message
+    GETBIO r0, r1, sprite_width
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_mover sprite=spr_box parent=- visible=1 screen=top depth=0
+    .event create mover_create
+    .event end_step mover_end_step
+    .event collision_obj_wall mover_hit
+.end
+
+.object obj_wall sprite=spr_box parent=- visible=1 screen=top depth=0
+    .event collision_obj_mover wall_hit
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event room_start ctrl_room_start
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_mover 0 0 top -
+    .instance obj_wall 40 0 top -
+    .instance obj_ctrl 0 0 top -
+    .set top spr_box -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a

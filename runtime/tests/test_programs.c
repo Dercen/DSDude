@@ -132,6 +132,10 @@ static const ProgramCase CASES[] = {
     {"fixtures/bytecode/v2-05-input.dsdb", "fixtures/bytecode/v2-05-input.out", false, DSD_GAME_RUNNING, 10,
      "fixtures/bytecode/v2-05-input.keys"},
     {"fixtures/bytecode/v2-06-motion.dsdb", "fixtures/bytecode/v2-06-motion.out", false, DSD_GAME_RUNNING, 3, NULL},
+    // Tier v3 (collisions, places, animation, Outside Room, touch), room games with SPRG sprite geometry.
+    {"fixtures/bytecode/v3-01-collide.dsdb", "fixtures/bytecode/v3-01-collide.out", false, DSD_GAME_RUNNING, 15, NULL},
+    {"fixtures/bytecode/v3-02-anim-outside-touch.dsdb", "fixtures/bytecode/v3-02-anim-outside-touch.out", false,
+     DSD_GAME_RUNNING, 10, "fixtures/bytecode/v3-02-anim-outside-touch.keys"},
     {"fixtures/bytecode/bench.dsdb", "fixtures/bytecode/bench.out", false, DSD_GAME_RUNNING, 2, NULL},
     {"fixtures/bytecode/runtime/err-unset-slot.dsdb", "fixtures/bytecode/runtime/err-unset-slot.out", false,
      DSD_GAME_FAILED, 2, NULL},
