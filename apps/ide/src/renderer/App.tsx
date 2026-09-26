@@ -19,6 +19,7 @@ import { loadEditorModules, registerEditor, saveDirtyPanels } from "./panels/reg
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
 import { createIde } from "./store/ide.ts";
 import { FirstRunWizard } from "./wizards/FirstRunWizard.tsx";
+import { ImportDialog } from "./wizards/ImportDialog.tsx";
 import { NewProjectDialog } from "./wizards/NewProjectDialog.tsx";
 import { DockWorkbench } from "./workbench.ts";
 
@@ -217,6 +218,7 @@ export function App() {
         <ControlsCard />
         <NewProjectDialog />
         <FirstRunWizard />
+        <ImportDialog />
       </div>
     </IdeContext.Provider>
   );

@@ -5,6 +5,7 @@
 import {
   type DsdudeBridge,
   type EventPayload,
+  type InvokeRequest,
   type ManifestSummary,
   parseIpcError,
   type Settings,
@@ -58,7 +59,12 @@ export interface IdeState {
   newProject: boolean;
   /** The first-run wizard is open (settings.firstRunDone is false). */
   firstRun: boolean;
+  /** The import dialog, for a file the user picked. */
+  importing: { kind: ImportKind; sourcePath: string } | null;
 }
+
+export type ImportKind = "sprite" | "background" | "sound";
+export type ImportRequest = Omit<InvokeRequest<"assets.import">, "projectDir">;
 
 /** What the store needs from the dockview layout. */
 export interface Workbench {
@@ -98,6 +104,11 @@ export interface IdeActions {
   refreshManifest(): Promise<void>;
   /** Closes the first-run wizard and remembers it (settings.firstRunDone). */
   finishFirstRun(): Promise<void>;
+  /** Picks a file for a new sprite, background or sound, then opens the import dialog. */
+  startImport(kind: ImportKind): Promise<void>;
+  cancelImport(): void;
+  /** Imports the picked file as a new resource and adds it to the open project (unsaved edits stay). */
+  importAsset(req: ImportRequest): Promise<void>;
   showNewProject(): void;
   hideNewProject(): void;
   /** Creates <parent>/<name> from a template and opens it; throws (for the dialog) when main refuses. */
@@ -135,6 +146,7 @@ const initial = (): IdeState => ({
   manifest: null,
   newProject: false,
   firstRun: false,
+  importing: null,
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -361,6 +373,42 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
       } catch (err) {
         actions.showToast(`Could not save the settings: ${parseIpcError(err).message}`, "error");
       }
+    },
+
+    async startImport(kind) {
+      const filters = {
+        sprite: [{ name: "PNG pictures", extensions: ["png"] }],
+        background: [{ name: "PNG pictures", extensions: ["png"] }],
+        sound: [{ name: "Sounds and music", extensions: ["wav", "mp3", "xm", "mod", "it", "s3m"] }],
+      }[kind];
+      const { paths } = await ipc.invoke("dialog.open", { kind: "file", title: `Import a ${kind}`, filters });
+      if (paths[0]) set({ importing: { kind, sourcePath: paths[0] } });
+    },
+
+    cancelImport() {
+      set({ importing: null });
+    },
+
+    async importAsset(req) {
+      const dir = get().projectDir;
+      if (!dir) throw new Error("no project is open");
+      await ipc.invoke("assets.import", { projectDir: dir, ...req });
+      // Take only the new resource from disk, so unsaved edits elsewhere stay.
+      const { project: fresh } = await ipc.invoke("project.open", { dir });
+      const current = get().project;
+      const list = `${req.kind}s` as "sprites" | "backgrounds" | "sounds";
+      const added = fresh?.[list].find((r) => r.name === req.name);
+      if (current && added)
+        set({
+          project: produce(current, (d) => {
+            const items = d[list] as { name: string }[];
+            items.push(added as never);
+            items.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+          }),
+        });
+      set({ importing: null });
+      actions.showToast(`Imported ${req.name}.`);
+      void actions.refreshManifest();
     },
 
     showNewProject() {

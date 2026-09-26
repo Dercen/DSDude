@@ -4,7 +4,7 @@
  */
 
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { type InvokeHandlers, ManifestSummarySchema, type SettingKey } from "@dsdude/ipc-contract";
 import type { Diagnostic } from "@dsdude/project-format";
@@ -14,6 +14,7 @@ import type { IdeEmulatorManager } from "./build/modes.ts";
 import type { PlayController } from "./build/play.ts";
 import type { BuildServiceMode } from "./build/protocol.ts";
 import { inside, readProjectFile, writeProjectFile } from "./files.ts";
+import { importAsset } from "./imports.ts";
 import { listLearnDocs, readLearnDoc } from "./learn.ts";
 import { createProject, templateSources } from "./projects.ts";
 import type { SettingsStore } from "./settings.ts";
@@ -131,6 +132,9 @@ export function createBuildHandlers(
   };
 }
 
+/** Files the user picked with dialog.open this session: the only paths dialog.readPicked reads. */
+export const MAX_PICKED_BYTES = 32 * 1024 * 1024;
+
 export function createCoreHandlers({
   settings,
   dialog,
@@ -139,7 +143,17 @@ export function createCoreHandlers({
   samplesDir = null,
   appInfo,
 }: CoreHandlerDeps): InvokeHandlers {
+  const picked = new Set<string>();
   return {
+    "dialog.readPicked": async ({ path }) => {
+      if (!picked.has(path)) throw new Error("only a file you picked can be read");
+      if ((await stat(path)).size > MAX_PICKED_BYTES) throw new Error("the file is larger than 32 MB");
+      return { bytes: new Uint8Array(await readFile(path)) };
+    },
+    "assets.import": async (req) => {
+      const { name } = await importAsset(req);
+      return { name, diagnostics: [] };
+    },
     "project.templates": async () => ({
       templates: (await templateSources(learnRoot, samplesDir)).map(({ id, title, description }) => ({
         id,
@@ -188,7 +202,9 @@ export function createCoreHandlers({
         properties: kind === "directory" ? ["openDirectory", "createDirectory"] : ["openFile"],
         filters: kind === "file" ? filters : undefined,
       });
-      return { paths: r.canceled ? [] : r.filePaths };
+      const paths = r.canceled ? [] : r.filePaths;
+      if (kind === "file") for (const p of paths) picked.add(p);
+      return { paths };
     },
   };
 }

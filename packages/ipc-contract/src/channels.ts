@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.8.0";
+export const CONTRACT_VERSION = "0.9.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -264,12 +264,20 @@ export const invokeChannels = {
       oneDriveDirs: z.array(z.string()),
     }),
   },
+  /**
+   * Copies a picked file into the project as a new resource and writes its JSON (C1): sprites/<name>/sheet.png +
+   * sprite.json, backgrounds/<name>/background.png + background.json, sounds/<name>/<file> + sound.json. Refuses a
+   * name any resource already uses. (0.9.0) `sprite` carries the import dialog's settings (default: one frame, the
+   * whole image); `sound.kind` overrides the kind guessed from the extension.
+   */
   "assets.import": {
     request: z.object({
       projectDir: z.string().min(1),
       kind: z.enum(["sprite", "background", "sound"]),
       sourcePath: z.string().min(1),
       name: NameSchema,
+      sprite: SpriteJsonSchema.optional(),
+      sound: z.object({ kind: z.enum(["effect", "music"]) }).optional(),
     }),
     response: z.object({ name: z.string(), diagnostics: Diagnostics }),
   },
@@ -372,6 +380,11 @@ export const invokeChannels = {
   },
   /** (0.5.0) Opens docs/tutorial/assets/ (the tutorial's images and sounds) in the file manager (Help menu). */
   "learn.openAssets": { request: z.object({}), response: z.object({ path: z.string() }) },
+  /**
+   * (0.9.0) The bytes of a file the user picked with dialog.open (kind "file") in this session, for import previews.
+   * Any other path is refused, so the renderer still cannot read arbitrary files. At most 32 MB.
+   */
+  "dialog.readPicked": { request: z.object({ path: z.string().min(1) }), response: z.object({ bytes: Bytes }) },
   /** (0.2.0) Native open dialog; `paths` is empty when the user cancels. */
   "dialog.open": {
     request: z.object({

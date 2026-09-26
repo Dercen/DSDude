@@ -149,6 +149,11 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
     },
     "settings.getAll": () => ({ settings }),
     "dialog.open": () => ({ paths: dir ? [dir] : [] }),
+    "dialog.readPicked": async ({ path }) => {
+      const bytes = files.get(path) ?? (sample ? await sampleFile(sample, path) : null);
+      if (!bytes) throw new Error(`ENOENT: ${path}`);
+      return { bytes };
+    },
     "project.templates": () => ({
       templates: [{ id: "empty", title: "Empty", description: "One room on both screens and nothing in it." }],
     }),

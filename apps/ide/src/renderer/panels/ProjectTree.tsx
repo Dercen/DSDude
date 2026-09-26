@@ -47,10 +47,33 @@ function Item({ label, docId, depth, dirty }: { label: string; docId: string; de
   );
 }
 
-function Section({ title, children, count }: { title: string; children: ReactNode; count: number }) {
+function Section({
+  title,
+  children,
+  count,
+  importKind,
+}: {
+  title: string;
+  children: ReactNode;
+  count: number;
+  importKind?: "sprite" | "background" | "sound";
+}) {
   const [open, setOpen] = useState(true);
+  const actions = useActions();
   return (
     <div className="tree-section">
+      {importKind ? (
+        <button
+          type="button"
+          className="tree-import"
+          title={`Import a ${importKind}`}
+          aria-label={`Import a ${importKind}`}
+          data-testid={`import:${importKind}`}
+          onClick={() => void actions.startImport(importKind)}
+        >
+          +
+        </button>
+      ) : null}
       <button type="button" className="tree-heading" onClick={() => setOpen(!open)}>
         {open ? "▾" : "▸"} {title} <span className="tree-count">{count}</span>
       </button>
@@ -117,8 +140,9 @@ export function ProjectTree() {
       </div>
     );
   const KIND = { sprites: "sprite", backgrounds: "background", sounds: "sound", rooms: "room" } as const;
+  const IMPORT = { sprites: "sprite", backgrounds: "background", sounds: "sound", rooms: undefined } as const;
   const plain = (kind: "sprites" | "backgrounds" | "sounds" | "rooms", title: string) => (
-    <Section title={title} count={project[kind].length}>
+    <Section title={title} count={project[kind].length} importKind={IMPORT[kind]}>
       {project[kind].map((r) => (
         <ResourceItem
           key={r.name}
