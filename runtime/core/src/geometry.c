@@ -3,22 +3,22 @@
 
 #include "fixed.h"
 
-// Geometry used until sprite geometry reaches the runtime: a 16x16 frame, origin at its top-left, bbox the whole
-// frame. The DSDB does not carry sprite.json's size/origin/bbox yet.
-// ADR-pending ADR-0003 (docs/adr/0003-sprite-geometry-in-dsdb.md: the SPRG extension would replace this default)
-#define DEFAULT_FRAME_PX 16
-
 void dsd_geom_sprite(const DsdWorld *w, uint32_t asset, DsdSpriteGeom *out) {
-    (void)w;
-    (void)asset;
-    out->width = DEFAULT_FRAME_PX;
-    out->height = DEFAULT_FRAME_PX;
-    out->xorig = 0;
-    out->yorig = 0;
-    out->bbox_left = 0;
-    out->bbox_top = 0;
-    out->bbox_right = DEFAULT_FRAME_PX - 1;
-    out->bbox_bottom = DEFAULT_FRAME_PX - 1;
+    // The SPRG record of the sprite (ADR-0006; the loader guarantees one per sprite in a room game): binary search.
+    uint32_t lo = 0;
+    uint32_t hi = w->sprg_count;
+    while (lo < hi) {
+        uint32_t mid = lo + (hi - lo) / 2;
+        const DsdSprgRec *g = &w->sprg[mid];
+        if (g->asset == asset) {
+            *out = (DsdSpriteGeom){g->width, g->height, g->xorig, g->yorig, g->bbox_left, g->bbox_top,
+                                   g->bbox_right, g->bbox_bottom};
+            return;
+        }
+        if (g->asset < asset) lo = mid + 1;
+        else hi = mid;
+    }
+    *out = (DsdSpriteGeom){0}; // unreachable for a loaded room game (program form has no instances)
 }
 
 // One axis of a box: the edges pos + (lo - orig) * scale and pos + (hi + 1 - orig) * scale (int x Q20.12 = Q20.12),

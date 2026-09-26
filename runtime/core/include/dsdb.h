@@ -56,6 +56,20 @@ typedef struct DsdDbgRec {
 } DsdDbgRec;
 _Static_assert(sizeof(DsdDbgRec) == 12, "DBG record is 12 bytes (C2)");
 
+// SPRG record (20 bytes, ADR-0006): one per ASET sprite, sorted by asset index; bbox inclusive, frame pixels.
+typedef struct DsdSprgRec {
+    uint32_t asset;
+    uint16_t width;
+    uint16_t height;
+    int16_t xorig;
+    int16_t yorig;
+    int16_t bbox_left;
+    int16_t bbox_top;
+    int16_t bbox_right;
+    int16_t bbox_bottom;
+} DsdSprgRec;
+_Static_assert(sizeof(DsdSprgRec) == 20, "SPRG record is 20 bytes (C2 0.3.0, ADR-0006)");
+
 // A section's bytes inside the file.
 typedef struct DsdSection {
     const uint8_t *base;
@@ -87,6 +101,9 @@ typedef struct DsdProgram {
     uint32_t asset_count;
     uint32_t dbg_count;
     const DsdDbgRec *dbg;
+    // Extensions (header word 28, ADR-0006): SPRG sprite geometry, or 0 records when the file has none.
+    uint32_t sprg_count;
+    const DsdSprgRec *sprg;
 } DsdProgram;
 
 // Why a load failed: an R58x code (errors.h) and a short detail for the message's {detail} placeholder.

@@ -206,9 +206,30 @@ static int32_t load_rooms(DsdWorld *w, const DsdProgram *p, DsdLoadError *err) {
     return DSD_R_NONE;
 }
 
+// SPRG (ADR-0006): every record names a sprite, and either every sprite has one or none does. A room game with
+// sprites needs it (the engine takes placement and bboxes only from it); program form never uses geometry.
+static int32_t load_geometry(DsdWorld *w, const DsdProgram *p, DsdLoadError *err) {
+    w->sprg_count = p->sprg_count;
+    w->sprg = p->sprg;
+    uint32_t sprites = 0;
+    for (uint32_t a = 0; a < w->asset_count; a++) sprites += w->assets[a].kind == DSD_ASSET_SPRITE;
+    for (uint32_t k = 0; k < w->sprg_count; k++) {
+        const DsdSprgRec *g = &w->sprg[k];
+        bool ok = asset_is(w, g->asset, DSD_ASSET_SPRITE, 0) && g->width > 0 && g->height > 0 &&
+                  g->bbox_left <= g->bbox_right && g->bbox_top <= g->bbox_bottom;
+        if (!ok) return fail(err, DSD_R_BAD_FILE, "sprite geometry", k);
+    }
+    // Records are unique and sorted (loader), so "one per sprite" is a count check.
+    bool complete = w->sprg_count == sprites;
+    bool room_game = p->first_room != DSDB_NONE;
+    if (!complete && (room_game || w->sprg_count != 0)) return fail(err, DSD_R_BAD_FILE, "sprite geometry", w->sprg_count);
+    return DSD_R_NONE;
+}
+
 int32_t dsd_world_load(DsdWorld *w, const DsdProgram *prog, DsdLoadError *err) {
     int32_t rc;
     if ((rc = load_assets(w, prog, err)) != DSD_R_NONE) return rc;
+    if ((rc = load_geometry(w, prog, err)) != DSD_R_NONE) return rc;
     if ((rc = load_objects(w, prog, err)) != DSD_R_NONE) return rc;
     return load_rooms(w, prog, err);
 }

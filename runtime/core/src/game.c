@@ -36,8 +36,19 @@ static int32_t fail_load(int32_t code, const char *detail) {
     return g_state;
 }
 
+// A platform start-up failure (dsd_plat_init), reported like an engine error with no object, event or file.
+static int32_t fail_init(int32_t rc) {
+    if (rc != DSD_PLAT_ELOAD) return fail_load(DSD_R_NO_FILE, "file system");
+    dsd_fatal f = {"R571", "", "", "soundbank.bin", 0, "soundbank.bin could not be loaded"};
+    dsd_log_error(&f);
+    dsd_plat_fatal(&f);
+    g_state = DSD_GAME_FAILED;
+    return g_state;
+}
+
 int32_t dsd_game_boot(void) {
-    if (dsd_plat_init() != DSD_PLAT_OK) return fail_load(DSD_R_NO_FILE, "file system");
+    int32_t rc = dsd_plat_init();
+    if (rc != DSD_PLAT_OK) return fail_init(rc);
     int32_t size = dsd_plat_read_file(DSDB_PATH, g_dsdb, sizeof g_dsdb);
     if (size == DSD_PLAT_ETOOBIG) return fail_load(DSD_R_FILE_TOO_BIG, DSDB_PATH);
     if (size < 0) return fail_load(DSD_R_NO_FILE, DSDB_PATH);
@@ -72,3 +83,9 @@ int32_t dsd_game_frame(void) {
 }
 
 const DsdVm *dsd_game_vm(void) { return &g_vm; }
+
+int dsd_core_main(void) {
+    int32_t st = dsd_game_boot();
+    while (st == DSD_GAME_RUNNING) st = dsd_game_frame();
+    return st == DSD_GAME_EXITED ? 0 : 1;
+}

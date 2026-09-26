@@ -1,8 +1,8 @@
 // geometry.h: sprite geometry (frame size, origin, bbox) and instance bounding boxes (contracts/events.md sections
 // 5 and 6: axis-aligned, scaled by image_xscale/yscale, not rotated; touching edges do not overlap).
 //
-// The engine's logic takes geometry only from here, never from loaded GRF files, so the host (which may not have
-// the GRFs) and the DS compute the same collisions.
+// The engine's logic takes geometry only from the DSDB's SPRG records (ADR-0006), never from loaded GRF files, so
+// the host (which may not have the GRFs) and the DS compute the same collisions.
 #ifndef DSD_GEOMETRY_H
 #define DSD_GEOMETRY_H
 

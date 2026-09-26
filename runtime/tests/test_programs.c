@@ -179,6 +179,22 @@ static void test_missing_file(void) {
     CHECK(host_fatal_seen());
 }
 
+static void test_core_main(void) {
+    // C11 0.2.0: the DS entry point runs the whole game; 0 after DSD|EXIT, 1 after DSD|ERR.
+    HostConfig cfg = {"fixtures/bytecode/hello.dsdb", RUN_SEED, NULL, capture, NULL};
+    g_capture_len = 0;
+    host_configure(&cfg);
+    CHECK_EQ(dsd_core_main(), 0);
+    CHECK_STR(g_capture, "DSD|READY|0.1.0|0dd9987a\nDSD|LOG|hello\nDSD|EXIT|0\n");
+    // No file system (the host's dsd_plat_init fails without a root): R584, and dsd_core_main returns 1.
+    HostConfig none = {NULL, RUN_SEED, NULL, capture, NULL};
+    g_capture_len = 0;
+    g_capture[0] = '\0';
+    host_configure(&none);
+    CHECK_EQ(dsd_core_main(), 1);
+    CHECK_STR(g_capture, "DSD|ERR|R584|||game.dsdb|0|The game file could not be read (file system)\n");
+}
+
 static void test_repeatable(void) {
     // Booting again resets every piece of state: the second run prints the same bytes.
     static char first[CAPTURE_MAX];
@@ -214,11 +230,23 @@ static bool trace_run(const char *dsdb, uint32_t frames, const char *keys, const
     return fclose(f) == 0 && ok;
 }
 
+// FNV-1a 32 of n bytes (the same hash C2 uses for the ABI hash).
+static uint32_t fnv1a(const char *p, int32_t n) {
+    uint32_t h = 0x811C9DC5u;
+    for (int32_t i = 0; i < n; i++) {
+        h ^= (uint8_t)p[i];
+        h *= 0x01000193u;
+    }
+    return h;
+}
+
 static void test_flappy_deterministic(void) {
-    // The DoD's determinism check on the host: WS4's compiled Flappy, 600 frames, the DoD key script, twice.
-    // ADR-pending ADR-0003 (sprite geometry): the trace itself becomes a golden once real bboxes reach the DSDB.
+    // The DoD run on the host: WS4's compiled Flappy, 600 frames, the DoD key script. Two runs must trace
+    // identically, and while flappy.dsdb is the one the fingerprints were made from, the trace must match them: the
+    // Linux and MinGW builds then agree byte for byte (the DoD's cross-compiler identity check).
     static char a[TRACE_MAX];
     static char b[TRACE_MAX];
+    static char dsdb_bytes[EXPECT_MAX];
     const char *dsdb = "fixtures/compiler/samples/flappy.dsdb";
     const char *keys = "fixtures/runtime-core/flappy-keys.txt";
     if (!CHECK(trace_run(dsdb, 600, keys, "runtime/build-host/flappy-a.jsonl"))) return;
@@ -226,6 +254,22 @@ static void test_flappy_deterministic(void) {
     int32_t na = dsd_test_read_file("runtime/build-host/flappy-a.jsonl", a, TRACE_MAX);
     int32_t nb = dsd_test_read_file("runtime/build-host/flappy-b.jsonl", b, TRACE_MAX);
     CHECK(na > 0 && na == nb && memcmp(a, b, (size_t)na) == 0);
+    // Fingerprints: "dsdb 0x........" and "trace 0x........ <bytes>".
+    char want[EXPECT_MAX];
+    int32_t nw = dsd_test_read_file("fixtures/runtime-core/flappy-trace.fnv", want, EXPECT_MAX - 1);
+    int32_t nd = dsd_test_read_file(dsdb, dsdb_bytes, EXPECT_MAX);
+    if (!CHECK(nw > 0 && nd > 0)) return;
+    want[nw] = '\0';
+    char got[EXPECT_MAX];
+    snprintf(got, sizeof got, "dsdb 0x%08x\ntrace 0x%08x %d\n", (unsigned)fnv1a(dsdb_bytes, nd), (unsigned)fnv1a(a, na),
+             (int)na);
+    if (strncmp(got, want, strlen("dsdb 0x00000000")) != 0) {
+        printf("note: %s changed since fixtures/runtime-core/flappy-trace.fnv was made; the trace check is skipped.\n"
+               "      Regenerate it (fixtures/runtime-core/README.md); the new fingerprints are:\n%s",
+               dsdb, got);
+        return;
+    }
+    if (!CHECK_STR(got, want)) printf("      the trace is runtime/build-host/flappy-a.jsonl\n");
 }
 
 void suite_programs(void) {
@@ -233,5 +277,6 @@ void suite_programs(void) {
     test_collector_ran();
     test_flappy_deterministic();
     test_missing_file();
+    test_core_main();
     test_repeatable();
 }

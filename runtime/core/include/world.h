@@ -104,6 +104,8 @@ typedef struct DsdWorld {
     DsdRoom rooms[DSD_RT_ROOMS_MAX];
     uint32_t asset_count;
     const DsdAssetRec *assets;
+    uint32_t sprg_count;         // sprite geometry records (ADR-0006), one per sprite asset, by asset index
+    const DsdSprgRec *sprg;
 } DsdWorld;
 
 // Parses and checks OBJS, ROOM and ASET of a loaded program (called by dsd_load). R580/R583 on failure.

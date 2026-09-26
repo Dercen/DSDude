@@ -18,6 +18,9 @@
 #define OFF_SIZE 16u
 #define OFF_SECTIONS 20u
 #define OFF_FIRST_ROOM 24u
+#define OFF_EXTENSIONS 28u // extension table offset (ADR-0006), 0 = none
+#define EXT_ENTRY_BYTES 12u
+#define SPRG_TAG "SPRG"
 #define TABLE_BYTES (DSDB_SECTION_COUNT * DSDB_SECTION_ENTRY_BYTES)
 #define DATA_START (DSDB_HEADER_BYTES + TABLE_BYTES) // first byte a section may use
 #define COUNT_BYTES 4u                               // every section starts with a u32 count
@@ -167,6 +170,35 @@ static int32_t load_dbg(DsdProgram *p, DsdLoadError *err) {
         bool ok = r->code_index < p->code_count && r->file_str < p->str_count &&
                   (i == 0 || p->dbg[i - 1].code_index <= r->code_index);
         if (!ok) return fail(err, DSD_R_BAD_FILE, "line table", i);
+    }
+    return DSD_R_NONE;
+}
+
+// The extension table (ADR-0006): entries sorted by tag, bodies 4-aligned inside the file; unknown tags are skipped.
+static int32_t load_extensions(DsdProgram *p, DsdLoadError *err) {
+    uint32_t off = rd32(p->file + OFF_EXTENSIONS);
+    if (off == 0) return DSD_R_NONE;
+    if ((off & ALIGN_MASK) != 0 || off < DATA_START || (uint64_t)off + COUNT_BYTES > p->file_size) {
+        return fail(err, DSD_R_BAD_FILE, "extensions", -1);
+    }
+    uint32_t n = rd32(p->file + off);
+    if ((uint64_t)off + COUNT_BYTES + (uint64_t)n * EXT_ENTRY_BYTES > p->file_size) {
+        return fail(err, DSD_R_BAD_FILE, "extensions", -1);
+    }
+    for (uint32_t i = 0; i < n; i++) {
+        const uint8_t *e = p->file + off + COUNT_BYTES + i * EXT_ENTRY_BYTES;
+        uint32_t body = rd32(e + TAG_BYTES);
+        uint32_t size = rd32(e + TAG_BYTES + WORD_BYTES);
+        bool ok = (body & ALIGN_MASK) == 0 && size >= COUNT_BYTES && (uint64_t)body + size <= p->file_size &&
+                  (i == 0 || memcmp(e - EXT_ENTRY_BYTES, e, TAG_BYTES) < 0);
+        if (!ok) return fail(err, DSD_R_BAD_FILE, "extension", i);
+        if (memcmp(e, SPRG_TAG, TAG_BYTES) != 0) continue;
+        p->sprg_count = rd32(p->file + body);
+        if ((uint64_t)p->sprg_count * sizeof(DsdSprgRec) > size - COUNT_BYTES) return fail(err, DSD_R_BAD_FILE, "SPRG", -1);
+        p->sprg = (const DsdSprgRec *)(p->file + body + COUNT_BYTES);
+        for (uint32_t k = 1; k < p->sprg_count; k++) {
+            if (p->sprg[k - 1].asset >= p->sprg[k].asset) return fail(err, DSD_R_BAD_FILE, "SPRG order", k);
+        }
     }
     return DSD_R_NONE;
 }
@@ -346,6 +378,7 @@ int32_t dsd_load(DsdProgram *prog, const uint8_t *file, uint32_t size, DsdLoadEr
         return rc;
     }
     if ((rc = load_dbg(prog, err)) != DSD_R_NONE) return rc;
+    if ((rc = load_extensions(prog, err)) != DSD_R_NONE) return rc;
     prog->obj_count = rd32(prog->sec[DSDB_SEC_OBJS].base);
     prog->room_count = rd32(prog->sec[DSDB_SEC_ROOM].base);
     prog->asset_count = rd32(prog->sec[DSDB_SEC_ASET].base);
