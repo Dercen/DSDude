@@ -1,0 +1,33 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 4
+    .loc "v0/01-arith.dss" 2
+    LOADI r0, 7
+    .loc "v0/01-arith.dss" 3
+    LOADI r1, 3
+    .loc "v0/01-arith.dss" 4
+    ADD r2, r0, r1
+    CALLN r2, 1, show_debug_message
+    .loc "v0/01-arith.dss" 5
+    SUB r2, r0, r1
+    CALLN r2, 1, show_debug_message
+    .loc "v0/01-arith.dss" 6
+    MUL r2, r0, r1
+    CALLN r2, 1, show_debug_message
+    .loc "v0/01-arith.dss" 7
+    IDIV r2, r0, r1
+    CALLN r2, 1, show_debug_message
+    .loc "v0/01-arith.dss" 8
+    MOD r2, r0, r1
+    CALLN r2, 1, show_debug_message
+    .loc "v0/01-arith.dss" 9
+    NEG r2, r0
+    MOD r2, r2, r1
+    CALLN r2, 1, show_debug_message
+    .loc "v0/01-arith.dss" 10
+    LOADI r3, 7
+    DIV r2, r0, r3
+    CALLN r2, 1, show_debug_message
+    RET r0, 0
+.end

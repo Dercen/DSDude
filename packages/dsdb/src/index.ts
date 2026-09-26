@@ -11,4 +11,4 @@ export * from "./model.ts";
 
 export const packageName = "@dsdude/dsdb";
 /** C2 container version; see contracts/dsdb.md. */
-export const CONTRACT_VERSION = "0.1.0";
+export const CONTRACT_VERSION = "0.2.0";

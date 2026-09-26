@@ -1,0 +1,275 @@
+.dsda 0.1
+.seed 0
+.global score
+.asset sprite spr_bird "gfx/spr_bird.grf" 3
+.asset sprite spr_gap "gfx/spr_gap.grf" 1
+.asset sprite spr_pipe "gfx/spr_pipe.grf" 1
+.asset sound snd_flap "" 0
+.asset sound snd_hit "" 0
+.asset sound snd_point "" 0
+
+.func obj_bird__fn_die 0 2
+    .loc "objects/obj_bird/functions.dss" 3
+    LOADB r0, false
+    SETSLOT r0, 0
+    .loc "objects/obj_bird/functions.dss" 4
+    LOADI r0, 0
+    SETBI r0, image_speed
+    .loc "objects/obj_bird/functions.dss" 5
+    LOADK r0, @snd_hit
+    CALLN r0, 1, audio_play_sound
+    .loc "objects/obj_bird/functions.dss" 6
+    LOADK r0, @obj_pipe
+    WITHBEGIN r0, L1
+  L0:
+    LOADI r1, 0
+    SETBI r1, hspeed
+    WITHNEXT r0, L0
+    WITHEND r0
+  L1:
+    .loc "objects/obj_bird/functions.dss" 7
+    LOADK r0, "Score: "
+    GETGLOB r1, score
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_bird/functions.dss" 8
+    LOADI r0, 0
+    LOADI r1, 60
+    SETBIX r1, alarm, r0
+    RET r0, 0
+.end
+
+.func obj_bird__create 0 1
+    .loc "objects/obj_bird/create.dss" 2
+    LOADK r0, 0.199951171875
+    SETBI r0, image_speed
+    .loc "objects/obj_bird/create.dss" 3
+    LOADK r0, 0.25
+    SETBI r0, gravity
+    .loc "objects/obj_bird/create.dss" 4
+    LOADK r0, -4.5
+    SETSLOT r0, 1
+    .loc "objects/obj_bird/create.dss" 5
+    LOADB r0, true
+    SETSLOT r0, 0
+    .loc "objects/obj_bird/create.dss" 6
+    LOADI r0, 0
+    SETGLOB r0, score
+    RET r0, 0
+.end
+
+.func obj_bird__step 0 3
+    .loc "objects/obj_bird/step.dss" 2
+    GETSLOT r0, 0
+    JMPT r0, L0
+    RET r0, 0
+  L0:
+    .loc "objects/obj_bird/step.dss" 3
+    LOADI r0, 0
+    CALLN r0, 1, button_pressed
+    JMPT r0, L1
+    CALLN r0, 0, touch_pressed
+    JMPF r0, L2
+  L1:
+    .loc "objects/obj_bird/step.dss" 4
+    GETSLOT r0, 1
+    SETBI r0, vspeed
+    .loc "objects/obj_bird/step.dss" 5
+    LOADK r0, @snd_flap
+    CALLN r0, 1, audio_play_sound
+  L2:
+    .loc "objects/obj_bird/step.dss" 7
+    GETBI r0, vspeed
+    LOADI r1, 6
+    GT r0, r0, r1
+    JMPF r0, L3
+    LOADI r0, 6
+    SETBI r0, vspeed
+  L3:
+    .loc "objects/obj_bird/step.dss" 8
+    GETBI r0, vspeed
+    NEG r0, r0
+    LOADI r1, 8
+    MUL r0, r0, r1
+    LOADI r1, -30
+    LOADI r2, 60
+    CALLN r0, 3, clamp
+    SETBI r0, image_angle
+    .loc "objects/obj_bird/step.dss" 9
+    GETBI r0, y
+    LOADI r1, 0
+    LT r0, r0, r1
+    JMPF r0, L4
+    LOADI r0, 0
+    SETBI r0, y
+    LOADI r0, 0
+    SETBI r0, vspeed
+  L4:
+    .loc "objects/obj_bird/step.dss" 10
+    GETBI r0, y
+    GETBI r1, room_height
+    GETBI r2, sprite_height
+    SUB r1, r1, r2
+    GT r0, r0, r1
+    JMPF r0, L5
+    CALL r0, obj_bird__fn_die
+  L5:
+    RET r0, 0
+.end
+
+.func obj_bird__alarm_0 0 1
+    .loc "objects/obj_bird/alarm_0.dss" 2
+    CALLN r0, 0, room_restart
+    RET r0, 0
+.end
+
+.func obj_bird__collision_obj_gap 0 2
+    .loc "objects/obj_bird/collision_obj_gap.dss" 2
+    GETSLOT r0, 0
+    JMPF r0, L0
+    GETSLOTO r0, 0
+    JMPT r0, L0
+    LOADB r0, true
+    SETSLOTO r0, 0
+    GETGLOB r0, score
+    LOADI r1, 1
+    ADD r0, r0, r1
+    SETGLOB r0, score
+    LOADK r0, @snd_point
+    CALLN r0, 1, audio_play_sound
+  L0:
+    RET r0, 0
+.end
+
+.func obj_bird__collision_obj_pipe 0 1
+    .loc "objects/obj_bird/collision_obj_pipe.dss" 2
+    GETSLOT r0, 0
+    JMPF r0, L0
+    CALL r0, obj_bird__fn_die
+  L0:
+    RET r0, 0
+.end
+
+.func obj_ctrl__create 0 2
+    .loc "objects/obj_ctrl/create.dss" 1
+    LOADI r0, 0
+    LOADI r1, 60
+    SETBIX r1, alarm, r0
+    RET r0, 0
+.end
+
+.func obj_ctrl__alarm_0 0 4
+    .loc "objects/obj_ctrl/alarm_0.dss" 1
+    LOADI r1, 48
+    LOADI r2, 144
+    CALLN r1, 2, irandom_range
+    MOV r0, r1
+    .loc "objects/obj_ctrl/alarm_0.dss" 2
+    LOADI r1, 272
+    LOADI r3, 152
+    SUB r2, r0, r3
+    LOADK r3, @obj_pipe
+    CALLN r1, 3, instance_create
+    .loc "objects/obj_ctrl/alarm_0.dss" 3
+    LOADI r1, 272
+    LOADI r3, 24
+    ADD r2, r0, r3
+    LOADK r3, @obj_pipe
+    CALLN r1, 3, instance_create
+    .loc "objects/obj_ctrl/alarm_0.dss" 4
+    LOADI r1, 272
+    MOV r2, r0
+    LOADK r3, @obj_gap
+    CALLN r1, 3, instance_create
+    .loc "objects/obj_ctrl/alarm_0.dss" 5
+    LOADI r1, 0
+    LOADI r2, 90
+    SETBIX r2, alarm, r1
+    RET r0, 0
+.end
+
+.func obj_gap__create 0 1
+    .loc "objects/obj_gap/create.dss" 1
+    LOADI r0, -2
+    SETBI r0, hspeed
+    .loc "objects/obj_gap/create.dss" 2
+    LOADB r0, false
+    SETSLOT r0, 0
+    RET r0, 0
+.end
+
+.func obj_gap__outside_room 0 1
+    .loc "objects/obj_gap/outside_room.dss" 1
+    CALLN r0, 0, instance_destroy
+    RET r0, 0
+.end
+
+.func obj_hud__draw 0 3
+    .loc "objects/obj_hud/draw.dss" 1
+    LOADI r0, 112
+    LOADI r1, 16
+    GETGLOB r2, score
+    CALLN r2, 1, string
+    CALLN r0, 3, draw_text
+    RET r0, 0
+.end
+
+.func obj_pipe__create 0 1
+    .loc "objects/obj_pipe/create.dss" 1
+    LOADI r0, -2
+    SETBI r0, hspeed
+    .loc "objects/obj_pipe/create.dss" 2
+    LOADI r0, 2
+    SETBI r0, image_yscale
+    RET r0, 0
+.end
+
+.func obj_pipe__outside_room 0 1
+    .loc "objects/obj_pipe/outside_room.dss" 1
+    CALLN r0, 0, instance_destroy
+    RET r0, 0
+.end
+
+.object obj_bird sprite=spr_bird parent=- visible=1 screen=top depth=0
+    .slot alive 0
+    .slot flap_power 1
+    .event create obj_bird__create
+    .event step obj_bird__step
+    .event alarm_0 obj_bird__alarm_0
+    .event collision_obj_gap obj_bird__collision_obj_gap
+    .event collision_obj_pipe obj_bird__collision_obj_pipe
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event create obj_ctrl__create
+    .event alarm_0 obj_ctrl__alarm_0
+.end
+
+.object obj_gap sprite=spr_gap parent=- visible=0 screen=top depth=0
+    .slot scored 0
+    .event create obj_gap__create
+    .event outside_room obj_gap__outside_room
+.end
+
+.object obj_hud sprite=- parent=- visible=1 screen=top depth=0
+    .event draw obj_hud__draw
+.end
+
+.object obj_pipe sprite=spr_pipe parent=- visible=1 screen=top depth=0
+    .event create obj_pipe__create
+    .event outside_room obj_pipe__outside_room
+.end
+
+.room rm_game 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_bird 64 96 top -
+    .instance obj_ctrl 0 0 top -
+    .instance obj_hud 0 0 top -
+    .set top spr_bird+spr_gap+spr_pipe -
+    .set bottom - -
+    .sounds snd_flap+snd_hit+snd_point
+.end
+
+.first rm_game

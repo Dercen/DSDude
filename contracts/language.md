@@ -29,7 +29,8 @@ runtime (WS2) and the language service and manual (WS7); `contracts/events.md` c
 - Numbers: decimal integers (`42`), hex (`0x2A`), and decimals with a digit on both sides of the point (`1.5`,
   `0.25`). An integer literal must fit int32; a decimal literal must fit Q20.12 (|v| < 524,288) and is rounded half
   away from zero to the nearest 1/4096. Out-of-range literals are E1xx.
-- Strings: `"..."` with the escapes `\n`, `\"` and `\\`; any other `\` escape is E1xx. No single-quoted strings.
+- Strings: `"..."` with the escapes `\n`, `\"` and `\\`; any other `\` escape is E1xx. No single-quoted strings. A string
+  must close on the line it starts on (E1xx otherwise); write `\n` for a line break inside it.
 - Operators and punctuation: `+ - * / % ! = == != < <= > >= && || ?: += -= *= /= ++ -- ( ) [ ] { } , ; . :`.
 
 ## 3. Grammar (EBNF)
@@ -78,7 +79,8 @@ primary     = NUMBER | STRING | "true" | "false" | "undefined"
 
 **Precedence**, lowest to highest: `?:` (right-associative), `||`, `&&`, `== !=`, `< <= > >=`, `+ -`,
 `* / div mod %`, unary `- !`, postfix `. [] ()`. Binary operators are left-associative. Assignments and `++`/`--`
-are statements, not expressions. `&&` and `||` short-circuit and yield a bool.
+are statements, not expressions. `&&` and `||` short-circuit and yield a bool. The value of `return` must start on
+the same line as `return`: a `return` at the end of a line returns undefined and never takes the next line as its value.
 
 **Semicolons are optional**, as in GML: a statement ends where the next token cannot continue it. The formatter
 inserts them, and the parser resynchronises on `;`, statement keywords, `}` and newlines. W032 warns when a line

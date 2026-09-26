@@ -9,9 +9,11 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C2 DSDB container (`contracts/dsdb.md`, `packages/dsdb`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): header, ten sections (incl. KONS), 8-byte cells, instruction encoding, calling convention, event ids, OBJS/ROOM/ASET, program form, `.dsda` grammar and canonical form, ABI hash.
+- 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): section 5 operand kinds `sym` and `bivar` (names in `.dsda`); packages/dsdb encodes, decodes and assembles them (`BuiltinsEnv.variables`).
 
 ## C2 opcodes (`contracts/opcodes.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): 29 stable opcodes (0-28), 22 provisional (29-50), 4 reserved int-specialised (51-54).
+- 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): operand kinds `sym` (GETDYN/SETDYN C) and `bivar` (GETBI/SETBI Bx); new provisional GETBIX/SETBIX (55-56, builtin array variables) and GETBIO/SETBIO (57-58, builtin variables of another instance); stated meanings for WITHBEGIN/WITHNEXT/WITHEND, NEWARR and SETIDX; runtime/gen/opcodes.h and packages/dsdb/src/gen/opcodes.ts regenerated.
 
 ## C2 builtins (`contracts/builtins.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): ids 0-84 the 85 section-4 functions, 85-116 instance variables, 117-124 globals, 125-142 constants; ABI hash 0x0dd9987a; docs for the 30 builtins the samples use, TODO(WS7) elsewhere.
@@ -28,6 +30,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).
+- 0.1.0 T0 (2026-09-26, WS4): language.md clarifications pinned by the parser: a string closes on the line it starts on; a `return` value starts on the `return`'s line.
 
 ## C7 Language-service host API (`packages/lang/src/host.ts`)
 - owed: WS4, by CP-B.
@@ -41,6 +44,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.
+- 0.1.0 T0 (2026-09-26, WS4): compiler catalog `packages/compiler/src/diagnostics/catalog.ts` started: E101-E129 (syntax), W030, W032.
 - R5xx catalog 0.1.0 (2026-09-26, WS2, T0): `runtime/core/diagnostics/catalog.json` created with R500-R590 (sub-ranges R50x variables, R51x runaway scripts, R52x number range, R53x division and roots, R54x wrong kinds of value, R55x lists, R56x memory, R58x the game file, R59x script checks).
 
 ## C10 CLI (`contracts/cli.md`)

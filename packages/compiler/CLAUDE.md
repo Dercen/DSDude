@@ -33,6 +33,10 @@ Cloud session: see the Cloud setup block in docs/kickoff/ws4.md.
 ## Isolation
 Disassembly-snapshot goldens (.dss -> .dsda) and diagnostic snapshots need no runtime; execution goldens arrive tier by tier from WS2's host runner.
 
+## Layout
+- `src/syntax/`: lexer, AST (internal to WS4), parser. `src/diagnostics/`: `catalog.ts` (C9 entries) and `report.ts`.
+- `@dsdude/lang` (C7 host) depends on this package, never the reverse.
+
 ## Rules
 - Import other packages only through their `src/index.ts` or a declared subpath; relative imports carry `.ts`.
 - Erasable TypeScript only (no enums, namespaces, parameter properties); `tsc -b` checks it.

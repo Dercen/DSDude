@@ -11,7 +11,7 @@ export interface OpcodeInfo {
   readonly operands: readonly string[];
 }
 
-export const OPCODES_VERSION = "0.1.0";
+export const OPCODES_VERSION = "0.2.0";
 
 export const OPCODES: readonly OpcodeInfo[] = [
   { number: 0, name: "HALT", status: "stable", format: "none", operands: [] },
@@ -52,10 +52,10 @@ export const OPCODES: readonly OpcodeInfo[] = [
   { number: 35, name: "SETSLOT", status: "provisional", format: "ABC", operands: ["A:reg", "B:u8"] },
   { number: 36, name: "GETSLOTO", status: "provisional", format: "ABC", operands: ["A:reg", "B:u8"] },
   { number: 37, name: "SETSLOTO", status: "provisional", format: "ABC", operands: ["A:reg", "B:u8"] },
-  { number: 38, name: "GETDYN", status: "provisional", format: "ABC", operands: ["A:reg", "B:reg", "C:u8"] },
-  { number: 39, name: "SETDYN", status: "provisional", format: "ABC", operands: ["A:reg", "B:reg", "C:u8"] },
-  { number: 40, name: "GETBI", status: "provisional", format: "ABx", operands: ["A:reg", "Bx:u16"] },
-  { number: 41, name: "SETBI", status: "provisional", format: "ABx", operands: ["A:reg", "Bx:u16"] },
+  { number: 38, name: "GETDYN", status: "provisional", format: "ABC", operands: ["A:reg", "B:reg", "C:sym"] },
+  { number: 39, name: "SETDYN", status: "provisional", format: "ABC", operands: ["A:reg", "B:reg", "C:sym"] },
+  { number: 40, name: "GETBI", status: "provisional", format: "ABx", operands: ["A:reg", "Bx:bivar"] },
+  { number: 41, name: "SETBI", status: "provisional", format: "ABx", operands: ["A:reg", "Bx:bivar"] },
   { number: 42, name: "WITHBEGIN", status: "provisional", format: "AsBx", operands: ["A:reg", "sBx:label"] },
   { number: 43, name: "WITHNEXT", status: "provisional", format: "AsBx", operands: ["A:reg", "sBx:label"] },
   { number: 44, name: "WITHEND", status: "provisional", format: "A", operands: ["A:reg"] },
@@ -69,4 +69,8 @@ export const OPCODES: readonly OpcodeInfo[] = [
   { number: 52, name: "SUBII", status: "reserved", format: "none", operands: [] },
   { number: 53, name: "MULII", status: "reserved", format: "none", operands: [] },
   { number: 54, name: "CMPJII", status: "reserved", format: "none", operands: [] },
+  { number: 55, name: "GETBIX", status: "provisional", format: "ABC", operands: ["A:reg", "B:bivar", "C:reg"] },
+  { number: 56, name: "SETBIX", status: "provisional", format: "ABC", operands: ["A:reg", "B:bivar", "C:reg"] },
+  { number: 57, name: "GETBIO", status: "provisional", format: "ABC", operands: ["A:reg", "B:reg", "C:bivar"] },
+  { number: 58, name: "SETBIO", status: "provisional", format: "ABC", operands: ["A:reg", "B:reg", "C:bivar"] },
 ];
