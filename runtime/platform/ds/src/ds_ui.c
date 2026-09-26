@@ -186,9 +186,14 @@ void ds_ui_console_add(const char *line)
 
 void ds_ui_console_draw(int screen)
 {
+    ds_ui_console_draw_titled(screen, "console (SELECT closes)");
+}
+
+void ds_ui_console_draw_titled(int screen, const char *title)
+{
     const int p = DS_UI_PANEL_NAVY;
     ds_ui_fill(screen, 0, 2, DS_UI_COLS, DS_CONSOLE_LINES + 1, DS_C_NAVY);
-    ds_ui_text_panel(screen, 0, 2, "console (SELECT closes)", DS_C_YELLOW, p);
+    ds_ui_text_panel(screen, 0, 2, title, DS_C_YELLOW, p);
     int first = (ds_console_next - ds_console_count + DS_CONSOLE_LINES) % DS_CONSOLE_LINES;
     for (int i = 0; i < ds_console_count; i++)
         ds_ui_text_panel(screen, 0, 3 + i, ds_console[(first + i) % DS_CONSOLE_LINES], DS_C_WHITE, p);

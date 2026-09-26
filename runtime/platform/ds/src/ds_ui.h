@@ -52,4 +52,7 @@ void ds_ui_error_box(const char *code, const char *where, const char *message);
 void ds_ui_console_add(const char *line);
 void ds_ui_console_draw(int screen);
 
+// The same panel with another title (hardware builds: the mirrored log).
+void ds_ui_console_draw_titled(int screen, const char *title);
+
 #endif // DSD_DS_UI_H

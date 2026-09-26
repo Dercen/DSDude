@@ -77,6 +77,8 @@ static uint32_t g_sfx_next;
 static mm_byte g_sfx_volume = 255;
 
 bool ds_frame_nowait = false;
+const char *ds_game_file = NULL;
+bool ds_screen_log = false;
 
 static volatile uint32_t g_vblanks;
 static uint32_t g_vblanks_at_init;
@@ -157,6 +159,8 @@ void dsd_plat_frame_end(void)
     }
     if (ds_frame_nowait)
         return;
+    if (ds_screen_log)
+        ds_ui_console_draw_titled(DS_BOTTOM, "DSDude log (hardware build)");
     swiWaitForVBlank();
     oamUpdate(&oamMain);
     oamUpdate(&oamSub);
@@ -196,6 +200,8 @@ void dsd_plat_read_input(dsd_input *out)
 
 int32_t dsd_plat_read_file(const char *path, void *buf, uint32_t cap)
 {
+    if (ds_game_file != NULL && strcmp(path, "game.dsdb") == 0)
+        path = ds_game_file;
     FILE *f = fopen(nitro_path(path), "rb");
     if (f == NULL)
         return DSD_PLAT_ENOENT;

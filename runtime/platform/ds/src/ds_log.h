@@ -28,6 +28,11 @@ const char *ds_log_protocol_name(void);
 // emulator's debug port stay out of the timed run.
 void ds_log_set_muted(bool muted);
 
+// Called with every line printed (pads excluded), `len` bytes without the '\n'; NULL for none. Hardware test
+// builds (DSD_SCREENLOG) mirror the log on the bottom screen through it, since hardware has no stdout.
+typedef void (*ds_log_tap_fn)(const char *line, size_t len);
+void ds_log_set_tap(ds_log_tap_fn tap);
+
 // The emulator ID read at boot (up to 16 printable characters; empty on hardware).
 const char *ds_log_emulator_id(void);
 

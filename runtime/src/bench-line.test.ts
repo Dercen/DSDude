@@ -4,20 +4,24 @@ import { fileURLToPath } from "node:url";
 import { assembleToBytes } from "@dsdude/dsdb";
 import { loadBuiltinsEnv } from "@dsdude/dsdb/node";
 import { describe, expect, it } from "vitest";
-import { baselineDsda, FRAME_CYCLES, loopDsda, parseBenchLine, vmFigures } from "./bench-line.ts";
+import { baselineDsda, loopDsda, parseBenchLine, parseSummaryLine } from "./bench-line.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-// melonDS 1.1, JIT off, 2026-09-26: the whole-frame figure of the first run.
+// melonDS 1.1, JIT off, 2026-09-26 (the shape bench.c prints; figures from the first run).
 const LINE =
-  "DSD|LOG|bench: calls=long emulator=melonDS 1.1 frames=600 ops=691800 ticks=18854404 cycles=37708808 " +
-  "cycles_per_op=54.50 ops_per_frame=20554 gate=44000 FAIL";
+  "DSD|LOG|bench: calls=long emulator=melonDS 1.1 workload=full frames=600 ops=691800 ticks=18854404 " +
+  "cycles=37708808 cycles_per_op=54.50 ops_per_frame=20554 gate=44000 FAIL";
+const SUMMARY =
+  "DSD|LOG|bench: summary calls=long vm_cycles_per_op=35.06 vm_ops_per_frame=31957 loop_cycles_per_op=34.81 " +
+  "loop_ops_per_frame=32186 overhead_per_frame=16577 gate=44000 FAIL";
 
-describe("bench line", () => {
-  it("parses the harness's result", () => {
+describe("bench lines", () => {
+  it("parse a workload's result", () => {
     expect(parseBenchLine(LINE)).toEqual({
       calls: "long",
       emulator: "melonDS 1.1",
+      workload: "full",
       frames: 600,
       ops: 691800,
       cycles: 37708808,
@@ -29,15 +33,18 @@ describe("bench line", () => {
     expect(parseBenchLine("DSD|LOG|bench: cstack=1/2 B")).toBe(null);
   });
 
-  it("isolates the VM: (full - baseline) cycles over (full - baseline) ops", () => {
-    const full = parseBenchLine(LINE);
-    if (!full) throw new Error("parse");
-    const base = { ...full, ops: 600, cycles: 12_000_000 };
-    const vm = vmFigures(full, base);
-    expect(vm.cyclesPerOp).toBeCloseTo((37708808 - 12_000_000) / (691800 - 600), 6);
-    expect(vm.opsPerFrame).toBe(Math.floor(FRAME_CYCLES / vm.cyclesPerOp));
-    expect(vm.overheadPerFrame).toBe(20000);
-    expect(() => vmFigures(base, full)).toThrow(/did not cost more/);
+  it("parse the ROM's VM-only summary", () => {
+    expect(parseSummaryLine(SUMMARY)).toEqual({
+      calls: "long",
+      vmCyclesPerOp: 35.06,
+      vmOpsPerFrame: 31957,
+      loopCyclesPerOp: 34.81,
+      loopOpsPerFrame: 32186,
+      overheadPerFrame: 16577,
+      gate: 44000,
+      pass: false,
+    });
+    expect(parseSummaryLine(LINE)).toBe(null);
   });
 });
 

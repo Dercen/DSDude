@@ -34,6 +34,13 @@ Legend: todo / in progress / done (<sha>).
   the staleness check: `npm run check:dist -w runtime` (git + Node, runs in the cloud/CI) and `build:runtime`'s
   report. WS2 test/host edits no longer make `dist/` stale; `tree` stays, informational. No more VERSION-only
   refresh commits after merges.
+- **Hardware ROM set (spike 15; WS0 relay: an original 3DS with TWiLight Menu++): ready** (see the next commit
+  and "Hardware run" below). `npm run hardware -w runtime` builds five ROMs into `<DSDUDE_HOME>/hardware/` and
+  checks each headless first: the selftest (new page 4 "results" shows the boot figures on screen, incl. the raw
+  `0x04FFFA00` bytes), the M1 bench (now one ROM running the full, baseline and loop workloads and showing the VM
+  figures on the top screen), `hello` and spike 12's numeric hashes on a screen-log runtime (`make DSD_SCREENLOG=1`
+  mirrors every `DSD|` line onto the bottom screen; test builds only), and `samples/flappy` with the shipped
+  runtime. The boot path needed no change (`nitroFSInit(NULL)` uses `argv[0]`, which TWiLight passes).
 - **After checkpoint-8** (`main` `b8ba3e1`): WS2's new `test_programs.c` cases pass on the DS too,
   `conformance:ds` **37 of 37** (v2-05, v3-02 skipped: key scripts); `dist/VERSION` refreshed for the new tree
   (the ELFs are unchanged).
@@ -195,5 +202,65 @@ Legend: todo / in progress / done (<sha>).
 
 ## Leftovers
 
+
+## Hardware run (spike 15): steps for the user
+
+Hardware: an original Nintendo 3DS that starts `.nds` files through **TWiLight Menu++** (nds-bootstrap). Nothing
+prints to a PC on hardware, so every ROM shows its result **on screen**: read the numbers out or take a photo.
+
+**Boot path.** Our ROMs mount NitroFS with `nitroFSInit(NULL)`: it opens the `.nds` through `argv[0]`, which
+TWiLight Menu++ passes (the SD path), and falls back to card reads, which nds-bootstrap patches. No code change was
+needed. If a ROM ever shows a red box "Your game stopped" with code **R584**, NitroFS did not mount: note the whole
+message (it names the reason) and which TWiLight Menu++ settings were used.
+
+**1. Copy the files.** Build them with `npm run hardware -w runtime` (already built, 2026-09-26). Copy the five files
+from `C:\Users\zache\OneDrive\Desktop\Projects\DSDude-ws3\.dsdude\hardware\` to the SD card, into any folder
+TWiLight Menu++ shows, e.g. `sd:/dsdude/`:
+`1-selftest.nds`, `2-bench.nds`, `3-hello.nds`, `4-numeric.nds`, `5-flappy.nds`. Start each from TWiLight Menu++;
+to leave one, restart the console or use TWiLight Menu++'s return-to-menu combination.
+
+**2. `1-selftest.nds`** (about 2 minutes). Sound on.
+- It starts on **page 1**: rows of small red, blue, green and cyan balls on both screens over a sky-and-grass
+  background, white/yellow text at the top of each screen, a small orange box top right of the bottom screen.
+  Expect a short blip at start and a looping tune. Check: A plays the blip again; touching the bottom screen moves
+  the small yellow square to the stylus; the D-pad moves it; B makes the background scroll and the balls change.
+  Report anything missing, garbled or flickering.
+- Press **L** once: **page 4, results**. Photograph the bottom screen (1 MB read time, maxmod codes, the
+  `0x04FFFA00` bytes, stack and heap). The "expected" lines at the bottom say what the codes should be.
+- Press **L** again: **page 3**, the red error box. Check that it is readable.
+- Press **L** again: **page 2, the scanline page** (the most important part). The top screen shows N rings side
+  by side on one line; the bottom screen shows N's line cost. **UP/DOWN** change N by 1, **LEFT/RIGHT** by 8,
+  **A** switches between `normal`, `affine` and `affine2x`. For each of the three modes: raise N until the rings on
+  the right start to vanish or flicker, and write down the **largest N at which every ring is complete** and the
+  "OBJ line cycles" number shown for it. Report three pairs (mode, N, cycles).
+- **SELECT** opens the log console (and closes it); a photo of it helps if anything looked wrong.
+
+**3. `2-bench.nds`** (the M1 benchmark; about 5 seconds). Wait until the top screen shows "Photograph this
+screen.", then photograph it. The key figures are "VM cycles/op", "VM ops/frame", "loop cycles/op" and the
+"load main / dtcm" line. (On melonDS the same ROM shows about 35 VM cycles/op, 31,960 ops/frame.)
+
+**4. `3-hello.nds`.** The bottom screen should read `READY|0.1.0|f1d376bb`, `LOG|hello`, `EXIT|0`. A photo is
+enough.
+
+**5. `4-numeric.nds`** (spike 12 on hardware). The bottom screen should read exactly:
+```
+READY|0.1.0|f1d376bb
+LOG|trig 2802 7574
+LOG|atan2 33076 23775
+LOG|sqrt 20444 21605
+LOG|div 51 59715
+LOG|mul 47882 38740
+LOG|lengthdir 29239 47856
+LOG|string 5784 62728
+LOG|random 43187 48735
+EXIT|0
+```
+Photograph it; any different number names the area that differs on hardware.
+
+**6. `5-flappy.nds`** (the sample game, built end to end). Press **A** or tap the bottom screen to flap. Report
+whether it plays smoothly, with sound, and anything that looks wrong.
+
+**Send back:** the photos (or readouts) from steps 2 (page 4 and the three scanline pairs), 3, 4 and 5, and notes
+from 2 and 6. WS0 relays them to WS3 and WS2.
 
 ## Integration feedback

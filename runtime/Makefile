@@ -9,6 +9,8 @@
 #                             fixtures/runtime/selftest/nitrofs, made by runtime/selftest/make_assets.py)
 #   make -j4 DSD_SCRIPTED=1   a test runtime build/dsdude_runtime_scripted.elf whose input replays nitro:/input.keys
 #                             per core frame (C8 key scripts, runtime/host/keys.c); `npm run conformance:ds`
+#   make -j4 DSD_SCREENLOG=1  a hardware test runtime build/dsdude_runtime_screenlog.elf that mirrors every DSD|
+#                             line on the bottom screen (no stdout on hardware); `npm run hardware`
 #   make -j4 DSD_BENCH=1      the M1 timer harness ELF build/dsdude_bench.elf (build/dsdude_bench_bl.elf with
 #                             DSD_VM_BL=1): the core + platform + runtime/selftest/bench; `npm run bench -w runtime`
 #   make clean
@@ -47,6 +49,10 @@ endif
 # The M1 timer harness: the core and the platform layer with runtime/selftest/bench/bench.c as main(). The BL variant
 # gets its own NAME, so the two builds never share objects.
 DSD_VM_BL	?= 0
+DSD_SCREENLOG	?= 0
+ifeq ($(DSD_SCREENLOG),1)
+NAME		:= dsdude_runtime_screenlog
+endif
 DSD_SCRIPTED	?= 0
 ifeq ($(DSD_SCRIPTED),1)
 NAME		:= dsdude_runtime_scripted
@@ -79,6 +85,9 @@ DEFINES		+= -DDSD_VM_CALLS_BL
 endif
 ifeq ($(DSD_SCRIPTED),1)
 DEFINES		+= -DDSD_SCRIPTED_INPUT
+endif
+ifeq ($(DSD_SCREENLOG),1)
+DEFINES		+= -DDSD_SCREENLOG
 endif
 
 # ---- DTCM layout (PLAN.md 3.3; $(BLOCKSDS)/sys/crts/ds_arm9.ld) ------------------------------------------------
@@ -118,6 +127,8 @@ ifeq ($(DSD_SELFTEST),1)
 else ifeq ($(DSD_BENCH),1)
 .DEFAULT_GOAL	:= $(ELF)
 else ifeq ($(DSD_SCRIPTED),1)
+.DEFAULT_GOAL	:= $(ELF)
+else ifeq ($(DSD_SCREENLOG),1)
 .DEFAULT_GOAL	:= $(ELF)
 else
 .DEFAULT_GOAL	:= runtime

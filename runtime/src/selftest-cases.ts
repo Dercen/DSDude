@@ -91,6 +91,14 @@ export const SELFTEST_CASES: SelftestCase[] = [
     expect: [/^DSD\|LOG\|input: down=R up=- held=R$/],
   },
   {
+    // Page 4: the boot figures on screen for hardware. The bottom screen shows timings, so only the top is golden.
+    name: "results",
+    frames: 90,
+    keys: "results.txt",
+    golden: ["top"],
+    expect: [/^DSD\|LOG\|input: down=L up=- held=L$/],
+  },
+  {
     name: "console",
     frames: 90,
     keys: "console.txt",
