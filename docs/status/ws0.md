@@ -1,6 +1,6 @@
 # WS0 status: Lead: foundation, contracts, integration
 
-Mode: **hybrid** (no fallback recorded). Schedule position: Phase 0, Day 1 (2026-09-25).
+Mode: **hybrid** (no fallback recorded). Schedule position: Phase 0 done (`phase0` tag, 2026-09-25); next CP-A at D+3.
 
 ## Day-0 answers (user, 2026-09-25)
 
@@ -143,3 +143,58 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 **WS1:** its inputs (`packages/toolchain` + `packages/cli` skeletons, `api.ts` + `MockBuildService`, `contracts/cli.md`, `contracts/diagnostics.md`, `contracts/log-protocol.md`, `contracts/ipc.md`) are on `main` since `5c71867`/`b06a127`. No `ws1-toolchain` worktree existed at the end of Day 1, so WS1 has not been told in its own session yet: its kickoff has it run `git merge main` and `npm install` once the skeleton is on `main`, which is now.
 
 **Day 2 plan:** task 6 first (`dsdb.md`, `opcodes.json`, the `builtins.json` signatures, the generators, `packages/dsdb`, `hello.dsda/.dsdb`), then task 5 (`language.md`, `events.md`), then task 7 (fixtures, conformance v0, `contracts/README.md` + `CHANGELOG.md`, kickoff finalisation, Status block, pacman deny rules, the clean-clone DoD run, the tag).
+
+## End-of-day report: Day 2 (2026-09-25, late) — Phase 0 done
+
+**Tags:** `phase0` on `313088a`; `toolchain-ok` on `19c3ce8` (the merge of WS1's gate commit). Mode: hybrid, no
+fallback.
+
+**Definition of done (section 6 WS0), each with its evidence:**
+- **Clean clone green.** `git clone C:\Users\zache\OneDrive\Desktop\Projects\DSDude C:\Users\zache\OneDrive\Desktop\Projects\DSDude-clean`
+  at `313088a` (system `core.autocrlf=true`, no repo config): `npm install` exit 0 (531 packages, 42 s);
+  `npm run check` exit 0 (Biome 153 files, `tsc -b`, gen-opcodes/gen-builtins/gen-dsdb byte-identical);
+  `npm test` exit 0 ("Test Files 27 passed (27), Tests 106 passed (106)"); `node_modules/electron/path.txt` present;
+  `git status` clean afterwards. Then `Remove-Item -Recurse -Force ...\DSDude-clean`.
+- **Commit hooks proven, merges included; pre-push proven; LF checkouts.** Spike 1, 11/11 PASS (Spike results
+  above). The clean clone checks out `samples/hello/Makefile`, `runtime/gen/opcodes.h` and the three hooks as
+  `i/lf w/lf` and `tools/checkpoint.ps1` as `i/lf w/crlf`, so `.gitattributes` wins over `core.autocrlf=true`.
+- **Every Phase-0 contract has a version header and a CHANGELOG section;** `contracts/README.md` lists C3, C7, C11,
+  `runtime-artifact.md` and the C12 panel API as owed, with owner and deadline (C4's `toolchain-api.md` was delivered
+  by WS1 at 0.2.0).
+- **`hello.dsdb` disassembles to `hello.dsda`:** `npx dsdb-dis fixtures/bytecode/hello.dsdb` equals the file byte for
+  byte, and `dsdb-asm` reproduces `hello.dsdb` (also a test in `packages/dsdb`); the same holds for
+  `fixtures/bytecode/conformance/v0-01.dsda`.
+- **`docs/kickoff/wsN.md` exists for every stream** (ws0-ws8, ws6b), each with the contract versions at the tag.
+- **Cloud pieces on `origin/main`; vendor history clean; probe step 3 green:** pushed since `47539d5`; the vendor
+  check prints nothing; the probe passed (Cloud probe above).
+- **Tag `phase0` exists and is pushed** (with this report).
+
+**Contract versions at the tag:**
+
+| Contract | File(s) | Version | Owner |
+|---|---|---|---|
+| C1 | `contracts/project-format.md`, `packages/project-format` | 0.1.0 | WS0 |
+| C2 | `contracts/dsdb.md` | 0.1.0 | WS2 + WS4 |
+| C2 | `contracts/opcodes.json`, `packages/dsdb` | 0.1.0 | WS4 (WS2 co-signs) |
+| C2 | `contracts/builtins.json` (ABI hash `0x0dd9987a`) | 0.1.0 | WS0 |
+| C4 | `packages/toolchain/src/api.ts`, `contracts/toolchain-api.md` | 0.2.0 | WS1 |
+| C5 | `contracts/ipc.md`, `packages/ipc-contract` | 0.1.0 | WS6 |
+| C6 | `contracts/language.md`, `contracts/events.md`, conformance v0 | 0.1.0 | WS4 |
+| C8 | `contracts/log-protocol.md` | 0.1.0 | WS2 |
+| C9 | `contracts/diagnostics.md` | 0.1.0 | WS0 |
+| C10 | `contracts/cli.md` | 0.2.0 | WS1 |
+| C12 | `packages/asset-pipeline/src/preview.ts` | 0.1.0 | WS5 |
+| C13 | `contracts/runtime-limits.json` | 0.1.0 | WS2 |
+| C3, C7, C8 artifact, C11, C12 panel API | - | owed | WS5, WS4, WS3, WS2, WS6 |
+
+**Streams to launch next:**
+- Cloud, now: **WS2** (`dsdude-ws2`, stream line `ws2-runtime-core`) and **WS4** (`dsdude-ws4`, `ws4-compiler`);
+  `start-ws2`/`start-ws4` tagged and the stream lines pushed with this report.
+- Local slot 3: **WS6** (`start-ws6` tagged), memory permitting (below).
+- Local slot 2: **WS3**, released by `toolchain-ok`; `start-ws3` is tagged when the memory gate passes with WS6 running.
+- CP-A (D+3): WS5 and WS7 (cloud). CP-B (D+7): WS6b (cloud) if usage limits allow.
+
+**Memory:** the gate failed over the day (1095 MB at 22:33, during WS1's install with both emulators); since 23:30
+it passes (2432 MB, 2753 MB free at the tag). Waterfox holds ~930 MB and three `claude` processes run.
+
+**Deferred as ADRs:** none from WS0. ADR-0002 (WS1) awaits the user's decision; WS0 recommends accepting it.
