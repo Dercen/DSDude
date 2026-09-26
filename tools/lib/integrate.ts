@@ -89,6 +89,8 @@ export const failureExcerpt = (s: string, n = 6): string => {
   );
   return (key.length ? key.slice(0, n) : lines.slice(-n)).join(" / ").slice(0, 700);
 };
+/** Vitest workers for the integration's test runs: 1 keeps the peak low beside four local sessions (2026-09-26). */
+const TEST_WORKERS = Number(process.env.DSDUDE_INTEGRATION_WORKERS ?? 1);
 const today = () => new Date().toISOString().slice(0, 10);
 
 interface Target {
@@ -206,7 +208,7 @@ function checkAndTest(): { ok: boolean; step: string; command: string; out: stri
       command: "npm run check",
       out: check.timedOut ? "timed out after 10 min" : check.out,
     };
-  const test = sh("npm test", 15 * MIN);
+  const test = sh(`npx vitest run --pool=threads --maxWorkers=${TEST_WORKERS}`, 15 * MIN);
   if (test.code !== 0)
     return {
       ok: false,
@@ -466,6 +468,7 @@ function main(argv: string[]): number {
 
     // 5. lockfile
     const localChecks: string[] = [];
+    let lockfileOnly = false;
     if (lockfileTouched || git(["status", "--porcelain", "package-lock.json"]).out.trim()) {
       sh("npm install", 10 * MIN);
       const guard = run(process.execPath, ["tools/check-lockfile.mjs"], MIN);
@@ -474,11 +477,12 @@ function main(argv: string[]): number {
         gitOk(["add", "package-lock.json"]);
         gitOk(["commit", "-m", "chore(deps): regenerate lockfile"]);
         localChecks.push("lockfile regenerated and committed (guard passed)");
+        lockfileOnly = true;
       }
     }
 
     // 6. final check + test on the integrated tree (reused when nothing changed since the last green run)
-    const final = batchGreen && !localChecks.length ? batchGreen : checkAndTest();
+    const final = batchGreen && (!localChecks.length || lockfileOnly) ? batchGreen : checkAndTest();
     localChecks.push(
       `npm run check && npm test (Windows): ${final.ok ? `green; ${final.out}` : `RED: ${failureExcerpt(final.out)}`}`,
     );
@@ -506,7 +510,12 @@ function main(argv: string[]): number {
     } else localChecks.push("host goldens: skipped (no runtime/Makefile.host yet)");
 
     // 7b. the IDE's browser tests (headless Chromium; kept out of the root npm test so the cloud stays node-only)
-    if (existsSync(join(root, "apps/ide/vitest.browser.config.ts"))) {
+    const touched = gitOk(["diff", "--name-only", "main", "HEAD"]).split("\n");
+    const ideTouched = touched.some((f) =>
+      /^(apps\/ide|packages\/(monaco-dss|editor-core|ipc-contract|asset-pipeline))\//.test(f),
+    );
+    if (!ideTouched) localChecks.push("IDE browser tests: skipped (no IDE package changed)");
+    else if (existsSync(join(root, "apps/ide/vitest.browser.config.ts"))) {
       const bt = sh("npm run test:browser -w apps/ide", 10 * MIN);
       const line = `npm run test:browser -w apps/ide (headless Chromium): ${bt.code === 0 ? "green" : `RED (exit ${bt.code}${bt.timedOut ? ", timed out" : ""}): ${failureExcerpt(bt.out)}`}`;
       localChecks.push(line);
