@@ -41,6 +41,26 @@ describe("build-service modes", () => {
     expect(r.diagnostics).toEqual([diag]);
   });
 
+  it("fake mode compiles real projects with the injected compiler (no tools)", async () => {
+    const { checkRoomBudgets, packAssets } = await import("@dsdude/asset-pipeline");
+    const { compileProject } = await import("@dsdude/compiler");
+    const home = mkdtempSync(join(tmpdir(), "dsdude-fake-"));
+    try {
+      const svc = createWorkerBuildService("fake", home, {}, { compile: compileProject, packAssets, checkRoomBudgets });
+      for (const sample of ["minimal", "flappy"]) {
+        const r = await svc.build({ projectDir: join(import.meta.dirname, "../../../../../samples", sample) });
+        expect(
+          r.diagnostics.filter((d) => d.severity === "error"),
+          sample,
+        ).toEqual([]);
+        expect(r.ok, sample).toBe(true);
+        expect(r.ndsPath).toMatch(/game.nds$/);
+      }
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
   it("fake mode builds the hello fixture folder end to end without tools", async () => {
     const home = mkdtempSync(join(tmpdir(), "dsdude-fake-"));
     try {

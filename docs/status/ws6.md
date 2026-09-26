@@ -188,8 +188,24 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - Tests: node 85, browser 10, ipc-contract 73, Playwright 10 (first-run.spec new). Screenshot checked.
 - 2026-09-26: WS0 merged `85eb04c` at checkpoint-8 (C5 0.6.0/0.7.0 accepted). ADR-0007 was accepted by the user; WS1 implements `LaunchOptions.keys`; the marker stays until WS0 reports it on main.
 
+- **Task 6f, Debug: done.**
+  - The toolbar has Debug next to Play: a Play with C4 `debug: true`, always on melonDS, since DeSmuME has no GDB stub (E623).
+  - After the Controls line, Output says melonDS waits on port 3333 (ARM9) / 3334 (ARM7) and gives the attach command: `arm-none-eabi-gdb "<runtime>/dist/arm9-debug.elf" -ex "target remote localhost:3333"`. The ELF is the C8 runtime artifact's debug ELF (`DSDUDE_RUNTIME_DIR`, `resources/runtime` when packaged, else the repo's `runtime/dist`).
+  - Tests: node 87.
+
+- **Build deps injected (part of task 5) and the smoke test (task 6g): done.**
+  - The build worker is the IDE's C4 composition root, like packages/cli: it injects WS4's `compileProject` and WS5's `packAssets` + `checkRoomBudgets` into the BuildService.
+    - Real mode gets all three.
+    - Fake mode (`DSDUDE_FAKE_TOOLCHAIN=1`) gets the real compiler and budget check, with a tools-free `packAssets` (the toolchain's `provisionalManifest`). So fake-mode Play compiles DSS for real and packs the fixture ROM with the fake emulator.
+    - samples/minimal and samples/flappy build clean this way (node test).
+  - Mock mode stays the default until task 5 switches the default to real (CP-B).
+  - `tests/smoke.spec.ts` (fake mode, fresh profile): first-run wizard -> Learn -> New Project from the Flappy template -> object editor -> edit -> Play (real compile, Controls card, 'hello', meters) -> Stop, with no renderer errors and no CSP violations.
+  - The fake-mode play test now also breaks step.dss and checks the compiler's own E101 on line 1 in Problems.
+  - Tests: node 88, browser 10, Playwright 11, all green. Screenshots checked.
+
 ## Next
-- Task 6 continues: import dialogs (the preview needs WS5's previewSprite, CP-B), Debug, the fake-toolchain smoke test; the rebinding page once WS1's `LaunchOptions.keys` is on main.
+- Task 6 continues: import dialogs (WS5's `previewSprite` is on main via `@dsdude/asset-pipeline/browser`); the rebinding page once WS1's `LaunchOptions.keys` is on main.
+- Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
 ## Leftovers / ADR-pending

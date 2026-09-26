@@ -3,7 +3,7 @@
 import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { createLocalBridge } from "@dsdude/ipc-contract";
+import { createLocalBridge, SettingsSchema } from "@dsdude/ipc-contract";
 import type { Diagnostic } from "@dsdude/project-format";
 import { MockBuildService } from "@dsdude/toolchain";
 import { afterEach, describe, expect, it } from "vitest";
@@ -275,6 +275,19 @@ describe("IDE store", () => {
     expect(await a.settings.get("firstRunDone")).toBe(true);
     await a.actions.boot();
     expect(a.store.getState().firstRun).toBe(false);
+  });
+
+  it("Debug asks main for melonDS with its GDB stub and says so in Output", async () => {
+    const { store, actions, projectDir } = setup();
+    await actions.openProject(projectDir);
+    store.setState({ settings: { ...(store.getState().settings ?? SettingsSchema.parse({})), emulator: "desmume" } });
+    await actions.debug();
+    await settle();
+    const texts = store.getState().output.map((l) => l.text);
+    expect(texts).toContain("Debug Flappy");
+    expect(texts.some((t) => t.startsWith("Attach with: arm-none-eabi-gdb"))).toBe(true);
+    expect(store.getState().build.status).toBe("running");
+    await actions.stop();
   });
 
   it("asks for a project before Play", async () => {

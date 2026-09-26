@@ -119,6 +119,13 @@ app.whenReady().then(() => {
     send: sendEvent,
     controlsLine: async () => controlsLine(effectiveControls({ controls: await settings.get("controls") })),
     defaultEmulator: () => settings.get("emulator"),
+    // C8 runtime artifact: runtime/dist in the repo; resources/runtime when packaged (WS8's layout).
+    debugElf: () =>
+      process.env.DSDUDE_RUNTIME_DIR
+        ? join(process.env.DSDUDE_RUNTIME_DIR, "dist", "arm9-debug.elf")
+        : app.isPackaged
+          ? join(process.resourcesPath, "runtime", "arm9-debug.elf")
+          : resolve(app.getAppPath(), "../../runtime/dist/arm9-debug.elf"),
   });
   // An emulator an earlier IDE left running is killed at startup and before quit (C4 reconcile).
   void emulators.reconcile?.();

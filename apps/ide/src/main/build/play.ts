@@ -31,6 +31,16 @@ export interface PlayControllerDeps {
   controlsLine: () => Promise<string>;
   /** Default emulator when the request names none. */
   defaultEmulator: () => Promise<EmulatorKind>;
+  /** The runtime's arm9-debug.elf (C8 runtime artifact), named in the Debug attach command. */
+  debugElf?: () => string;
+}
+
+/** What Output says when Debug starts melonDS with its GDB stub (C4 LaunchOptions.debug: ports 3333 / 3334). */
+export function debugLines(elf: string): string[] {
+  return [
+    "Debug: melonDS is waiting for a debugger on port 3333 (ARM9) and 3334 (ARM7).",
+    `Attach with: arm-none-eabi-gdb "${elf}" -ex "target remote localhost:3333"`,
+  ];
 }
 
 type PlayResponse = InvokeResponse<"build.play">;
@@ -76,6 +86,7 @@ export class PlayController {
     const kind = request.emulator ?? (await this.#d.defaultEmulator());
     this.#progress("launch", 1);
     this.#buildLog.push(await this.#d.controlsLine());
+    if (request.debug) this.#buildLog.push(...debugLines(this.#d.debugElf?.() ?? "arm9-debug.elf"));
     this.#buildLog.flush();
     try {
       await this.stop();

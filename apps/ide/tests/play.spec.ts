@@ -1,7 +1,7 @@
 // Task 3 in the built app, against MockBuildService (the default mode until CP-B): open samples/flappy, edit and
 // save an event, Play shows the fake log and the Controls line in Output, Stop ends it; a failing build lands in
 // Problems with the toast, and a Problems click opens the file.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { buildApp, copyFlappy, launchApp, openProject, skipElectron } from "./electron.ts";
@@ -93,16 +93,30 @@ test("a failing build shows the toast, fills Problems and a click opens the line
   }
 });
 
-test("fake-toolchain mode runs the real LocalBuildService in the utilityProcess worker", async () => {
+test("fake-toolchain mode compiles DSS for real in the utilityProcess worker", async () => {
   buildApp();
   const launched = await launchApp({ DSDUDE_FAKE_TOOLCHAIN: "1" });
   try {
     const page = await launched.app.firstWindow();
-    await openProject(launched.app, page, copyFlappy(launched.home));
+    const dir = copyFlappy(launched.home);
+    await openProject(launched.app, page, dir);
+    // WS4's compileProject runs in the worker; the fake tools pack the fixture ROM and the fake emulator prints.
     await page.getByTestId("play").click();
-    // No compiler is wired yet (WS4/WS5 land later), so LocalBuildService reports E641 from the worker.
-    await expect(page.getByTestId("toast")).toContainText("Fix 1 problem to play");
-    await expect(page.getByTestId("problem")).toContainText("E641");
+    const output = page.getByTestId("output");
+    await expect(output).toContainText("Game started (runtime 0.1.0)");
+    await page.getByTestId("controls-ok").click();
+    await page.getByTestId("stop").click();
+    await expect(output).toContainText("Game ended");
+
+    // A syntax error: the compiler's own diagnostic lands in Problems, on the right line.
+    writeFileSync(join(dir, "objects/obj_bird/step.dss"), "if (alive {\n  vspeed = 1;\n}\n");
+    await openProject(launched.app, page, dir);
+    await page.getByTestId("play").click();
+    await expect(page.getByTestId("toast")).toContainText(/Fix \d+ problems? to play/);
+    const problem = page.getByTestId("problem").first();
+    await expect(problem).toContainText(/E1\d\d/);
+    await expect(problem).toContainText("objects/obj_bird/step.dss:1");
+    await page.screenshot({ path: test.info().outputPath("compile-error.png") });
   } finally {
     await launched.close();
   }
