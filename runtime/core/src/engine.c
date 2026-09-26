@@ -37,7 +37,7 @@ static uint32_t g_stat_millis;
 // Starts an engine error that no instruction caused (asset loading): no object, event, file or line.
 static DsdText engine_error(int32_t code) {
     DsdVm *vm = dsd_engine.vm;
-    vm->pc = DSD_VM_NO_PC;
+    dsd_vm_set_pc(vm, DSD_VM_NO_PC);
     vm->self = DSD_VM_NO_INST;
     vm->ev_id = DSD_VM_NO_EVENT;
     return dsd_vm_error_begin(vm, code);
@@ -432,7 +432,7 @@ static bool default_draw(uint32_t idx) {
     vm->self = idx;
     vm->ev_id = DSD_EVENT_ID(DSD_EV_DRAW, 0);
     vm->ev_owner = dsd_inst_at(idx)->object;
-    vm->pc = DSD_VM_NO_PC;
+    dsd_vm_set_pc(vm, DSD_VM_NO_PC);
     if (!dsd_draw_self(vm, idx)) return false;
     vm->self = saved_self;
     vm->ev_id = saved_ev;

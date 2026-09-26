@@ -14,7 +14,7 @@
 DsdText dsd_vm_error_begin(DsdVm *vm, int32_t code) {
     DsdText t;
     vm->err_code = code;
-    vm->err_pc = vm->pc;
+    vm->err_pc = dsd_vm_pc(vm);
     dsd_text_init(&t, vm->err_msg, sizeof vm->err_msg);
     return t;
 }

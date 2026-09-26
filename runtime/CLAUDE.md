@@ -26,8 +26,9 @@ Changes follow the tiers in `contracts/README.md` (T0 doc, T1 additive + CHANGEL
   `dsd_platform.h` C11, `dsd_log.h` C8 lines, `game.h` boot/frame, `errors.h` R5xx, `dsd_limits.h` C13 values).
   Header names never shadow libc ones (`dsd_strings.h`, `dsd_limits.h`, `dsd_random.h`).
 - `core/src`: portable C11 compiled by both builds (`vm.arm.c` in ARM mode; it includes `vm_run.h` twice: the
-  threaded interpreter over pre-decoded cells in ITCM, the plain fallback in main RAM); `builtins/` one file per
-  area, wired in `builtins/table.c`; `vendor/` libnds trig at 7fd8ccb.
+  threaded interpreter over pre-decoded cells and the plain fallback, both in ITCM); `builtins/` one file per area,
+  wired in `builtins/table.c` (which also lists the builtins that run script code: keep it current); `vendor/`
+  libnds trig at 7fd8ccb.
 - `host/`: the host platform, key scripts and `dsdude-host`'s `main.c`. `tests/`: the C test runner.
 
 ## Test before each commit
