@@ -187,6 +187,7 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
       return { ok: !fail(diagnostics), ndsPath: null, diagnostics, timings: {} };
     },
     "build.cancel": () => ({ ok: true }),
+    "build.manifest": () => ({ manifest: null }),
     "emulator.stop": () => {
       if (running) {
         running = false;

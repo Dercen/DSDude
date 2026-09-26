@@ -1,9 +1,10 @@
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createLocalBridge } from "@dsdude/ipc-contract";
+import { projectBuildDir } from "@dsdude/toolchain";
 import { afterEach, describe, expect, it } from "vitest";
-import { createCoreHandlers, type DialogLike } from "./handlers.ts";
+import { createBuildHandlers, createCoreHandlers, type DialogLike } from "./handlers.ts";
 import { SettingsStore } from "./settings.ts";
 
 const repo = resolve(import.meta.dirname, "../../../..");
@@ -29,6 +30,22 @@ function setup(dialogResult = { canceled: false, filePaths: ["C:/picked"] }) {
   const settings = new SettingsStore(join(temp(), "settings.json"));
   return { ...createLocalBridge(createCoreHandlers({ settings, dialog, learnRoot: repo })), calls };
 }
+
+describe("build.manifest", () => {
+  it("reads the project's C3 manifest from its build folder, or null", async () => {
+    const home = temp();
+    const projectDir = join(temp(), "flappy");
+    const { bridge } = createLocalBridge(createBuildHandlers({} as never, {} as never, home));
+    await expect(bridge.invoke("build.manifest", { projectDir })).resolves.toEqual({ manifest: null });
+    const buildDir = projectBuildDir(projectDir, home);
+    mkdirSync(buildDir, { recursive: true });
+    const manifest = { contract: "C3", rooms: { rm_game: { top: { obj16Palettes: 2 }, soundRamBytes: 100 } } };
+    writeFileSync(join(buildDir, "assets.manifest.json"), JSON.stringify(manifest));
+    await expect(bridge.invoke("build.manifest", { projectDir })).resolves.toEqual({ manifest });
+    writeFileSync(join(buildDir, "assets.manifest.json"), "{ not json");
+    await expect(bridge.invoke("build.manifest", { projectDir })).resolves.toEqual({ manifest: null });
+  });
+});
 
 describe("learn.openAssets", () => {
   it("opens docs/tutorial/assets under the learn root, or says it is missing", async () => {

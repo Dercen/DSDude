@@ -151,7 +151,7 @@ app.whenReady().then(() => {
     ipcMain,
     {
       ...createCoreHandlers({ settings, dialog, shell, learnRoot: learnRoot() }),
-      ...createBuildHandlers(play, emulators),
+      ...createBuildHandlers(play, emulators, home),
     },
     (event: IpcMainInvokeEvent) => ({
       url: event.senderFrame?.url ?? null,

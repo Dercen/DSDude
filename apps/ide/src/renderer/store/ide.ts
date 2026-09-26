@@ -2,7 +2,13 @@
  * The IDE store (zustand, vanilla) over the C1 Project, plus the actions that talk to main through C5. The layout
  * is injected as a `Workbench`, so node Vitest drives the store with `createLocalBridge` and a fake workbench.
  */
-import { type DsdudeBridge, type EventPayload, parseIpcError, type Settings } from "@dsdude/ipc-contract";
+import {
+  type DsdudeBridge,
+  type EventPayload,
+  type ManifestSummary,
+  parseIpcError,
+  type Settings,
+} from "@dsdude/ipc-contract";
 import type { Diagnostic, Project } from "@dsdude/project-format";
 import { type Draft, produce } from "immer";
 import { createStore, type StoreApi } from "zustand/vanilla";
@@ -46,6 +52,8 @@ export interface IdeState {
   learn: { target: LearnTarget | null; seq: number };
   /** The Controls card overlay is showing (first Play of the session, or Help > Controls). */
   controlsCard: boolean;
+  /** The project's last C3 assets.manifest.json (meters), null before the first build. */
+  manifest: ManifestSummary | null;
 }
 
 /** What the store needs from the dockview layout. */
@@ -80,6 +88,8 @@ export interface IdeActions {
   revealDiagnostic(d: Diagnostic): void;
   clearOutput(): void;
   showToast(message: string, kind?: Toast["kind"]): void;
+  /** Re-reads the build folder's manifest (after open and after every build). */
+  refreshManifest(): Promise<void>;
   showControls(): void;
   hideControls(): void;
   /** Help > Tutorial assets: opens docs/tutorial/assets/ in the file manager. */
@@ -110,6 +120,7 @@ const initial = (): IdeState => ({
   reveal: null,
   learn: { target: null, seq: 0 },
   controlsCard: false,
+  manifest: null,
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -183,6 +194,8 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
         const settings = get().settings;
         if (settings) set({ settings: { ...settings, recentProjects: recent } });
         await ipc.invoke("settings.set", { key: "recentProjects", value: recent });
+        set({ manifest: null });
+        void actions.refreshManifest();
         return true;
       } catch (err) {
         actions.showToast(`Could not open ${dir}: ${parseIpcError(err).message}`, "error");
@@ -226,6 +239,7 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
           projectDir,
           emulator: get().settings?.emulator,
         });
+        void actions.refreshManifest();
         if (!res.ok) {
           set({ build: { ...get().build, status: "idle" }, buildDiagnostics: res.diagnostics });
           const n = errorsIn(problemsOf(get())).length;
@@ -300,6 +314,17 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
 
     dismissToast() {
       set({ toast: null });
+    },
+
+    async refreshManifest() {
+      const dir = get().projectDir;
+      if (!dir) return;
+      try {
+        const { manifest } = await ipc.invoke("build.manifest", { projectDir: dir });
+        if (get().projectDir === dir) set({ manifest });
+      } catch {
+        // meters keep what they had
+      }
     },
 
     showControls() {

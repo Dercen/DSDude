@@ -82,6 +82,17 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     badReq: { projectDir: 1 },
   },
   "build.cancel": { req: {}, res: { ok: true }, badReq: null },
+  "build.manifest": {
+    req: { projectDir: "C:/p" },
+    res: {
+      manifest: {
+        contract: "C3",
+        sounds: { snd_flap: { id: 0, ramBytes: 8840 } },
+        rooms: { rm_game: { top: { objVramBytes: 1152, obj16Palettes: 2 }, bottom: null, soundRamBytes: 26520 } },
+      },
+    },
+    badReq: { projectDir: "" },
+  },
   "emulator.stop": { req: {}, res: { ok: true }, badReq: "stop" },
   "emulator.status": { req: {}, res: { running: true, kind: "melonds", pid: 99 }, badReq: undefined },
   "emulator.install": { req: { kind: "desmume" }, res: { exe: "C:/e/DeSmuME.exe" }, badReq: { kind: "mame" } },
@@ -141,7 +152,7 @@ const EVENT_SAMPLES: { [C in EventChannel]: { ok: unknown; bad: unknown } } = {
 };
 
 describe("C5 channel map", () => {
-  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0 and 0.5.0 additions", () => {
+  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0, 0.4.0, 0.5.0 and 0.6.0 additions", () => {
     expect(INVOKE_CHANNELS).toEqual([
       "project.open",
       "project.save",
@@ -152,6 +163,7 @@ describe("C5 channel map", () => {
       "build.build",
       "build.compileOnly",
       "build.cancel",
+      "build.manifest",
       "emulator.stop",
       "emulator.status",
       "emulator.install",

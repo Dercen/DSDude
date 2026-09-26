@@ -526,3 +526,32 @@ button.primary {
 .toolbar .menu-list button:hover {
   background: #094771;
 }
+
+.statusbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.meters {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.meter {
+  cursor: default;
+}
+
+.meter-warn {
+  color: #ffe08a;
+  font-weight: 600;
+}
+
+.meter-over {
+  background: #c72e2e;
+  color: #fff;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}

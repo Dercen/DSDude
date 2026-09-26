@@ -4,8 +4,11 @@
  */
 
 import { existsSync } from "node:fs";
-import type { InvokeHandlers, SettingKey } from "@dsdude/ipc-contract";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { type InvokeHandlers, ManifestSummarySchema, type SettingKey } from "@dsdude/ipc-contract";
 import { loadProject, saveProject } from "@dsdude/project-format/node";
+import { dsdudeHome, projectBuildDir } from "@dsdude/toolchain";
 import type { IdeEmulatorManager } from "./build/modes.ts";
 import type { PlayController } from "./build/play.ts";
 import { inside, readProjectFile, writeProjectFile } from "./files.ts";
@@ -35,9 +38,27 @@ export interface CoreHandlerDeps {
   learnRoot: string;
 }
 
+/** The build folder's assets.manifest.json (C3), or null when missing or unreadable. */
+export async function readManifest(buildDir: string): Promise<unknown | null> {
+  try {
+    return JSON.parse(await readFile(join(buildDir, "assets.manifest.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 /** build.* and emulator.* over the PlayController (worker + EmulatorManager). */
-export function createBuildHandlers(play: PlayController, emulators: IdeEmulatorManager): InvokeHandlers {
+export function createBuildHandlers(
+  play: PlayController,
+  emulators: IdeEmulatorManager,
+  home: string = dsdudeHome(),
+): InvokeHandlers {
   return {
+    "build.manifest": async ({ projectDir }) => {
+      const raw = await readManifest(projectBuildDir(projectDir, home));
+      const parsed = ManifestSummarySchema.safeParse(raw);
+      return { manifest: raw !== null && parsed.success ? parsed.data : null };
+    },
     "build.play": (req) => play.play(req),
     "build.build": (req) => play.build("build", req),
     "build.compileOnly": (req) => play.build("compileOnly", req),

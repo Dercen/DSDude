@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.5.0";
+export const CONTRACT_VERSION = "0.6.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -145,6 +145,37 @@ export const LearnDocSchema = z.object({
   section: z.enum(LEARN_SECTIONS),
 });
 
+/**
+ * The parts of C3 `assets.manifest.json` the IDE's meters read (0.6.0). Tolerant on purpose: C3 is provisional and
+ * owned by WS5, so every field is optional and unknown fields pass through.
+ */
+const ScreenBudgetSchema = z.looseObject({
+  objVramBytes: z.number().nullable().optional(),
+  obj16Palettes: z.number().nullable().optional(),
+  obj256Palettes: z.number().nullable().optional(),
+  bgPalettes: z.number().nullable().optional(),
+  bgVramBytes: z.number().nullable().optional(),
+});
+export const ManifestSummarySchema = z.looseObject({
+  sounds: z
+    .record(z.string(), z.looseObject({ ramBytes: z.number().nullable().optional() }))
+    .nullable()
+    .optional(),
+  soundbank: z.looseObject({ bytes: z.number().nullable().optional() }).nullable().optional(),
+  rooms: z
+    .record(
+      z.string(),
+      z.looseObject({
+        top: ScreenBudgetSchema.nullable().optional(),
+        bottom: ScreenBudgetSchema.nullable().optional(),
+        soundRamBytes: z.number().nullable().optional(),
+      }),
+    )
+    .nullable()
+    .optional(),
+});
+export type ManifestSummary = z.infer<typeof ManifestSummarySchema>;
+
 /** Emulator key names per DS button (KeyboardEvent.key values); defaults are PLAN.md 6 WS6 "Controls card". */
 export const ControlsSchema = z.object({
   up: z.string().default("ArrowUp"),
@@ -228,6 +259,11 @@ export const invokeChannels = {
   "build.build": { request: BuildRequestSchema, response: BuildResultSchema },
   "build.compileOnly": { request: BuildRequestSchema, response: BuildResultSchema },
   "build.cancel": { request: z.object({}), response: Ok },
+  /** (0.6.0) The project's last `assets.manifest.json` (C3) from its build folder, or null before the first build. */
+  "build.manifest": {
+    request: z.object({ projectDir: z.string().min(1) }),
+    response: z.object({ manifest: ManifestSummarySchema.nullable() }),
+  },
   "emulator.stop": { request: z.object({}), response: Ok },
   "emulator.status": {
     request: z.object({}),

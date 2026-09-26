@@ -38,6 +38,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.3.0 (2026-09-26, WS6, T1): BuildRequestSchema gains optional `debug` (follows C4 0.3.0); the compile-time C1/C4/C12 links now also compare key sets, so an optional field added on one side only fails `tsc -b`.
 - 0.4.0 (2026-09-26, WS6, T1): new channels project.readFile / project.writeFile (asset files: AssetPathSchema, safe relative paths, png/wav/mp3/xm/mod/it/s3m, Uint8Array bytes; for the C12 editors) and learn.list / learn.read (docs/tutorial|manual|reference markdown, local images as data: URLs; for the Learn panel); settings key learnOpened (default false); isSafeRelativePath, AssetPathSchema, LearnPathSchema, LearnDocSchema exported. All additive.
 - 0.5.0 (2026-09-26, WS6, T1): new channel learn.openAssets ({} -> {path}; opens docs/tutorial/assets/ in the file manager for Help > Tutorial assets). Additive.
+- 0.6.0 (2026-09-26, WS6, T1): new channel build.manifest ({projectDir} -> {manifest}: the build folder's C3 assets.manifest.json through the tolerant ManifestSummarySchema, or null); for the status-bar meters. Additive.
 
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).

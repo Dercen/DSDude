@@ -1,6 +1,6 @@
 # C5: IPC channel map
 
-Version: 0.5.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
+Version: 0.6.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
 
 The typed channels between the IDE's renderer and its main process. Source: PLAN.md section 5.2 C5. The Phase-0
 channel list and zod stubs were written by WS0; WS6 completed them in 0.2.0. The schemas live in
@@ -32,6 +32,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `build.play` | C4 `BuildRequest` (incl. `debug`, 0.3.0) | `PlayResult` (`BuildResult` + `emulator`) |
 | `build.build`, `build.compileOnly` | C4 `BuildRequest` | C4 `BuildResult` |
 | `build.cancel` | `{}` | `{ok: true}` |
+| `build.manifest` (0.6.0) | `{projectDir}` | `{manifest}`: the project's `<DSDUDE_HOME>\build\<project-hash>\assets.manifest.json` (C3) through `ManifestSummarySchema` (the fields the meters read, all optional, unknown fields kept), or null before the first build or when unreadable |
 | `emulator.stop` | `{}` | `{ok: true}` |
 | `emulator.status` | `{}` | `{running, kind, pid}` |
 | `emulator.install` | `{kind: melonds\|desmume}` | `{exe}` |

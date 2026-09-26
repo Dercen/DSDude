@@ -156,6 +156,18 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
     - The rebinding page is held back.
   - Tests: node 69, browser 10, ipc-contract 66, Playwright 8 (the Play test now checks the card, dismissing it, and Help > Controls). Screenshot checked.
 
+- **Task 6c, status-bar meters: done.**
+  - `computeMeters` (pure; plain words in the bar, hardware terms only in tooltips) over C13 `contracts/runtime-limits.json` (a `?raw` import, the single source). Before Play:
+    - 'Top: n/128 sprites · n/16 colour sets' and the same for Bottom: sprite-bearing instances of the room per screen, plus C3 manifest palettes and OBJ VRAM when a build exists.
+    - 'Sound memory n/768 KB' from the room's soundRamBytes, or every sound's ramBytes.
+  - While the game runs:
+    - `DSD|STAT` spr_top/spr_bot replace the sprite counts.
+    - `oam_drop` / `aff_drop` add red 'N sprites not drawn' / 'N turned sprites drawn straight' meters.
+    - `DSD|MEM` snd/inst give Sound memory and Instances.
+    - Warn at 90% of a limit, red over it.
+  - C5 0.6.0 (T1): `build.manifest` reads the build folder's `assets.manifest.json` through a tolerant `ManifestSummarySchema` (C3 is provisional, owned by WS5). The store refreshes it after open and after every Play.
+  - Tests: node 74 (meters 4, build.manifest handler), browser 10, ipc-contract 68, Playwright 8. Screenshot checked.
+
 ## Next
 - Task 6 continues: meters, import dialogs, New Project and first-run wizards, Debug, the fake-toolchain smoke test; the rebinding page once ADR-0007 is accepted.
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
