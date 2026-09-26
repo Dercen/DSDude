@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `f6ecb1f`, checkpoint-4, after WS0 merged `ws3-platform`). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `91fc4c9`, checkpoint-7, after WS0 merged `ws3-platform` at `d8c5367`). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -29,6 +29,20 @@ Legend: todo / in progress / done (<sha>).
     tree of `runtime/` without `dist/`; checked equal to the committed tree.
   - **DS compile of WS2's core** at `829b00d` (`fixed.c`, `number.c`, `numfmt.c`, `vendor/trig.c`): clean with
     `-Wall -Wextra`.
+- **C11 0.3.0 (WS0 relay, checkpoint-7): done** (e777050).
+  - `dsd_plat_sprite_load` takes the OBJ box and frame count from the core (`dsd_sprite_info` in: width, height,
+    frames; out: bpp) and returns `DSD_PLAT_ELOAD` when the GRF does not match (width != box width, fewer than
+    frames * height rows, or not an OBJ size). `frame_height()` and the **last `ADR-pending ADR-0004` marker are
+    gone**; `ds_obj_upload` takes an explicit frame count.
+  - The UI colours in `dsd_platform.h` 0.3.0 (c_white 0 .. c_navy 15, RGB555 values) match `ds_ui.c` exactly.
+  - `conformance:ds` masks `DSD|READY`'s ABI hash as WS2's runner does (ABI now `0xf1d376bb`) and checks it against
+    `runtime/gen` separately; it writes a placeholder 8bpp GRF (grit's chunk layout, box = C3 OBJ padding of
+    `size=`) for every `.asset sprite` a fixture declares, since WS2 ships none. **35 of 35 pass** (new: v3-01
+    collide and err-draw-not-loaded, whose sprites now load and draw on the DS); v2-05 and v3-02 skipped (key
+    scripts).
+  - `samples/minimal` built end to end (`npx dsdude build samples/minimal`, WS4 + WS5 + this runtime): the player
+    sprite at (128,96) on the top screen, `DSD|STAT|fps=60,...,spr_top=1`, `DSD|MEM ... objvram_top=1/128,
+    pal16_top=1/16` (py-desmume, frame 180).
 - **C11 0.2.0 reconciliation (WS0 relay, checkpoint-4): done** (9a2f0d6).
   - `runtime/platform/ds/src/ds_plat.c` implements every `dsd_plat_*` of WS2's `dsd_platform.h` 0.2.0; `main.c`
     only picks the log protocol and calls `dsd_core_main()`. `ds_boot_stub.c` is deleted; my provisional R580-R583
@@ -119,8 +133,7 @@ Legend: todo / in progress / done (<sha>).
 
 ## Open ADR-pending markers
 
-- ADR-0004 (WS2 answered most of it in C11 0.2.0): one marker left, `runtime/platform/ds/src/ds_plat.c`
-  `frame_height()`, until C11 passes the sprite frame count.
+- none. ADR-0004 is fully answered by C11 0.2.0 + 0.3.0 (WS0 closes it).
 
 ## Leftovers
 
