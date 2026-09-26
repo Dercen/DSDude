@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <fat.h>
+#include <nds/arm9/dldi.h>
 #include <filesystem.h>
 #include <maxmod9.h>
 #include <nds.h>
@@ -21,6 +23,8 @@
 #define DSD_SOUNDBANK_PATH "nitro:/soundbank.bin"
 
 bool ds_sound_ready = false;
+bool ds_nitrofs_optional = false;
+char ds_boot_diag[256];
 jmp_buf ds_restart_point;
 bool ds_restart_armed = false;
 
@@ -68,6 +72,33 @@ static bool ds_file_exists(const char *path)
     return true;
 }
 
+// NitroFS finds the ROM through argv[0] (the homebrew argv protocol) and, on an SD card, opens it through FAT: the
+// DSi SD slot in DSi mode, a DLDI driver patched into the ROM by the loader in DS mode (BlocksDS filesystem guide).
+// Emulators use card reads instead. Records each piece, so a photo of the error box says which one is missing.
+static void collect_boot_diag(int nitro_errno)
+{
+    const struct __argv *a = __system_argv;
+    bool has_argv = a->argvMagic == ARGV_MAGIC && a->argc >= 1 && a->argv != NULL && a->argv[0] != NULL;
+    const char *name = io_dldi_data != NULL ? io_dldi_data->friendlyName : "(none)";
+    bool fat_ok = fatInitDefault(); // diagnosis only: nitroFSInit already tried it when argv[0] named a FAT path
+    snprintf(ds_boot_diag, sizeof(ds_boot_diag), "%s mode, argc=%d\nargv0=%.60s\nDLDI: %.40s\nFAT %s, errno %d (%.40s)",
+             isDSiMode() ? "DSi" : "DS", has_argv ? a->argc : 0, has_argv ? a->argv[0] : "(no argv)", name,
+             fat_ok ? "ok" : "failed", nitro_errno, strerror(nitro_errno));
+    for (char *p = ds_boot_diag, *line = ds_boot_diag;; p++)
+    {
+        if (*p == '\n' || *p == '\0')
+        {
+            char keep = *p;
+            *p = '\0';
+            ds_log_linef("DSD|LOG|nitrofs: %s", line);
+            *p = keep;
+            if (keep == '\0')
+                break;
+            line = p + 1;
+        }
+    }
+}
+
 int32_t ds_platform_init(void)
 {
     if (ds_started)
@@ -78,9 +109,9 @@ int32_t ds_platform_init(void)
     if (!nitroFSInit(NULL))
     {
         int err = errno;
-        // The core prints the R584 error; the reason is only known here, so it goes to the log first.
-        ds_log_linef("DSD|LOG|nitroFSInit failed: %s", strerror(err));
-        ds_start_result = DSD_PLAT_ENOENT;
+        // The core prints the R584 error; the reason is only known here, so it goes to the log and the box.
+        collect_boot_diag(err);
+        ds_start_result = ds_nitrofs_optional ? DSD_PLAT_OK : DSD_PLAT_ENOENT;
         return ds_start_result;
     }
 

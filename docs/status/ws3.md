@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `d50546c`, checkpoint-16). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `b75cd6f`, checkpoint-17). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -34,6 +34,10 @@ Legend: todo / in progress / done (<sha>).
   the staleness check: `npm run check:dist -w runtime` (git + Node, runs in the cloud/CI) and `build:runtime`'s
   report. WS2 test/host edits no longer make `dist/` stale; `tree` stays, informational. No more VERSION-only
   refresh commits after merges.
+- **Hardware follow-up (run 1 results, WS0 relay): done** (see the next commit). Mode and ARM9 clock on the bench
+  and page 4; the bench forces 67 MHz and links its workloads (no NitroFS needed; both the tag-checked and the II
+  sets on one screen); R584 shows the boot diagnosis; hardware set 2 rebuilt from current dist; C13 scanline
+  proposal; DS-mode analysis. See "Hardware results (spike 15)".
 - **Hardware ROM set (spike 15; WS0 relay: an original 3DS with TWiLight Menu++): ready** (f23500a;
   and "Hardware run" below). `npm run hardware -w runtime` builds five ROMs into `<DSDUDE_HOME>/hardware/` and
   checks each headless first: the selftest (new page 4 "results" shows the boot figures on screen, incl. the raw
@@ -217,6 +221,55 @@ Legend: todo / in progress / done (<sha>).
 ## Leftovers
 
 
+## Hardware results (spike 15)
+
+**Run 1** (2026-09-26; the user's original 3DS, TWiLight Menu++ default settings; ROMs built at main `0e67e27`; source:
+WS0's docs/status/ws0.md "Hardware results"). **Page 4 showed 16,184 KB heap free, i.e. TWiLight ran the ROMs in DSi
+mode**, possibly with the ARM9 at 134 MHz, so the speed figures below are provisional.
+- **Passed:** `5-flappy` plays with sound; `3-hello` prints `READY|0.1.0|f1d376bb`, `LOG|hello`, `EXIT|0`;
+  `4-numeric` matches every host line (**spike 12 holds on hardware**); page 3's error box is readable; page 4:
+  `0x04FFFA00` bytes all 00 (so the log protocol is the legacy stub, as designed), 1 MB NitroFS read **232 ms,
+  4,401 KB/s** from the SD card, maxmod codes as expected (load=0 blip=0 loop=0, bad id=1, handle=1, active=1),
+  C stack 3,068 of 11,200 B.
+- **M1 bench (provisional, DSi mode):** VM 27.15 cycles/op = 41,261 ops/frame (the same ROM on melonDS: 35.05 /
+  31,958), loop 18.03 cycles/op (melonDS 34.80), memprobe main 1.11 / dtcm 0.85 (melonDS 3.51 / 1.57), per-frame
+  overhead 22,047 cycles. The memprobe's DTCM figure below 1 cycle per load and the loop's 18 cycles point to a
+  134 MHz ARM9 (the timer runs at 33.51 MHz either way, so every figure is 67 MHz-equivalent time).
+- **Scanline limit (selftest page 2):** the largest N with every ring complete was normal **33** (2,178 OBJ line
+  cycles), affine **15** (2,070), affine double-size **8** (2,128); one more costs 2,244 / 2,208 / 2,394 and drops
+  rings. So the real per-line limit is **between 2,178 and 2,207** cycles under C13's cost model (2 + width per
+  normal OBJ; 10 + 2 x width per affine one, doubled width for double-size), above the ~2,124 estimate.
+- **DS mode (TWiLight per-game "Run in: DS mode"): every NitroFS ROM stops with R584** ("The game file could not be
+  read (file system)"); the error box renders fine. See "DS mode and NitroFS" below.
+
+**Timing basis.** The bench's cycles are ARM9 cycles at 67 MHz: `cpuStartTiming` cascades timers 0+1 at the 33.51
+MHz bus clock and the bench multiplies the ticks by 2. In DSi mode at 134 MHz the figures still measure time, but
+they are not a DS's. Since `f23500a`'s successor the bench forces 67 MHz in DSi mode (`setCpuClock(false)`) and
+prints the mode and both clocks on screen ("DS mode, ARM9 67 MHz (boot 67)"); selftest page 4 shows them too.
+
+**C13 `scanlineObjCycles` (WS2's contract, seeded by WS0; a proposal, not an edit):** raise the warning threshold
+from 1,200 (the GBA's figure) to **2,048**. The 3DS measurement puts the hard per-line limit at 2,178-2,207 cycles
+with DISPCNT bit 23 clear (the runtime's setting), and 2,048 keeps a ~6 % margin below the lowest safe measured
+value while no longer warning on scenes that hardware draws fully. Suggested CHANGELOG line: "C13 0.2.0 (T1):
+scanlineObjCycles 1200 -> 2048 (hardware: 2,178 OBJ line cycles drew fully, 2,208 dropped; WS3 spike 15)". If the
+DS-mode re-run shows a different limit, the lower one wins. The selftest's scanline page now marks lines above
+2,178 in red and shows "3DS: 2178 ok, 2208 drops".
+
+**DS mode and NitroFS.** NitroFS finds the ROM through `argv[0]` (the homebrew argv protocol) and, on an SD card,
+reads it through FAT: the DSi SD driver in DSi mode, a **DLDI driver the loader patches into the ROM** in DS mode.
+Emulators use card reads instead (BlocksDS filesystem guide). In DSi mode TWiLight passes `argv[0]` and the DSi SD
+driver works, which is why run 1 passed. In DS mode, either `argv[0]` is missing or the ROM's DLDI stub stays
+"Default (No interface)", so FAT and NitroFS fail. The public TWiLight/nds-bootstrap docs do not say which. Since
+this change the R584 box and the log say exactly that: mode, `argc`, `argv[0]`, the DLDI driver's name, whether
+`fatInitDefault` works and `nitroFSInit`'s errno (checked on a ROM without NitroFS: "DS mode, argc=1 /
+argv0=fat:/nofs.nds / DLDI: Default (No interface) / FAT failed, errno 19 (No such device)").
+- **What users set for now (to go into the manual):** on a DSi or 3DS with TWiLight Menu++, run DSDude games with
+  the per-game setting **"Run in: DSi mode"** (the default worked). On a DS or DS Lite with a flashcard, start
+  them from a loader that passes `argv` and DLDI-patches homebrew, e.g. the NDS Homebrew Menu
+  (BlocksDS filesystem guide). This is confirmed or corrected by the DS-mode photo.
+- `2-bench.nds` no longer needs NitroFS: its workloads are linked into the ELF, and a missing NitroFS only shows as
+  "NitroFS not mounted" on its screen. So a DS-mode speed figure is possible either way.
+
 ## Hardware run (spike 15): steps for the user
 
 Hardware: an original Nintendo 3DS that starts `.nds` files through **TWiLight Menu++** (nds-bootstrap). Nothing
@@ -230,7 +283,8 @@ message (it names the reason) and which TWiLight Menu++ settings were used.
 **1. Copy the files.** Build them with `npm run hardware -w runtime` (already built, 2026-09-26). Copy the five files
 from `C:\Users\zache\OneDrive\Desktop\Projects\DSDude-ws3\.dsdude\hardware\` to the SD card, into any folder
 TWiLight Menu++ shows, e.g. `sd:/dsdude/`:
-`1-selftest.nds`, `2-bench.nds`, `3-hello.nds`, `4-numeric.nds`, `5-flappy.nds`. Start each from TWiLight Menu++;
+`1-selftest.nds`, `2-bench.nds`, `3-hello.nds`, `4-numeric.nds`, `5-flappy.nds` (set 2, built at main `b75cd6f`
+plus this batch: current VM, on-screen mode/clock, R584 diagnosis, the bench without NitroFS). Start each from TWiLight Menu++;
 to leave one, restart the console or use TWiLight Menu++'s return-to-menu combination.
 
 **2. `1-selftest.nds`** (about 2 minutes). Sound on.
@@ -249,9 +303,16 @@ to leave one, restart the console or use TWiLight Menu++'s return-to-menu combin
   "OBJ line cycles" number shown for it. Report three pairs (mode, N, cycles).
 - **SELECT** opens the log console (and closes it); a photo of it helps if anything looked wrong.
 
-**3. `2-bench.nds`** (the M1 benchmark; about 5 seconds). Wait until the top screen shows "Photograph this
-screen.", then photograph it. The key figures are "VM cycles/op", "VM ops/frame", "loop cycles/op" and the
-"load main / dtcm" line. (On melonDS the same ROM shows about 35 VM cycles/op, 31,960 ops/frame.)
+**3. `2-bench.nds`** (the M1 benchmark; about 10 seconds). Wait until the top screen shows "Photograph this
+screen.", then photograph it. Row 3 says the mode and ARM9 clock ("DS mode, ARM9 67 MHz" is what we want). It shows
+two sets: the gate mix as it is ("tag-checked") and with int-specialised ops ("II"): "VM ... cyc/op ... ops/fr" and
+"loop ...", plus "load main / dtcm" and "NitroFS ok / not mounted" (either is fine; the bench needs no NitroFS). On
+melonDS this exact ROM shows 31.77 / 28.27 VM cycles/op.
+
+**DS-mode re-run (after run 1).** In TWiLight Menu++, open each ROM's per-game settings and set **"Run in: DS mode"**
+and **"ARM9 CPU speed: 67 MHz (NTR)"**, then: photograph `2-bench.nds`'s top screen; start `1-selftest.nds` and
+`3-hello.nds` and, if the red box appears, photograph it whole (its lines name the mode, argv, DLDI driver and error);
+if the selftest starts, repeat the scanline page (three pairs) and photograph page 4.
 
 **4. `3-hello.nds`.** The bottom screen should read `READY|0.1.0|f1d376bb`, `LOG|hello`, `EXIT|0`. A photo is
 enough.

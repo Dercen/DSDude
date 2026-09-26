@@ -500,7 +500,7 @@ int main(int argc, char **argv)
     {
         ds_log_linef("DSD|ERR|R584||||0|selftest: NitroFS or the soundbank did not start");
         ds_log_pad();
-        ds_error_screen("R584", "selftest", "NitroFS or the soundbank did not start.");
+        ds_error_screen("R584", ds_boot_diag[0] ? ds_boot_diag : "selftest", "NitroFS or the soundbank did not start.");
     }
     irqSet(IRQ_VBLANK, on_vblank);
     irqEnable(IRQ_VBLANK);

@@ -67,6 +67,8 @@ SOURCEDIRS	:= core/src selftest/bench
 INCLUDEDIRS	:= core/include gen platform/ds/src
 SOURCES_C	:= $(filter-out platform/ds/src/main.c,$(wildcard platform/ds/src/*.c))
 SOURCES_S	:= $(wildcard platform/ds/src/*.s)
+# The workloads, linked in so the bench needs no NitroFS (written by runtime/src/bench-rom.ts before make).
+BINDIRS		:= $(wildcard data) $(wildcard build/bench-data)
 endif
 
 LIBS		:= -lmm9 -lnds9

@@ -82,6 +82,8 @@ static bool g_music_on;
 
 bool ds_frame_nowait = false;
 const char *ds_game_file = NULL;
+const void *ds_game_image = NULL;
+uint32_t ds_game_image_size = 0;
 bool ds_screen_log = false;
 
 static volatile uint32_t g_vblanks;
@@ -204,6 +206,13 @@ void dsd_plat_read_input(dsd_input *out)
 
 int32_t dsd_plat_read_file(const char *path, void *buf, uint32_t cap)
 {
+    if (ds_game_image != NULL && strcmp(path, "game.dsdb") == 0)
+    {
+        if (ds_game_image_size > cap)
+            return DSD_PLAT_ETOOBIG;
+        memcpy(buf, ds_game_image, ds_game_image_size);
+        return (int32_t)ds_game_image_size;
+    }
     if (ds_game_file != NULL && strcmp(path, "game.dsdb") == 0)
         path = ds_game_file;
     FILE *f = fopen(nitro_path(path), "rb");
@@ -236,7 +245,7 @@ void dsd_plat_log_flush(void)
 
 void dsd_plat_fatal(const dsd_fatal *err)
 {
-    static char where[160];
+    static char where[160 + sizeof(ds_boot_diag)];
     where[0] = '\0';
     if (err->object[0] != '\0' || err->event[0] != '\0')
         snprintf(where, sizeof(where), "%s%s%s", err->object, err->object[0] && err->event[0] ? " / " : "",
@@ -249,6 +258,12 @@ void dsd_plat_fatal(const dsd_fatal *err)
             snprintf(where + n, sizeof(where) - n, "%s%s line %ld", n ? "\n" : "", err->file, (long)err->line);
         else
             snprintf(where + n, sizeof(where) - n, "%s%s", n ? "\n" : "", err->file);
+    }
+    // NitroFS did not mount (R584): add the platform's diagnosis (ds_platform.c) so a photo says why.
+    if (ds_boot_diag[0] != '\0')
+    {
+        size_t n = strlen(where);
+        snprintf(where + n, sizeof(where) - n, "%s%s", n ? "\n" : "", ds_boot_diag);
     }
     ds_error_screen(err->code, where, err->message); // START: back to main, which runs dsd_core_main again
 }
