@@ -33,6 +33,9 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 - **Task 3 (C11): published 0.1.0, 2026-09-26** (freezes at CP-A, 2026-09-28). `runtime/core/include/dsd_platform.h` plus a C11 CHANGELOG entry. Additions over the draft: `DSD_PLATFORM_VERSION`, `dsd_plat_music_active` (audio_is_playing, rule 8), `dsd_plat_bg_load(screen, NULL)` hides BG1. WS3 has not started yet; its first review may still change the header before CP-A.
 - **ADR-0003 `0003-sprite-geometry-in-dsdb.md` (proposed; number clash):** WS4 also filed an ADR-0003 (`0003-provisional-opcode-operands.md`) the same day; only WS0 renumbers, so WS0 please renumber one of them. Sprite geometry (frame size, origin, bbox from `sprite.json`) has no path to the runtime today. Proposal: the reserved header word becomes an extension-table offset (C2 T1), first extension `SPRG`. Needs WS4's co-signature (and WS5's review); blocks tier v2 collisions/draw placement (~D+14).
 
+- **Cross-merge with WS4 (2026-09-26):** merged `origin/ws4-compiler` (e899c34). WS4's compiled v0 programs (`fixtures/compiler/conformance/v0/*.dsdb`) run on the VM and match every v0 golden: the first compiler + runtime conformance pass; they are now in the `programs` suite. WS4's samples (`fixtures/compiler/samples/*.dsdb`) load up to their first provisional instance opcode (R582) until the engine lands.
+- **WS2 co-signs WS4's ADR-0003 (provisional opcode operands, opcodes 0.2.0 / dsdb.md 0.2.0), 2026-09-26.** Runtime notes for the promotion: (1) instance slots and globals start in an internal "never assigned" state, so GETSLOT/GETDYN/GETGLOB raise R500/R501 as rule 1 requires, distinct from a variable holding `undefined`; (2) WITHBEGIN leaves an opaque loop handle (an INT) in rA: the compiler must not touch rA between WITHBEGIN and WITHEND, as the ADR's fixed shape already guarantees; (3) GETDYN/GETBIO on `noone`, or on an object with no instance, raise R5xx; on `all` they read the first instance. WS2 implements the opcodes with the engine (tasks 4 and 6), then both streams promote them to stable in one T1.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -53,7 +56,7 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 ## Leftovers
 - String collector: dynamic strings are freed only at boot (and later at room change). Long-running rooms that build text every frame need the collector planned with arrays (task 4). Note: PLAN 3.3 says "ref-counting plus a mark-sweep pass at room change"; WS2 proposes a tracing collector triggered when the arena fills (roots: registers, globals, instance slots), which costs nothing in the VM's hot path. Internal, not a contract; will be recorded with task 4.
-- Builtins not implemented yet raise R582 when called (the loader accepts them).
+- Builtins not implemented yet raise R582 when called (the loader accepts them). Unimplemented opcodes are R582 at load, with the detail "bytecode N" (C9 bans the word opcode).
 
 ## Next
 - CP-A (2026-09-28): C11 freezes; fold in any WS3 review first.

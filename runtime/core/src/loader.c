@@ -250,7 +250,7 @@ static int32_t verify_function(const DsdProgram *p, uint32_t index, DsdLoadError
     for (uint32_t pc = fn->code_start; pc < end; pc++) {
         uint32_t ins = p->code[pc];
         uint32_t op = DSD_OP(ins);
-        if (op >= DSD_OPCODE_COUNT || !OP_CHECKS[op].impl) return fail(err, DSD_R_UNSUPPORTED, "opcode", op);
+        if (op >= DSD_OPCODE_COUNT || !OP_CHECKS[op].impl) return fail(err, DSD_R_UNSUPPORTED, "bytecode", op);
         const OpCheck *ck = &OP_CHECKS[op];
         bool wide = ck->b == V_K || ck->b == V_LABEL || ck->b == V_GLOB || ck->b == V_FUNC;
         uint32_t b = wide ? DSD_BX(ins) : DSD_B(ins);
