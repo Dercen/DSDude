@@ -154,8 +154,9 @@ const ORDER = [
   "user_",
 ];
 function rank(stem: string): number {
-  const i = ORDER.findIndex((p) => (p.endsWith("_") ? stem.startsWith(p) : stem === p));
-  return i < 0 ? ORDER.length : i;
+  // Entries ending in "_" are prefixes (alarm_0 .. alarm_7, collision_<object>, ...).
+  for (const [i, p] of ORDER.entries()) if (p.endsWith("_") ? stem.startsWith(p) : stem === p) return i;
+  return ORDER.length;
 }
 export function sortEvents(stems: string[]): string[] {
   return [...stems].sort((a, b) => rank(a) - rank(b) || (a < b ? -1 : a > b ? 1 : 0));
