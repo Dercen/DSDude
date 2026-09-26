@@ -3,6 +3,7 @@
 // samples/hello (C14): mounts NitroFS, reads nitro:/hello.txt and prints every line of it as DSD|LOG|<line>
 // through the C8 writer, then the flush pad. Repacking another nitrofs folder changes the output without a
 // compile (spike 8 packs a 300-character line and a line with '%'). If nitro:/nopad exists, the pad is skipped.
+// Afterwards every key press prints DSD|LOG|key <buttons>, followed by the pad.
 // Top screen: a solid blue backdrop. Bottom screen: a text console with the same information.
 
 #include <stdio.h>
@@ -74,6 +75,31 @@ int main(int argc, char **argv)
     if (pad)
         dsd_log_pad();
 
+    // Each key press prints DSD|LOG|key <buttons> (the ADR-0003 button names), so an emulator's key map can be
+    // checked from the log.
+    static const char *const key_names[12] = {
+        "A", "B", "SELECT", "START", "RIGHT", "LEFT", "UP", "DOWN", "R", "L", "X", "Y"
+    };
     while (1)
+    {
         swiWaitForVBlank();
+        scanKeys();
+        uint32_t down = keysDown();
+        if ((down & 0x0FFF) == 0)
+            continue;
+
+        char line[96] = "DSD|LOG|key";
+        for (int i = 0; i < 12; i++)
+        {
+            if (down & BIT(i))
+            {
+                strcat(line, " ");
+                strcat(line, key_names[i]);
+            }
+        }
+        dsd_log_line(line);
+        printf("%s\n", line + 8);
+        if (pad)
+            dsd_log_pad();
+    }
 }

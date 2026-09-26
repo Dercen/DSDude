@@ -4,6 +4,7 @@
  */
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { dsdudeHome } from "@dsdude/toolchain";
 import {
   app,
   BrowserWindow,
@@ -13,9 +14,14 @@ import {
   net,
   protocol,
   session,
+  utilityProcess,
   type WebContents,
 } from "electron";
-import { createCoreHandlers } from "./handlers.ts";
+import { controlsLine } from "../shared/controls.ts";
+import { buildServiceMode, createEmulatorManager } from "./build/modes.ts";
+import { PlayController } from "./build/play.ts";
+import { BuildWorkerHost, type WorkerChild } from "./build/worker-host.ts";
+import { createBuildHandlers, createCoreHandlers } from "./handlers.ts";
 import { createEventSender, registerIpc, type SendEvent } from "./ipc.ts";
 import { APP_ORIGIN, APP_SCHEME, resolveAppUrl } from "./protocol.ts";
 import { isDockviewPopout, isTrustedRendererUrl } from "./security.ts";
@@ -79,7 +85,51 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
+/** Forks the build worker (out/main/build-worker.js) with main's env unchanged; its output goes to main's stdout. */
+function forkWorker(): WorkerChild {
+  const child = utilityProcess.fork(join(__dirname, "build-worker.js"), [], {
+    serviceName: "DSDude build worker",
+    stdio: "pipe",
+    env: { ...process.env },
+  });
+  for (const stream of [child.stdout, child.stderr])
+    stream?.on("data", (chunk: Buffer) => {
+      for (const line of chunk.toString("utf8").split(/\r?\n/)) if (line) process.stdout.write(`worker|${line}\n`);
+    });
+  return child as unknown as WorkerChild;
+}
+
 app.whenReady().then(() => {
+  const home = dsdudeHome(process.env);
+  const mode = buildServiceMode(process.env);
+  process.stdout.write(`main|build-service|${mode}\n`);
+  const settings = new SettingsStore(join(app.getPath("userData"), "settings.json"));
+  const emulators = createEmulatorManager(mode, home);
+  const worker: BuildWorkerHost = new BuildWorkerHost({ spawn: forkWorker, onEvent: (e) => play.onBuildEvent(e) });
+  const play: PlayController = new PlayController({
+    worker,
+    emulators,
+    send: sendEvent,
+    controlsLine: async () => controlsLine(await settings.get("controls")),
+    defaultEmulator: () => settings.get("emulator"),
+  });
+  // An emulator an earlier IDE left running is killed at startup and before quit (C4 reconcile).
+  void emulators.reconcile?.();
+  let quitting = false;
+  app.on("before-quit", (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    quitting = true;
+    const stopped = Promise.race([play.stop(), new Promise((r) => setTimeout(r, 5_000))]);
+    void stopped
+      .then(() => emulators.reconcile?.())
+      .catch(() => undefined)
+      .finally(() => {
+        worker.dispose();
+        app.quit();
+      });
+  });
+
   protocol.handle(APP_SCHEME, (request) => {
     const file = resolveAppUrl(rendererDir, request.url);
     if (!file) return new Response("Not found", { status: 404 });
@@ -89,7 +139,7 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   registerIpc(
     ipcMain,
-    createCoreHandlers({ settings: new SettingsStore(join(app.getPath("userData"), "settings.json")), dialog }),
+    { ...createCoreHandlers({ settings, dialog }), ...createBuildHandlers(play, emulators) },
     (event: IpcMainInvokeEvent) => ({
       url: event.senderFrame?.url ?? null,
       isMainFrame: !!event.senderFrame && event.senderFrame.parent === null,

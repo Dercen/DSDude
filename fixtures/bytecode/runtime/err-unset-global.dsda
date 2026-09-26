@@ -1,0 +1,9 @@
+.dsda 0.1
+.seed 0
+.global score
+
+.func __main 0 1
+    .loc "rt/unset-global.dss" 1
+    GETGLOB r0, score
+    RET r0, 0
+.end

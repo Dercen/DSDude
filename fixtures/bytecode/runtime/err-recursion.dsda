@@ -1,0 +1,14 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 1
+    .loc "rt/recursion.dss" 5
+    CALL r0, forever
+    RET r0, 0
+.end
+
+.func forever 0 1
+    .loc "rt/recursion.dss" 2
+    CALL r0, forever
+    RET r0, 0
+.end

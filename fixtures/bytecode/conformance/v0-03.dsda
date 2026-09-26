@@ -1,0 +1,81 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 3
+    .loc "v0/03-compare.dss" 2
+    LOADI r0, 3
+    LOADI r1, 5
+    LT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 3
+    LOADI r0, 2
+    LOADK r1, 2.0
+    EQ r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 4
+    LOADK r0, 0.5
+    LOADK r1, 0.25
+    GT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 5
+    LOADI r0, 1
+    LOADI r1, 1
+    NE r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 6
+    LOADI r0, -1
+    LOADI r1, -1
+    LE r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 7
+    LOADI r0, 0
+    NOT r0, r0
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 8
+    LOADK r0, 0.5
+    NOT r0, r0
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 9
+    LOADUNDEF r0
+    NOT r0, r0
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 10
+    LOADUNDEF r2
+    .loc "v0/03-compare.dss" 11
+    MOV r0, r2
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 12
+    LOADB r0, true
+    JMPF r0, L0
+    LOADB r0, false
+    JMPF r0, L0
+    LOADB r0, true
+    JMP L1
+  L0:
+    LOADB r0, false
+  L1:
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 13
+    LOADB r0, false
+    JMPT r0, L2
+    LOADI r0, 7
+    JMPT r0, L2
+    LOADB r0, false
+    JMP L3
+  L2:
+    LOADB r0, true
+  L3:
+    CALLN r0, 1, show_debug_message
+    .loc "v0/03-compare.dss" 14
+    LOADI r0, 3
+    LOADI r1, 2
+    GT r0, r0, r1
+    JMPF r0, L4
+    LOADI r0, 10
+    JMP L5
+  L4:
+    LOADI r0, 20
+  L5:
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end

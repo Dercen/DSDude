@@ -44,7 +44,7 @@ import { localsOf, walk } from "./syntax/walk.ts";
 
 /** At most this many user slots per object, parents included (C13 `userSlotsPerObject`). */
 const MAX_USER_SLOTS = 24;
-/** GETDYN/SETDYN name a symbol in 8 bits (ADR-0003). */
+/** GETDYN/SETDYN name a symbol in 8 bits (ADR-0005). */
 const MAX_SYMBOLS = 256;
 /** Separator between an object's name and an event or function in generated FUNC names. */
 const SEP = "__";
@@ -595,6 +595,17 @@ class ProjectCompiler {
         name: s.name,
         path: `gfx/${s.name}.grf`,
         aux: this.manifest.sprites[s.name]?.frames ?? s.frames,
+        // ADR-pending ADR-0006: sprite.json's geometry travels in the DSDB's SPRG extension.
+        geometry: {
+          width: s.frameWidth,
+          height: s.frameHeight,
+          originX: s.origin.x,
+          originY: s.origin.y,
+          bboxLeft: s.bbox.left,
+          bboxTop: s.bbox.top,
+          bboxRight: s.bbox.right,
+          bboxBottom: s.bbox.bottom,
+        },
       }),
     );
     const backgrounds = this.project.backgrounds.map(

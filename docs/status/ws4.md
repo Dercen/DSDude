@@ -37,7 +37,7 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     closure, scripts called, `draw_set_screen` = both screens) returned as C4 `roomSets`.
   - FUNC names: events `<obj>__<stem>`, object functions `<obj>__fn_<name>`, creation code `<room>__inst_<i>`,
     scripts by their own name.
-  - ADR-0003 (proposed, needs WS2): operand kinds `sym`/`bivar`, GETBIX/SETBIX (55-56), GETBIO/SETBIO (57-58), the
+  - ADR-0005 (was 0003; co-signed by WS2): operand kinds `sym`/`bivar`, GETBIX/SETBIX (55-56), GETBIO/SETBIO (57-58), the
     `with` loop shape, NEWARR/SETIDX meaning. opcodes.json and dsdb.md 0.2.0 (T1), packages/dsdb supports them.
   - Catalog: E201-E205, E208, E301-E309, E491-E494.
   - ASET paths (`gfx/<name>.grf`, `bg/<name>.grf`, sounds `""`) and `aux` follow the provisional C4 AssetManifest
@@ -87,12 +87,31 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Not yet: `alias`/`unsupported` builtins.json entries (the generated table has none yet; E207 is reserved for
     unsupported GameMaker names once WS0 adds entries and gen-builtins emits them).
 
+- **Checkpoint-3 relay (2026-09-26):** merged `origin/main` (no open IF entries); ADR-0003 references renumbered to
+  **ADR-0005** (markers, `contracts/dsdb.md`, `contracts/opcodes.json`, an appended CHANGELOG line).
+- **WS4 co-signs WS2's ADR-0006 (sprite geometry in the DSDB, option A), 2026-09-26**, and has implemented its side
+  (C2 `dsdb.md` 0.3.0, T1, marked `ADR-pending ADR-0006`):
+  - One clarification: the ADR both bumps the format minor to 2 and promises no byte change for files without SPRG.
+    WS4's writer sets minor 2 **only when the file carries an extension table**; files without one keep minor 1 and
+    their exact bytes (all 34 committed `.dsdb` fixtures without sprites are unchanged). Loaders accept minor >= 1.
+  - `packages/dsdb`: `AssetDef.geometry`, encode/decode of the extension table and `SPRG` (unknown tags skipped),
+    `.dsda` `.asset sprite NAME PATH FRAMES origin=X,Y size=W,H bbox=L,T,R,B` (all three or none; every sprite or
+    none), tests.
+  - Compiler: every project sprite gets its `sprite.json` geometry, so every project DSDB with sprites carries SPRG
+    (Flappy, minimal, v3/09 goldens regenerated). `make -f runtime/Makefile.host test` stays green on WS2's current
+    loader (115,719 checks).
+- **BLOCKER push.sh (for WS0, again):** `bash tools/cloud/push.sh` refuses any branch that merged `origin/main`,
+  because its range `origin/ws4-compiler..HEAD` contains main's own `chore(deps): regenerate lockfile` commits
+  (`b23a325`, `7fd898f`): "7fd898f changes package-lock.json: revert it". The relay asked for this merge, so the
+  batch is committed but could not go out through push.sh. Suggested fix in push.sh: `git rev-list --no-merges HEAD
+  ^"$B" ^origin/main`. WS4's own commits touch no lockfile and all carry the trailer.
+
 ## Next
 
 - Task 7 (formatter done): the peephole passes wait on purpose.
   - ADDI/SUBI/MULI and a fused compare+jump (CMPJ, encoding still open) are provisional opcodes WS2 has not
     implemented; emitting them now would stop the v0/v1 goldens from running on WS2's first VM (stable opcodes
-    only). They come after WS2 implements them (and ADR-0003's operands are co-signed), or at CP-C if the M1 gate
+    only). They come after WS2 implements them (ADR-0005's operands are co-signed; WS0 accepts it), or at CP-C if the M1 gate
     needs them.
   - Constant folding must not apply to the conformance programs, which exist to test the VM's arithmetic (v0/02's
     `0.25 + 0.25`); it will be an option of `compileProject` (on for games), with folding that matches the runtime's
@@ -110,26 +129,12 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   features: slots, `with`, alarms, collisions, draw). Flappy compiles in ~6 ms warm (budget 100 ms).
 - Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.
 
-## push.sh and the daily merge (for WS0)
-
-- 2026-09-26: after `git merge origin/main` (which brings WS0's `b23a325 chore(deps): regenerate lockfile`),
-  `bash tools/cloud/push.sh` refuses with "b23a325 changes package-lock.json: revert it": it checks every non-merge
-  commit in `origin/ws4-compiler..HEAD`, which now includes main's own commits. WS4 dropped the (unpushed) merge and
-  pushed without it; `ws4-compiler` stays based on `phase0` + checkpoint-1's merge until push.sh excludes
-  `origin/main` from the range (e.g. `git rev-list --no-merges HEAD ^origin/$T ^origin/main`). Merging main by hand
-  showed no conflicts and all WS4 tests green.
-
-## ADR number collision (for WS0)
-
-- Two ADRs are numbered 0003: WS1's `docs/adr/0003-key-script-format.md` (on main) and WS4's
-  `docs/adr/0003-provisional-opcode-operands.md` (on `ws4-compiler`, written the same day). Only WS0 renumbers ADRs,
-  so WS4 left both files as they are. Please renumber the opcode one (0004 suggested); WS4 then updates its
-  `ADR-pending` markers and appends a CHANGELOG line. Until then "ADR-0003" in `packages/compiler`,
-  `packages/dsdb`, `contracts/opcodes.json` and `contracts/dsdb.md` means the opcode-operands ADR.
-
 ## Open ADR-pending markers
 
-- `ADR-pending ADR-0003` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): until WS2
-  co-signs ADR-0003.
+- `ADR-pending ADR-0006` in `packages/dsdb/src/encode.ts`, `packages/dsdb/src/model.ts` and
+  `packages/compiler/src/project.ts` (SPRG): until WS0 accepts ADR-0006.
+
+- `ADR-pending ADR-0005` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): WS2
+  co-signed (docs/status/ws2.md); open until WS0 accepts ADR-0005 and both streams promote the opcodes (T1).
 
 ## Integration feedback

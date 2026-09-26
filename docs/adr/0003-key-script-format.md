@@ -1,6 +1,10 @@
 # ADR-0003: One key-script format for `dsdude screenshot --keys` and `dsdude-host`
 
-- Status: **proposed** (WS1, 2026-09-26). WS0 numbers, merges and closes it (renumber if 0003 is taken).
+- Status: **superseded** (user decision, 2026-09-26). The one key-script format is WS2's `contracts/log-protocol.md`
+  0.2.0 "Key scripts (`--input`)" (change-point lines `<frame> <spec>`, 0-based, `a+right`, `T<x>,<y>`), which
+  `dsdude-host` already implements. WS1 (or WS8) switches `dsdude screenshot --keys` / `tools/screenshot.py` and
+  `contracts/cli.md` to it and removes the `ADR-pending ADR-0003` marker. Kept from this ADR: the measured two-frame
+  lag between an input frame and the first screenshot that shows it, so tests screenshot a few frames later.
 - Affected streams: WS2 (owns `contracts/log-protocol.md` "Host runner" and `dsdude-host`), WS1/WS8 (`--keys` in
   C10, `tools/screenshot.py`), WS7 (tutorial tests), WS6 (a future recorded-input feature).
 - Sources: `docs/kickoff/ws1.md` task 3, `contracts/cli.md` "Key scripts", `contracts/log-protocol.md` "Host

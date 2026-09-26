@@ -8,7 +8,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build:runtime": "node -e \"console.log('build:runtime: not implemented until WS3')\"",
+    "build:runtime": "node src/build-runtime.ts",
     "test": "vitest run --pool=threads --maxWorkers=2"
+  },
+  "dependencies": {
+    "@dsdude/toolchain": "0.1.0"
   }
 }

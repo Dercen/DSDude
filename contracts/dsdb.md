@@ -1,6 +1,6 @@
 # C2: DSDB bytecode container
 
-Version: 0.2.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
+Version: 0.3.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
 
 DSDB is the compiled form of a DSS game: one file, `game.dsdb`, at the NitroFS root (C3), loaded by the runtime VM.
 Written by WS0 in Phase 0; from the `phase0` tag WS2 and WS4 co-own this file (either may commit; the other
@@ -27,14 +27,14 @@ T1 (`opcodes.json`).
 |---|---|---|
 | 0 | u8[4] | magic `DSDB` |
 | 4 | u16 | format major = 0 (the loader refuses any other major) |
-| 6 | u16 | format minor = 1 |
+| 6 | u16 | format minor: 1, or 2 when the file has an extension table (ADR-0006); loaders accept any minor >= 1 |
 | 8 | u32 | ABI hash (section 9) |
 | 12 | u32 | RNG seed: 0 = the runtime calls `dsd_plat_rng_seed()`; non-zero always wins (`--seed N`, C11) |
 | 16 | u32 | file size in bytes |
 | 20 | u16 | section count = 10 |
 | 22 | u16 | flags = 0 (reserved) |
 | 24 | u32 | first room index; 0xFFFFFFFF in a program-form DSDB |
-| 28 | u32 | reserved = 0 |
+| 28 | u32 | extension table offset (ADR-0006): 0 = none; else the 4-aligned file offset of the table (section 4) |
 
 At offset 32: 10 entries of 12 bytes, `{u8[4] tag; u32 offset; u32 size}`, with offsets from the start of the file,
 in this fixed order. Every DSDB has all ten sections, possibly with a count of 0.
@@ -133,6 +133,16 @@ which live in `soundbank.bin`; `aux` is the sprite's frame count or the sound's 
 instructions from its codeIndex up to the next entry. Files are project-relative with `/`. R5xx errors use it for
 `DSD|ERR|...|<file>|<line>|...` (C8).
 
+**Extensions** (ADR-0006, proposed; 0.3.0). When the header word at offset 28 is non-zero, it points past the ten
+sections to `u32 count;` then `count` entries `{u8[4] tag; u32 offset; u32 size}` sorted by tag, each body 4-aligned
+after the table. Loaders skip tags they do not know. Writers add the table only when there is something to put in
+it, so a DSDB without extensions keeps minor 1 and its exact bytes.
+
+- **`SPRG`** (sprite geometry): `u32 count;` then one 20-byte record per ASET sprite entry, sorted by asset index:
+  `{u32 assetIndex; u16 frameWidth, frameHeight; s16 originX, originY; s16 bboxLeft, bboxTop, bboxRight,
+  bboxBottom}`, from `sprite.json` (bbox inclusive, in frame pixels). Either every sprite has a record or the file
+  has no `SPRG`. The runtime uses it for placement, collisions, `bbox_*`, touch and Outside Room.
+
 ## 5. Instructions
 
 32-bit little-endian words: **op = bits 0-7, A = 8-15, B = 16-23, C = 24-31**; `Bx` = bits 16-31 unsigned, `sBx` =
@@ -148,8 +158,8 @@ bits 16-31 signed. `contracts/opcodes.json` gives each opcode's number, status a
 | `builtin` | dense runtime index of a builtin function (C) | the builtin's name |
 | `global` | GLOB index (Bx) | the global's name |
 | `func` | FUNC index (Bx) | the function's name |
-| `sym` | SYMS index (C, 8 bits; ADR-0003) | the symbol's name |
-| `bivar` | dense builtin-variable index (`DSD_BUILTIN_VARS` order; ADR-0003) | the variable's name |
+| `sym` | SYMS index (C, 8 bits; ADR-0005) | the symbol's name |
+| `bivar` | dense builtin-variable index (`DSD_BUILTIN_VARS` order; ADR-0005) | the variable's name |
 
 **The 29 stable opcodes** (numbers 0-28): HALT, MOV, LOADK, LOADI, LOADB, LOADUNDEF, ADD, SUB, MUL, DIV, IDIV, MOD,
 NEG, EQ, NE, LT, LE, GT, GE, NOT, JMP, JMPT, JMPF, CALLN, RET, CONCAT, TOSTR, GETGLOB, SETGLOB. Numbers 29-50 are
@@ -216,7 +226,7 @@ or numeric builtin ids**: the assembler stamps them from `contracts/builtins.jso
 ```
 file      := ".dsda 0.1" NL [".seed" INT NL] { toplevel }
 toplevel  := ".global" NAME | ".symbol" NAME
-           | ".asset" ("sprite"|"background"|"sound"|"music") NAME STRING INT
+           | ".asset" ("sprite"|"background"|"sound"|"music") NAME STRING INT [GEOMETRY]
            | func | object | room | ".first" NAME
 func      := ".func" NAME PARAMS REGS NL { LABEL ":" | ".loc" STRING LINE | OPCODE operands } ".end"
 object    := ".object" NAME "sprite="(NAME|-) "parent="(NAME|-) "visible="(0|1) "screen="(top|bottom) "depth="INT NL
@@ -226,6 +236,7 @@ room      := ".room" NAME WIDTH HEIGHT NL
              | ".instance" OBJECT X Y (top|bottom) (FUNC|-)
              | ".set" (top|bottom) LIST LIST | ".sounds" LIST } ".end"
 LIST      := "-" | NAME { "+" NAME }
+GEOMETRY  := "origin="X","Y "size="W","H "bbox="L","T","R","B     (* sprites only; written as SPRG, ADR-0006 *)
 ```
 
 Operands are written as in the table in section 5. Fixed-point constants are written as exact decimals with a point

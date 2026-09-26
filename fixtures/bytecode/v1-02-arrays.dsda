@@ -1,0 +1,101 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 7
+    .loc "v1/02-arrays.dss" 1
+    LOADI r0, 1
+    LOADI r1, 2
+    LOADI r2, 3
+    NEWARR r0, 3
+    .loc "v1/02-arrays.dss" 2
+    MOV r3, r0
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 3
+    LOADI r4, 1
+    GETIDX r3, r0, r4
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 4
+    LOADI r4, 5
+    LOADI r5, 9
+    SETIDX r0, r4, r5
+    .loc "v1/02-arrays.dss" 5
+    MOV r3, r0
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 6
+    MOV r3, r0
+    CALLN r3, 1, array_length
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 7
+    MOV r1, r0
+    LOADI r4, 0
+    LOADI r5, 100
+    SETIDX r1, r4, r5
+    .loc "v1/02-arrays.dss" 8
+    LOADI r4, 0
+    GETIDX r3, r0, r4
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 9
+    MOV r3, r0
+    LOADI r4, 7
+    LOADI r5, 8
+    CALLN r3, 3, array_push
+    .loc "v1/02-arrays.dss" 10
+    MOV r3, r0
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 11
+    MOV r3, r0
+    CALLN r3, 1, array_pop
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 12
+    MOV r3, r0
+    LOADI r4, 1
+    LOADI r5, 2
+    CALLN r3, 3, array_delete
+    .loc "v1/02-arrays.dss" 13
+    MOV r3, r0
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 14
+    LOADI r3, 1
+    LOADI r4, 2
+    NEWARR r3, 2
+    LOADK r4, "x"
+    LOADB r5, true
+    NEWARR r4, 2
+    NEWARR r3, 2
+    MOV r2, r3
+    .loc "v1/02-arrays.dss" 15
+    MOV r3, r2
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 16
+    LOADI r4, 1
+    GETIDX r3, r2, r4
+    LOADI r4, 0
+    GETIDX r3, r3, r4
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 17
+    LOADUNDEF r6
+    LOADI r4, 2
+    LOADK r5, "z"
+    SETIDX r6, r4, r5
+    .loc "v1/02-arrays.dss" 18
+    MOV r3, r6
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 19
+    LOADI r3, 3
+    LOADK r4, 0.5
+    CALLN r3, 2, array_create
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 20
+    NEWARR r3, 0
+    NEWARR r4, 0
+    EQ r3, r3, r4
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 21
+    EQ r3, r0, r1
+    CALLN r3, 1, show_debug_message
+    .loc "v1/02-arrays.dss" 22
+    LOADK r4, 1.89990234375
+    GETIDX r3, r0, r4
+    CALLN r3, 1, show_debug_message
+    RET r0, 0
+.end

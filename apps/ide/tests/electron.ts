@@ -1,10 +1,10 @@
 // Shared helpers for the Playwright `_electron` suite: build once, launch the built app with an isolated DSDUDE_HOME.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { _electron, type ElectronApplication } from "@playwright/test";
+import { _electron, type ElectronApplication, type Page } from "@playwright/test";
 
 export const appDir = resolve(import.meta.dirname, "..");
 export const skipElectron = process.env.DSDUDE_SKIP_ELECTRON === "1";
@@ -25,6 +25,22 @@ export function buildApp(): void {
   });
   if (r.status !== 0) throw new Error(`electron-vite build failed (${r.status ?? r.error?.message}):\n${r.stderr}`);
   built = true;
+}
+
+/** A copy of samples/flappy under `dir` (tests never modify the repo's sample). */
+export function copyFlappy(dir: string): string {
+  const target = join(dir, "flappy");
+  cpSync(resolve(appDir, "../../samples/flappy"), target, { recursive: true });
+  return target;
+}
+
+/** Opens a project through the real Open button, with Electron's folder dialog stubbed in main to answer `dir`. */
+export async function openProject(app: ElectronApplication, page: Page, dir: string): Promise<void> {
+  await app.evaluate(({ dialog }, d) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [d] })) as typeof dialog.showOpenDialog;
+  }, dir);
+  await page.getByTestId("open").click();
+  await page.getByTestId("project-tree").waitFor();
 }
 
 export interface LaunchedApp {

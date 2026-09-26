@@ -7,6 +7,7 @@ import type { BuiltinsEnv } from "./abi.ts";
 import { compareUtf8, DsdbError, decode, encode } from "./encode.ts";
 import { OPCODES } from "./gen/opcodes.ts";
 import {
+  type AssetDef,
   type AssetKind,
   type Const,
   type DsdbModule,
@@ -17,6 +18,7 @@ import {
   type ObjectDef,
   type Operand,
   type RoomDef,
+  type SpriteGeometry,
 } from "./model.ts";
 
 const VERSION = `${FORMAT_MAJOR}.${FORMAT_MINOR}`;
@@ -48,6 +50,33 @@ function tokenize(line: string, lineNo: number): string[] {
     i = j;
   }
   return out;
+}
+
+/**
+ * Parses a sprite's optional `origin=X,Y size=W,H bbox=L,T,R,B` fields (ADR-0006). The tokenizer splits on commas,
+ * so each `key=first` token is followed by the rest of its numbers. All three fields, or none.
+ */
+function parseGeometry(tokens: string[], where: string): SpriteGeometry | null {
+  if (tokens.length === 0) return null;
+  const fields = new Map<string, number[]>();
+  let current: number[] | null = null;
+  for (const tok of tokens) {
+    const kv = /^(origin|size|bbox)=(-?[0-9]+)$/.exec(tok);
+    if (kv !== null) {
+      current = [Number(kv[2])];
+      fields.set(kv[1] as string, current);
+    } else if (/^-?[0-9]+$/.test(tok) && current !== null) current.push(Number(tok));
+    else throw new DsdbError(`${where}: unexpected ${tok} after the asset`);
+  }
+  const origin = fields.get("origin");
+  const size = fields.get("size");
+  const bbox = fields.get("bbox");
+  if (origin?.length !== 2 || size?.length !== 2 || bbox?.length !== 4)
+    throw new DsdbError(`${where}: a sprite needs all of origin=X,Y size=W,H bbox=L,T,R,B`);
+  const [originX, originY] = origin as [number, number];
+  const [width, height] = size as [number, number];
+  const [bboxLeft, bboxTop, bboxRight, bboxBottom] = bbox as [number, number, number, number];
+  return { width, height, originX, originY, bboxLeft, bboxTop, bboxRight, bboxBottom };
 }
 
 /** Parses a decimal fraction to Q20.12, rounding half away from zero. */
@@ -242,12 +271,18 @@ export function assemble(text: string): DsdbModule {
         const kind = rest[0] as AssetKind;
         if (!["sprite", "background", "sound", "music"].includes(kind))
           throw new DsdbError(`${where}: bad asset kind ${kind}`);
-        m.assets.push({
+        const asset: AssetDef = {
           kind,
           name: name(rest[1], where),
           path: JSON.parse(rest[2] ?? '""') as string,
           aux: int(rest[3], where),
-        });
+        };
+        const geometry = parseGeometry(rest.slice(4), where);
+        if (geometry !== null) {
+          if (kind !== "sprite") throw new DsdbError(`${where}: only sprites have origin, size and bbox`);
+          asset.geometry = geometry;
+        }
+        m.assets.push(asset);
         return;
       }
       case ".func":
@@ -309,7 +344,14 @@ export function disassemble(m: DsdbModule): string {
   const out: string[] = [`.dsda ${VERSION}`, `.seed ${m.seed >>> 0}`];
   for (const g of [...new Set(m.globals)].sort(compareUtf8)) out.push(`.global ${g}`);
   for (const s of [...new Set(m.symbols)].sort(compareUtf8)) out.push(`.symbol ${s}`);
-  for (const a of m.assets) out.push(`.asset ${a.kind} ${a.name} ${JSON.stringify(a.path)} ${a.aux}`);
+  for (const a of m.assets) {
+    const g = a.geometry;
+    const geometry =
+      g === undefined
+        ? ""
+        : ` origin=${g.originX},${g.originY} size=${g.width},${g.height} bbox=${g.bboxLeft},${g.bboxTop},${g.bboxRight},${g.bboxBottom}`;
+    out.push(`.asset ${a.kind} ${a.name} ${JSON.stringify(a.path)} ${a.aux}${geometry}`);
+  }
   for (const f of m.functions) {
     out.push("", `.func ${f.name} ${f.params} ${f.regs}`);
     const op = (n: string) =>

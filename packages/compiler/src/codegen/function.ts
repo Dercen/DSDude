@@ -441,7 +441,7 @@ class FunctionCompiler {
   }
 
   /**
-   * `with (target) body` (language.md rule 3, ADR-0003): WITHBEGIN snapshots the targets and enters the body
+   * `with (target) body` (language.md rule 3, ADR-0005): WITHBEGIN snapshots the targets and enters the body
    * with the first one as `self` (jumping past the loop when there is none), WITHNEXT moves on and jumps back,
    * WITHEND restores `self` and `other`.
    */
@@ -459,7 +459,7 @@ class FunctionCompiler {
     const body = this.newLabel();
     const next = this.newLabel();
     const end = this.newLabel();
-    // ADR-pending ADR-0003: WITHBEGIN/WITHNEXT/WITHEND operands and loop shape.
+    // ADR-pending ADR-0005: WITHBEGIN/WITHNEXT/WITHEND operands and loop shape.
     this.jump("WITHBEGIN", end, reg);
     this.place(body);
     const depth = this.withRegs.length;
@@ -654,7 +654,7 @@ class FunctionCompiler {
       this.unknownName(name, at, known);
       return null;
     }
-    // ADR-pending ADR-0003: GETDYN/SETDYN take the symbol by name (operand kind `sym`).
+    // ADR-pending ADR-0005: GETDYN/SETDYN take the symbol by name (operand kind `sym`).
     const reg = this.targetReg(target);
     return {
       load: (dst) => void this.emit("GETDYN", dst, reg, name),
@@ -690,7 +690,7 @@ class FunctionCompiler {
         store: (src) => void this.emit("SETBI", src, bv.name),
         localReg: null,
       };
-    // ADR-pending ADR-0003: GETBIO/SETBIO, a builtin variable of another instance.
+    // ADR-pending ADR-0005: GETBIO/SETBIO, a builtin variable of another instance.
     const reg = this.targetReg(target);
     return {
       load: (dst) => void this.emit("GETBIO", dst, reg, bv.name),
@@ -713,7 +713,7 @@ class FunctionCompiler {
           return null;
         }
         const i = this.valueAny(index);
-        // ADR-pending ADR-0003: GETBIX/SETBIX, an element of a builtin array variable of self.
+        // ADR-pending ADR-0005: GETBIX/SETBIX, an element of a builtin array variable of self.
         return {
           load: (dst) => void this.emit("GETBIX", dst, bv.name, i),
           store: (src) => void this.emit("SETBIX", src, bv.name, i),
@@ -722,7 +722,7 @@ class FunctionCompiler {
       }
     }
     // The array itself: a local register, or a variable loaded into a temporary and written back after a store
-    // (SETIDX may have created the array, ADR-0003).
+    // (SETIDX may have created the array, ADR-0005).
     let arr: number;
     let parent: Ref | null = null;
     if (object.kind === "name" && this.locals.has(object.name)) arr = this.locals.get(object.name) as number;

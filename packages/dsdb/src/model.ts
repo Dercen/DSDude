@@ -6,6 +6,19 @@
 export const MAGIC = "DSDB";
 export const FORMAT_MAJOR = 0;
 export const FORMAT_MINOR = 1;
+/**
+ * Format minor of a DSDB that carries an extension table (header offset 28, ADR-0006). Files without extensions
+ * keep minor 1, so every DSDB written before the table existed stays byte-identical. ADR-pending ADR-0006.
+ */
+export const FORMAT_MINOR_EXTENSIONS = 2;
+/** Header offset of the extension-table offset (the reserved word before ADR-0006). */
+export const EXTENSION_OFFSET_AT = 28;
+/** Bytes per extension-table entry: {u8[4] tag; u32 offset; u32 size}. */
+export const EXTENSION_ENTRY_BYTES = 12;
+/** The sprite-geometry extension (ADR-0006): frame size, origin and bbox per ASET sprite. */
+export const SPRG = "SPRG";
+/** Bytes per SPRG record: u32 asset index, u16 x2 size, s16 x2 origin, s16 x4 bbox. */
+export const SPRG_RECORD_BYTES = 20;
 export const HEADER_BYTES = 32;
 export const SECTION_ENTRY_BYTES = 12;
 /** Section tags in file order. Every DSDB has all ten, possibly empty. */
@@ -112,6 +125,21 @@ export interface RoomDef {
   sounds: string[];
 }
 
+/** A sprite's geometry from its sprite.json (ADR-0006): what collisions, drawing and bbox_* need at run time. */
+export interface SpriteGeometry {
+  /** Frame size in pixels. */
+  width: number;
+  height: number;
+  /** The origin inside a frame: the point placed at the instance's x, y. */
+  originX: number;
+  originY: number;
+  /** The bbox in frame pixels, inclusive. */
+  bboxLeft: number;
+  bboxTop: number;
+  bboxRight: number;
+  bboxBottom: number;
+}
+
 export interface AssetDef {
   kind: AssetKind;
   name: string;
@@ -119,6 +147,8 @@ export interface AssetDef {
   path: string;
   /** Kind-specific: sprite frame count, soundbank id; 0 otherwise. Refined by C3 (T1). */
   aux: number;
+  /** Sprites only: geometry written to the SPRG extension (ADR-0006). All sprites of a module have it, or none. */
+  geometry?: SpriteGeometry;
 }
 
 export interface DsdbModule {

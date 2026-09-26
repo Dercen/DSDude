@@ -1,6 +1,6 @@
 .dsda 0.1
 .seed 0
-.asset sprite spr_ball "gfx/spr_ball.grf" 1
+.asset sprite spr_ball "gfx/spr_ball.grf" 1 origin=0,0 size=16,16 bbox=0,0,15,15
 
 .func obj_ball__create 0 1
     .loc "objects/obj_ball/create.dss" 1
