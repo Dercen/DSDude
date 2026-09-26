@@ -163,6 +163,10 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   checks (spike 15, the scanline limits, the M1 hardware figure) run there in DS mode; results come back as on-screen
   output that the user reports.
 
+- **ADR-0008 accepted** (debug/release arithmetic as DSDB header flags bit 0). WS4 implements C2 T1 + the compiler
+  option; C10 `--release` waits for WS1/WS8. Twilight Menu++ offers no 67 MHz in DSi mode, so the hardware M1 figure
+  waits for WS3's NitroFS-independent bench ROM run in DS mode.
+
 ## Hardware results (2026-09-26, user: original 3DS, TWiLight Menu++ default settings)
 
 ROMs from WS3's hardware set, built ~11:54 from `runtime/dist` near main `0e67e27` (DTCM dispatch table and the
