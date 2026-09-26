@@ -2,6 +2,8 @@
 // raising runtime errors.
 #include <string.h>
 
+#include "dsd_arrays.h"
+#include "dsd_strings.h"
 #include "errors.h"
 #include "number.h"
 #include "numfmt.h"
@@ -47,7 +49,7 @@ bool dsd_vm_number_status(DsdVm *vm, int32_t status, DsdValue result) {
 bool dsd_values_equal(const DsdVm *vm, DsdValue a, DsdValue b) {
     // Strings equal only strings, by content; a string never equals a number.
     if (a.tag == DSD_TAG_STR || b.tag == DSD_TAG_STR) {
-        return a.tag == b.tag && dsd_str_compare(&vm->strings, vm->prog, a.payload, b.payload) == 0;
+        return a.tag == b.tag && dsd_str_compare(vm, a.payload, b.payload) == 0;
     }
     // undefined equals only undefined; arrays compare by reference.
     if (a.tag == DSD_TAG_UNDEF || b.tag == DSD_TAG_UNDEF) return a.tag == b.tag;
@@ -91,12 +93,12 @@ bool dsd_value_to_string(DsdVm *vm, DsdValue v, DsdValue *out) {
     DsdText t;
     dsd_text_init(&t, g_text_scratch, sizeof g_text_scratch);
     dsd_value_format(vm, v, &t);
-    if (dsd_str_make(&vm->strings, t.buf, t.len, "", 0, out)) return true;
-    dsd_vm_error(vm, DSD_R_TEXT_MEMORY, "The game ran out of memory for text and lists");
-    return false;
+    return dsd_str_from(vm, t.buf, t.len, out);
 }
 
-void dsd_value_format(const DsdVm *vm, DsdValue v, DsdText *t) {
+// Prints v at array nesting `depth`: nested arrays print as "[a, b]", deeper than DSD_RT_PRINT_DEPTH as "[...]"
+// (an array can contain itself).
+static void format_at(const DsdVm *vm, DsdValue v, DsdText *t, uint32_t depth) {
     char num[DSD_NUMFMT_BUF];
     switch (v.tag) {
     case DSD_TAG_INT:
@@ -108,7 +110,7 @@ void dsd_value_format(const DsdVm *vm, DsdValue v, DsdText *t) {
         break;
     case DSD_TAG_STR: {
         uint32_t len;
-        const char *bytes = dsd_str_bytes(&vm->strings, vm->prog, v.payload, &len);
+        const char *bytes = dsd_str_bytes(vm, v.payload, &len);
         dsd_text_bytes(t, bytes, len);
         break;
     }
@@ -119,11 +121,24 @@ void dsd_value_format(const DsdVm *vm, DsdValue v, DsdText *t) {
         // Asset ids print as their index (contracts/dsdb.md section 3).
         dsd_text_int(t, (int32_t)((uint32_t)v.payload & DSD_ASSET_INDEX_MASK));
         break;
-    case DSD_TAG_ARR:
-        dsd_text_str(t, "[]"); // arrays arrive with arrays.c (task 4); no program can make one before that
+    case DSD_TAG_ARR: {
+        if (depth >= DSD_RT_PRINT_DEPTH) {
+            dsd_text_str(t, "[...]");
+            break;
+        }
+        uint32_t n = dsd_arr_len(vm, v);
+        dsd_text_char(t, '[');
+        for (uint32_t i = 0; i < n && t->len < t->cap - 1; i++) {
+            if (i > 0) dsd_text_str(t, ", ");
+            format_at(vm, dsd_arr_cells_c(vm, v)[i], t, depth + 1);
+        }
+        dsd_text_char(t, ']');
         break;
+    }
     default:
         dsd_text_str(t, "undefined");
         break;
     }
 }
+
+void dsd_value_format(const DsdVm *vm, DsdValue v, DsdText *t) { format_at(vm, v, t, 0); }

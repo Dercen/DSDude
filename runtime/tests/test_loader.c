@@ -84,7 +84,7 @@ void suite_loader(void) {
 
     // hello's code: LOADK r0, "hello" / CALLN r0, 1, show_debug_message / RET r0, 0.
     reset();
-    g_img[code_offset(0) + OP_BYTE] = DSD_OP_NEWARR; // provisional, not implemented yet
+    g_img[code_offset(0) + OP_BYTE] = DSD_OP_WITHBEGIN; // provisional, implemented with the engine
     EXPECT_CODE(DSD_R_UNSUPPORTED);
 
     reset();

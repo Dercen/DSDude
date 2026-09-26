@@ -220,6 +220,15 @@ static const OpCheck OP_CHECKS[DSD_OPCODE_COUNT] = {
     [DSD_OP_GETGLOB] = {1, V_REG, V_GLOB, V_NONE},
     [DSD_OP_SETGLOB] = {1, V_REG, V_GLOB, V_NONE},
     [DSD_OP_CALL] = {1, V_REG, V_FUNC, V_NONE}, // parameter window checked in verify_call
+    [DSD_OP_ADDI] = {1, V_REG, V_REG, V_NONE},
+    [DSD_OP_SUBI] = {1, V_REG, V_REG, V_NONE},
+    [DSD_OP_MULI] = {1, V_REG, V_REG, V_NONE},
+    [DSD_OP_NEWARR] = {1, V_REG, V_NONE, V_NONE}, // element window checked below
+    [DSD_OP_GETIDX] = {1, V_REG, V_REG, V_REG},
+    [DSD_OP_SETIDX] = {1, V_REG, V_REG, V_REG},
+    [DSD_OP_LEN] = {1, V_REG, V_REG, V_NONE},
+    [DSD_OP_TOINT] = {1, V_REG, V_REG, V_NONE},
+    [DSD_OP_TOFIXED] = {1, V_REG, V_REG, V_NONE},
 };
 
 // Checks one operand field value against its kind. next_pc is the index after the instruction (jump base).
@@ -268,6 +277,7 @@ static int32_t verify_function(const DsdProgram *p, uint32_t index, DsdLoadError
             // The callee's parameters are the caller's rA..rA+params-1 (its frame starts at rA).
             ok = DSD_A(ins) + p->funcs[DSD_BX(ins)].params <= fn->regs;
         }
+        if (ok && op == DSD_OP_NEWARR) ok = DSD_A(ins) + DSD_B(ins) <= fn->regs; // elements rA..rA+B-1
         if (ok && (op == DSD_OP_RET || op == DSD_OP_LOADB)) ok = DSD_B(ins) <= 1;
         if (!ok) return fail(err, DSD_R_BAD_FILE, "code at", pc);
     }

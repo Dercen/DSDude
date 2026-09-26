@@ -97,6 +97,13 @@ static const ProgramCase CASES[] = {
      DSD_GAME_EXITED},
     {"fixtures/compiler/conformance/v0/05-functions.dsdb", "fixtures/conformance/expected/v0/05-functions.log",
      true, DSD_GAME_EXITED},
+    // Tier v1 (strings and arrays), hand-assembled by WS2 until WS4's programs 6-10 land.
+    {"fixtures/bytecode/v1-01-strings.dsdb", "fixtures/bytecode/v1-01-strings.out", false, DSD_GAME_EXITED},
+    {"fixtures/bytecode/v1-02-arrays.dsdb", "fixtures/bytecode/v1-02-arrays.out", false, DSD_GAME_EXITED},
+    {"fixtures/bytecode/v1-03-collector.dsdb", "fixtures/bytecode/v1-03-collector.out", false, DSD_GAME_EXITED},
+    {"fixtures/bytecode/runtime/err-index.dsdb", "fixtures/bytecode/runtime/err-index.out", false, DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-not-a-list.dsdb", "fixtures/bytecode/runtime/err-not-a-list.out", false,
+     DSD_GAME_FAILED},
     {"fixtures/bytecode/runtime/strings.dsdb", "fixtures/bytecode/runtime/strings.out", false, DSD_GAME_EXITED},
     {"fixtures/bytecode/runtime/err-assert.dsdb", "fixtures/bytecode/runtime/err-assert.out", false,
      DSD_GAME_FAILED},
@@ -149,8 +156,16 @@ static void test_repeatable(void) {
     CHECK_STR(g_capture, first);
 }
 
+static void test_collector_ran(void) {
+    // v1-03 makes ~2.3 MB of short-lived text in a 192 KB arena: the collector must have run, and the output (checked
+    // in test_cases) shows the live list survived it.
+    run_program("fixtures/bytecode/v1-03-collector.dsdb");
+    CHECK(dsd_game_vm()->heap.collections > 0);
+}
+
 void suite_programs(void) {
     test_cases();
+    test_collector_ran();
     test_missing_file();
     test_repeatable();
 }

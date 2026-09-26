@@ -7,8 +7,8 @@
 #include <stdint.h>
 
 #include "dsd_limits.h"
-#include "dsd_strings.h"
 #include "dsdb.h"
+#include "heap.h"
 #include "textbuf.h"
 #include "value.h"
 
@@ -51,10 +51,10 @@ typedef struct DsdVm {
     char err_msg[DSD_ERR_MSG_MAX];
     uint32_t pc;              // code index of the running instruction, kept current around builtin calls
 
-    DsdStrings strings;
+    DsdHeap heap;             // dynamic strings and arrays (heap.h)
 } DsdVm;
 
-// Resets the VM for a loaded program: empty stack, all globals unset, strings freed.
+// Resets the VM for a loaded program: empty stack, all globals unset, the heap emptied.
 void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack);
 // Refills the per-frame watchdog budget (the engine calls it once per frame; program form once at start).
 void dsd_vm_frame_reset(DsdVm *vm);

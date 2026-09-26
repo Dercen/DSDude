@@ -19,6 +19,7 @@
 #define DSD_R_BAD_COMPARE 541    // an ordering comparison of values that have no order
 #define DSD_R_BAD_ARGUMENT 542   // a builtin got the wrong kind of value
 #define DSD_R_INDEX_RANGE 550    // a list index outside the list
+#define DSD_R_NOT_A_LIST 551     // [] or a list length used on something that is not a list
 #define DSD_R_TEXT_MEMORY 560    // the text/list arena is full
 #define DSD_R_BAD_FILE 580       // game.dsdb is damaged
 #define DSD_R_ABI_MISMATCH 581   // game.dsdb was built for a different runtime (ABI hash)

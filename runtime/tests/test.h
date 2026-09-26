@@ -25,6 +25,7 @@ void dsd_test_seed(uint32_t seed);
 
 // Every suite, defined in its runtime/tests/test_*.c file.
 void suite_fixed(void);
+void suite_heap(void);
 void suite_host(void);
 void suite_loader(void);
 void suite_number(void);

@@ -12,6 +12,8 @@
 #include <string.h>
 
 #include "builtins.h"
+#include "dsd_arrays.h"
+#include "dsd_strings.h"
 #include "dsd_log.h"
 #include "dsd_platform.h"
 #include "errors.h"
@@ -37,7 +39,7 @@ void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack) {
     vm->err_pc = 0;
     vm->err_msg[0] = '\0';
     vm->pc = 0;
-    dsd_strings_reset(&vm->strings);
+    dsd_heap_reset(&vm->heap);
 }
 
 void dsd_vm_frame_reset(DsdVm *vm) { vm->budget = DSD_RT_WATCHDOG_STEPS; }
@@ -82,23 +84,12 @@ static bool number_status(DsdVm *vm, int32_t st, DsdValue result, uint32_t op, D
     return dsd_vm_number_status(vm, st, result);
 }
 
-// Joins two strings into a new one (ADD of two strings, CONCAT).
-static bool concat(DsdVm *vm, DsdValue a, DsdValue b, DsdValue *out) {
-    uint32_t la;
-    uint32_t lb;
-    const char *pa = dsd_str_bytes(&vm->strings, vm->prog, a.payload, &la);
-    const char *pb = dsd_str_bytes(&vm->strings, vm->prog, b.payload, &lb);
-    if (dsd_str_make(&vm->strings, pa, la, pb, lb, out)) return true;
-    dsd_vm_error(vm, DSD_R_TEXT_MEMORY, "The game ran out of memory for text and lists");
-    return false;
-}
-
 // ADD SUB MUL DIV IDIV MOD beyond the int+int fast path.
 static bool arith_slow(DsdVm *vm, uint32_t op, DsdValue a, DsdValue b, DsdValue *out) {
     int32_t st;
     switch (op) {
     case DSD_OP_ADD:
-        if (a.tag == DSD_TAG_STR && b.tag == DSD_TAG_STR) return concat(vm, a, b, out);
+        if (a.tag == DSD_TAG_STR && b.tag == DSD_TAG_STR) return dsd_str_concat(vm, a, b, out);
         st = dsd_num_add(a, b, out);
         break;
     case DSD_OP_SUB:
@@ -130,7 +121,7 @@ static const char *compare_symbol(uint32_t op) {
 static bool ordered(DsdVm *vm, uint32_t op, DsdValue a, DsdValue b, DsdValue *out) {
     int32_t ord;
     if (a.tag == DSD_TAG_STR && b.tag == DSD_TAG_STR) {
-        ord = dsd_str_compare(&vm->strings, vm->prog, a.payload, b.payload);
+        ord = dsd_str_compare(vm, a.payload, b.payload);
     } else if (dsd_num_cmp(a, b, &ord) != DSD_NUM_OK || a.tag == DSD_TAG_STR || b.tag == DSD_TAG_STR) {
         DsdText t = dsd_vm_error_begin(vm, DSD_R_BAD_COMPARE);
         dsd_text_str(&t, "Can't compare ");
@@ -191,6 +182,119 @@ static void watchdog(DsdVm *vm) {
     dsd_text_str(&t, " never finished: a loop there seems to run forever");
 }
 
+// ---- Lists and conversions (slow paths of NEWARR GETIDX SETIDX LEN TOINT TOFIXED) -------------------------------
+
+// Raises R551: `what` ("[]", "a list length") used on a value that is not a list.
+static void not_a_list(DsdVm *vm, const char *what, DsdValue v) {
+    DsdText t = dsd_vm_error_begin(vm, DSD_R_NOT_A_LIST);
+    dsd_text_str(&t, "Can't use ");
+    dsd_text_str(&t, what);
+    dsd_text_str(&t, " on ");
+    dsd_text_str(&t, dsd_value_kind(v));
+    dsd_text_str(&t, ": it is not a list");
+}
+
+// A list position from a number (fixed values floor, language.md section 4); R551 for anything else.
+static bool list_index(DsdVm *vm, DsdValue v, int64_t *out) {
+    if (!dsd_is_number(v)) {
+        not_a_list(vm, "a list position of", v);
+        return false;
+    }
+    *out = dsd_is_int(v) ? v.payload : dsd_fx_floor(v.payload);
+    return true;
+}
+
+// Raises R550 for position i of a list of `len` elements.
+static void index_range(DsdVm *vm, int64_t i, uint32_t len) {
+    DsdText t = dsd_vm_error_begin(vm, DSD_R_INDEX_RANGE);
+    dsd_text_str(&t, "Position ");
+    dsd_text_int(&t, (int32_t)i);
+    dsd_text_str(&t, " is outside the list (it has ");
+    dsd_text_uint(&t, len);
+    dsd_text_str(&t, len == 1 ? " item)" : " items)");
+}
+
+// NEWARR: a new array of the n values at first[0..n), stored in first[0] (the values are registers: rooted).
+static bool new_array(DsdVm *vm, DsdValue *first, uint32_t n) {
+    DsdValue arr;
+    if (!dsd_arr_new(vm, n, &arr)) return false;
+    DsdValue *cells = dsd_arr_cells(vm, arr);
+    for (uint32_t i = 0; i < n; i++) cells[i] = first[i];
+    first[0] = arr;
+    return true;
+}
+
+// GETIDX: *out = arr[idx].
+static bool get_index(DsdVm *vm, DsdValue arr, DsdValue idx, DsdValue *out) {
+    int64_t i;
+    if (arr.tag != DSD_TAG_ARR) {
+        not_a_list(vm, "[]", arr);
+        return false;
+    }
+    if (!list_index(vm, idx, &i)) return false;
+    uint32_t len = dsd_arr_len(vm, arr);
+    if (i < 0 || i >= len) {
+        index_range(vm, i, len);
+        return false;
+    }
+    *out = dsd_arr_cells_c(vm, arr)[i];
+    return true;
+}
+
+// SETIDX: (*target)[idx] = v, growing the list; an undefined target first becomes a new empty list (ADR-0003).
+static bool set_index(DsdVm *vm, DsdValue *target, DsdValue idx, DsdValue v) {
+    int64_t i;
+    if (target->tag == DSD_TAG_UNDEF && !dsd_arr_new(vm, 0, target)) return false;
+    if (target->tag != DSD_TAG_ARR) {
+        not_a_list(vm, "[]", *target);
+        return false;
+    }
+    if (!list_index(vm, idx, &i)) return false;
+    if (i < 0) {
+        index_range(vm, i, dsd_arr_len(vm, *target));
+        return false;
+    }
+    return dsd_arr_set(vm, *target, i > (int64_t)UINT32_MAX ? UINT32_MAX : (uint32_t)i, v);
+}
+
+// LEN: elements of a list, characters (code points) of a string.
+static bool length_of(DsdVm *vm, DsdValue v, DsdValue *out) {
+    if (v.tag == DSD_TAG_ARR) {
+        *out = dsd_int((int32_t)dsd_arr_len(vm, v));
+        return true;
+    }
+    if (v.tag == DSD_TAG_STR) {
+        uint32_t len;
+        const char *s = dsd_str_bytes(vm, v.payload, &len);
+        *out = dsd_int((int32_t)dsd_utf8_count(s, len));
+        return true;
+    }
+    not_a_list(vm, "a length", v);
+    return false;
+}
+
+// TOINT (floor) and TOFIXED: numbers only.
+static bool convert(DsdVm *vm, bool to_fixed, DsdValue v, DsdValue *out) {
+    if (!dsd_is_number(v)) {
+        DsdText t = dsd_vm_error_begin(vm, DSD_R_BAD_OPERANDS);
+        dsd_text_str(&t, "Can't turn ");
+        dsd_text_str(&t, dsd_value_kind(v));
+        dsd_text_str(&t, " into a number");
+        return false;
+    }
+    if (!to_fixed) {
+        *out = dsd_int(dsd_is_int(v) ? v.payload : dsd_fx_floor(v.payload));
+        return true;
+    }
+    if (dsd_is_real(v)) {
+        *out = v;
+        return true;
+    }
+    int64_t q = (int64_t)v.payload * DSD_FX_ONE;
+    *out = dsd_real(dsd_lo32(q));
+    return dsd_vm_number_status(vm, dsd_fits32(q) ? DSD_NUM_OK : DSD_NUM_OVERFLOW, *out);
+}
+
 // Sets up the frame of `func` at register `base`: parameters already in place, the other registers cleared to
 // undefined so no stale value leaks into `var` declarations. False (R511) when the frame does not fit.
 static bool enter_frame(DsdVm *vm, uint32_t func, uint32_t base) {
@@ -221,6 +325,9 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
         [DSD_OP_JMPT] = &&op_JMPT,       [DSD_OP_JMPF] = &&op_JMPF,       [DSD_OP_CALLN] = &&op_CALLN,
         [DSD_OP_RET] = &&op_RET,         [DSD_OP_CONCAT] = &&op_CONCAT,   [DSD_OP_TOSTR] = &&op_TOSTR,
         [DSD_OP_GETGLOB] = &&op_GETGLOB, [DSD_OP_SETGLOB] = &&op_SETGLOB, [DSD_OP_CALL] = &&op_CALL,
+        [DSD_OP_ADDI] = &&op_ARITHI,     [DSD_OP_SUBI] = &&op_ARITHI,     [DSD_OP_MULI] = &&op_ARITHI,
+        [DSD_OP_NEWARR] = &&op_NEWARR,   [DSD_OP_GETIDX] = &&op_GETIDX,   [DSD_OP_SETIDX] = &&op_SETIDX,
+        [DSD_OP_LEN] = &&op_LEN,         [DSD_OP_TOINT] = &&op_TOINT,     [DSD_OP_TOFIXED] = &&op_TOFIXED,
     };
     const DsdProgram *prog = vm->prog;
     const uint32_t *const code = prog->code;
@@ -428,7 +535,7 @@ op_CONCAT:
         bad_operands(vm, DSD_OP_CONCAT, a, b);
         goto failed;
     }
-    if (!concat(vm, a, b, &RA)) goto failed;
+    if (!dsd_str_concat(vm, a, b, &RA)) goto failed;
     DISPATCH();
 
 op_TOSTR:
@@ -453,6 +560,55 @@ op_SETGLOB: {
     vm->global_set[g >> 3] |= (uint8_t)(1u << (g & 7u));
     DISPATCH();
 }
+
+// ADDI SUBI MULI: rA = rB op C, C a signed 8-bit int. The three follow ADD SUB MUL's numbering (30-32 vs 6-8).
+op_ARITHI: {
+    uint32_t op = DSD_OP(ins) - DSD_OP_ADDI + DSD_OP_ADD;
+    int32_t k = (int8_t)DSD_C(ins);
+    a = RB;
+    if (a.tag == DSD_TAG_INT) {
+        bool ovf = op == DSD_OP_ADD   ? dsd_add_ovf(a.payload, k, &r)
+                   : op == DSD_OP_SUB ? dsd_sub_ovf(a.payload, k, &r)
+                                      : dsd_mul_ovf(a.payload, k, &r);
+        if (!ovf) {
+            RA = dsd_int(r);
+            DISPATCH();
+        }
+    }
+    SYNC_PC();
+    if (!arith_slow(vm, op, a, dsd_int(k), &RA)) goto failed;
+    DISPATCH();
+}
+
+op_NEWARR:
+    SYNC_PC();
+    if (!new_array(vm, &RA, DSD_B(ins))) goto failed;
+    DISPATCH();
+
+op_GETIDX:
+    SYNC_PC();
+    if (!get_index(vm, RB, RC, &RA)) goto failed;
+    DISPATCH();
+
+op_SETIDX:
+    SYNC_PC();
+    if (!set_index(vm, &RA, RB, RC)) goto failed;
+    DISPATCH();
+
+op_LEN:
+    SYNC_PC();
+    if (!length_of(vm, RB, &RA)) goto failed;
+    DISPATCH();
+
+op_TOINT:
+    SYNC_PC();
+    if (!convert(vm, false, RB, &RA)) goto failed;
+    DISPATCH();
+
+op_TOFIXED:
+    SYNC_PC();
+    if (!convert(vm, true, RB, &RA)) goto failed;
+    DISPATCH();
 
 watchdog_fired:
     budget = 0;                     // the post-decrement wrapped it; the frame's budget is spent

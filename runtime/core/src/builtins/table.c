@@ -19,18 +19,43 @@ const DsdBuiltinFn dsd_builtin_fn[DSD_BUILTIN_FUNC_COUNT] = {
     IMPL(max),            IMPL(clamp),      IMPL(lerp),            IMPL(dsin),
     IMPL(dcos),           IMPL(point_distance), IMPL(point_direction), IMPL(lengthdir_x),
     IMPL(lengthdir_y),    IMPL(show_debug_message), IMPL(string),  IMPL(assert),
+    IMPL(real),           IMPL(string_length), IMPL(string_char_at), IMPL(string_upper),
+    IMPL(string_lower),   IMPL(string_repeat), IMPL(chr),            IMPL(ord),
+    IMPL(array_length),   IMPL(array_push),  IMPL(array_pop),        IMPL(array_create),
+    IMPL(array_delete),   IMPL(random),      IMPL(random_range),     IMPL(irandom),
+    IMPL(irandom_range),  IMPL(choose),      IMPL(randomize),
 };
 #undef IMPL
 
 // ---- Shared helpers (bi.h) --------------------------------------------------------------------------------------
 
-bool dsd_bi_want_number(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
-    if (dsd_is_number(args[i])) return true;
+// Raises R542: builtin `bi` needs `expected` but got args[i].
+static bool wrong_kind(DsdVm *vm, uint32_t bi, const char *expected, DsdValue got) {
     DsdText t = dsd_vm_error_begin(vm, DSD_R_BAD_ARGUMENT);
     dsd_text_str(&t, dsd_builtin_info[bi].name);
-    dsd_text_str(&t, " needs a number here, but got ");
-    dsd_text_str(&t, dsd_value_kind(args[i]));
+    dsd_text_str(&t, " needs ");
+    dsd_text_str(&t, expected);
+    dsd_text_str(&t, " here, but got ");
+    dsd_text_str(&t, dsd_value_kind(got));
     return false;
+}
+
+bool dsd_bi_want_number(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
+    return dsd_is_number(args[i]) || wrong_kind(vm, bi, "a number", args[i]);
+}
+
+bool dsd_bi_want_string(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
+    return args[i].tag == DSD_TAG_STR || wrong_kind(vm, bi, "text", args[i]);
+}
+
+bool dsd_bi_want_array(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i) {
+    return args[i].tag == DSD_TAG_ARR || wrong_kind(vm, bi, "a list", args[i]);
+}
+
+bool dsd_bi_arg_int(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, int32_t *out) {
+    if (!dsd_bi_want_number(vm, bi, args, i)) return false;
+    *out = dsd_is_int(args[i]) ? args[i].payload : dsd_fx_floor(args[i].payload);
+    return true;
 }
 
 bool dsd_bi_arg_q12(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, int64_t *q12) {

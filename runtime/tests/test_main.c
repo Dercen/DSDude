@@ -74,6 +74,7 @@ static const Suite SUITES[] = {
     {"number", suite_number},
     {"numfmt", suite_numfmt},
     {"trig", suite_trig},
+    {"heap", suite_heap},
     {"loader", suite_loader},
     {"host", suite_host},
     {"programs", suite_programs},

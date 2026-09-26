@@ -89,6 +89,13 @@
       "hint": "List positions start at 0 and stop at the length minus 1."
     },
     {
+      "code": "R551",
+      "severity": "error",
+      "title": "Not a list",
+      "message": "Can't use {what} on {kind}: it is not a list",
+      "hint": "Make it a list first, for example a = [] or a[0] = 1."
+    },
+    {
       "code": "R560",
       "severity": "error",
       "title": "Out of memory for text and lists",
