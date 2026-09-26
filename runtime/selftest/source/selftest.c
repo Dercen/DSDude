@@ -441,9 +441,9 @@ static void draw_ui(void)
         snprintf(text, sizeof(text), "scanline: n=%d %s", scan_n, scan_mode_names[scan_mode]);
         info(DS_TOP, 0, 3, text, DS_C_AQUA);
         snprintf(text, sizeof(text), "OBJ line cycles: %d", scan_cycles());
-        info(DS_BOTTOM, 0, 0, text, scan_cycles() > 2178 ? DS_C_RED : DS_C_WHITE);
+        info(DS_BOTTOM, 0, 0, text, scan_cycles() > 2178 ? DS_C_RED : scan_cycles() > 2048 ? DS_C_ORANGE : DS_C_WHITE);
         info(DS_BOTTOM, 0, 1, "3DS: 2178 ok, 2208 drops", DS_C_LTGRAY);
-        info(DS_BOTTOM, 0, 2, "warning at 1200 (C13)", DS_C_LTGRAY);
+        info(DS_BOTTOM, 0, 2, "warning at 2048 (C13 0.2.0)", DS_C_LTGRAY);
         info(DS_BOTTOM, 0, 4, "UP/DOWN n+-1  LEFT/RIGHT n+-8", DS_C_GRAY);
         info(DS_BOTTOM, 0, 5, "A: normal/affine/affine2x", DS_C_GRAY);
     }
