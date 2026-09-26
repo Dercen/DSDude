@@ -54,6 +54,18 @@ npx dsdude play fixtures/runtime/dsdb-hello --no-build --emulator melonds       
 `fixtures/runtime/dsdb-hello/nitrofs/game.dsdb` is `fixtures/bytecode/hello.dsda`, assembled by
 `node tools/gen-dsdb.ts`.
 
+## The selftest ROM
+
+`runtime/selftest/` exercises the platform layer without the core (sprites, backgrounds, the UI layer, input,
+maxmod, NitroFS, the log writer, the error box). See `fixtures/runtime/selftest/README.md`.
+
+```powershell
+python runtime/selftest/make_assets.py          # only when its inputs change: GRFs, soundbank, big.bin
+npm run selftest -w runtime                     # build + every screenshot case against its golden
+npm run selftest -w runtime -- --case input     # one case
+npm run selftest -w runtime -- --update         # rewrite the goldens (look at every PNG before committing)
+```
+
 ## Debugging
 
 `arm9-debug.elf` has the symbols: `dsdude play --debug` starts melonDS's GDB stub, then
