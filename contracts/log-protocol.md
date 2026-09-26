@@ -1,6 +1,6 @@
 # C8: Runtime log protocol
 
-Version: 0.1.0 · Owner: WS2 · Changes: see the tiers in contracts/README.md
+Version: 0.2.0 · Owner: WS2 · Changes: see the tiers in contracts/README.md
 
 How the runtime reports to the IDE and the CLI: text lines on the emulator's stdout, captured through a pipe by
 EmulatorManager (C4). Phase-0 draft by WS0; WS2 owns it from the tag (WS0 holds it until `start-ws2`). The runtime
@@ -55,8 +55,74 @@ the buffer.
 
 ## Host runner
 
-`dsdude-host` (WS2) prints the same lines to its stdout, without pads (it flushes), so host traces and emulator logs
-compare line for line after dropping `DSD|PAD|` and `DSD|STAT` lines.
+`dsdude-host` (WS2; `runtime/build-host/dsdude-host`, `.exe` on Windows) runs the portable core headless. It is
+the execution oracle for the compiler (WS4) and the DS port (WS3):
+
+```
+dsdude-host <nitrofs-dir | game.dsdb> [--frames N] [--input keys.txt] [--trace out.jsonl] [--png-dir dir] [--seed N]
+```
+
+- `<nitrofs-dir>` is a build's NitroFS root (`game.dsdb`, `gfx/`, `bg/`, `soundbank.bin`; C3). A path ending in
+  `.dsdb` is served as `game.dsdb` with no other files, which is how program-form fixtures run.
+- **stdout** carries the same lines as the emulators, LF-only on every host, without `DSD|PAD|` lines (the host
+  flushes instead). Host output and emulator logs compare line for line after dropping `DSD|PAD|` and `DSD|STAT`
+  lines. Nothing else is written to stdout; usage and file problems go to stderr.
+- **Exit status:** 0 when the game ended (`DSD|EXIT`) or ran its `--frames`; 1 after a runtime error (`DSD|ERR`); 2
+  for a usage or file error (stderr names it).
+- `--seed N` is what the platform's `dsd_plat_rng_seed()` returns; a non-zero DSDB header seed still wins (C2,
+  C11). Every scripted run passes it.
+- `--frames N` runs N frames of a room game. A program-form DSDB runs `__main` once and ignores it.
+- In `DSD|ERR`, a field with no value is empty: program form has no object, so its errors read
+  `DSD|ERR|R530||__main|<file>|<line>|<message>`, the event field holding the function; load errors read
+  `DSD|ERR|R58x|||game.dsdb|0|<message>`.
+
+### Key scripts (`--input`)
+
+One line per change of input, `<frame> <spec>`, with frames (0-based) strictly increasing; the input holds from that
+frame until the next line, and nothing is held before the first line. `spec` is `-` (nothing held, stylus up) or
+`+`-joined parts: key names (`a b x y l r start select up down left right`, the `btn_*` names without `btn_`) and at
+most one touch `T<x>,<y>` in bottom-screen pixels (x 0-255, y 0-191). Blank lines and lines starting with `#` are
+ignored; spaces or tabs separate the two fields; CRLF is accepted. A malformed line is a usage error (exit 2) that
+names its line number. WS1's `dsdude screenshot --keys` reads the same format.
+
+```
+# flap, fly right, tap the screen
+0 -
+30 a
+32 a+right
+40 T128,96
+41 -
+```
+
+### Traces (`--trace`)
+
+JSON Lines, written with LF endings: **one object per frame**, emitted after the frame's Draw events, with the keys
+in exactly this order and **integers only** (no floats, no strings), so traces compare byte for byte:
+
+```
+{"frame":0,"keys":1,"touch":0,"tx":0,"ty":0,"room":0,"rng":270369,"ops":532,"inst":[[100001,0,65536,40960,0,3,0,1,0]]}
+```
+
+| Key | Value |
+|---|---|
+| `frame` | 0-based frame index |
+| `keys` | buttons held this frame: bit n is the button whose `btn_*` constant is n |
+| `touch`, `tx`, `ty` | 1 and the stylus position while touching, else `0,0,0` |
+| `room` | ROOM index at the end of the frame (after a pending room change took effect) |
+| `rng` | xorshift32 state at the end of the frame (unsigned) |
+| `ops` | VM steps run this frame (the watchdog's count) |
+| `inst` | live instances in creation order, each `[id, object, x, y, screen, sprite, image, visible, depth]` |
+
+In `inst`, `object` is the OBJS index, `x`, `y` and `image` (`image_index`) are Q20.12 raw values (value x 4096,
+whatever the script's representation), `sprite` is the ASET index or -1, `screen` 0 top / 1 bottom, `visible` 0/1.
+A program-form DSDB runs no frames, so its trace file is empty. New keys are T1 and only ever appended at the end of
+the object; consumers compare whole lines.
+
+### Screens (`--png-dir`)
+
+From tier v4 (rooms and draw): after the last frame, the runner writes that frame's screens as `top.png` and
+`bottom.png` (256x192, 8-bit RGB) into the directory, creating it if needed; the same frame `dsdude screenshot
+--frames N` captures on an emulator. Until then the option is accepted and writes nothing.
 
 ## How to change me
 

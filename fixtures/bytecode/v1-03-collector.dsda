@@ -1,0 +1,68 @@
+.dsda 0.1
+.seed 0
+.global keep
+
+.func __main 0 5
+    .loc "v1/03-collector.dss" 1
+    LOADK r0, ""
+    LOADI r1, 0
+  L0:
+    LOADI r2, 3000
+    LT r2, r1, r2
+    JMPF r2, L1
+    MOV r0, r1
+    TOSTR r0, r0
+    ADDI r1, r1, 1
+    JMP L0
+  L1:
+    .loc "v1/03-collector.dss" 2
+    MOV r2, r0
+    CALLN r2, 1, show_debug_message
+    .loc "v1/03-collector.dss" 3
+    NEWARR r2, 0
+    SETGLOB r2, keep
+    LOADI r1, 0
+  L2:
+    LOADI r2, 500
+    LT r2, r1, r2
+    JMPF r2, L3
+    GETGLOB r2, keep
+    LOADK r3, "item"
+    MOV r4, r1
+    TOSTR r4, r4
+    CONCAT r3, r3, r4
+    CALLN r2, 2, array_push
+    ADDI r1, r1, 1
+    JMP L2
+  L3:
+    .loc "v1/03-collector.dss" 4
+    LOADI r1, 0
+  L4:
+    LOADI r2, 20000
+    LT r2, r1, r2
+    JMPF r2, L5
+    LOADK r2, "x"
+    LOADI r3, 100
+    CALLN r2, 2, string_repeat
+    ADDI r1, r1, 1
+    JMP L4
+  L5:
+    .loc "v1/03-collector.dss" 5
+    GETGLOB r2, keep
+    CALLN r2, 1, array_length
+    CALLN r2, 1, show_debug_message
+    .loc "v1/03-collector.dss" 6
+    GETGLOB r2, keep
+    LOADI r3, 499
+    GETIDX r2, r2, r3
+    CALLN r2, 1, show_debug_message
+    .loc "v1/03-collector.dss" 7
+    GETGLOB r2, keep
+    LOADI r3, 0
+    GETIDX r3, r2, r3
+    LOADI r4, 250
+    GETIDX r4, r2, r4
+    CONCAT r3, r3, r4
+    CALLN r3, 1, show_debug_message
+    RET r0, 0
+.end

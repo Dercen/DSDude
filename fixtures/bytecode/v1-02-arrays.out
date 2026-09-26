@@ -1,0 +1,17 @@
+DSD|READY|0.1.0|0dd9987a
+DSD|LOG|[1, 2, 3]
+DSD|LOG|2
+DSD|LOG|[1, 2, 3, 0, 0, 9]
+DSD|LOG|6
+DSD|LOG|100
+DSD|LOG|[100, 2, 3, 0, 0, 9, 7, 8]
+DSD|LOG|8
+DSD|LOG|[100, 0, 0, 9, 7]
+DSD|LOG|[[1, 2], [x, true]]
+DSD|LOG|x
+DSD|LOG|[0, 0, z]
+DSD|LOG|[0.5, 0.5, 0.5]
+DSD|LOG|false
+DSD|LOG|true
+DSD|LOG|0
+DSD|EXIT|0

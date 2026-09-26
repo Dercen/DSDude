@@ -44,6 +44,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C8 Log protocol (`contracts/log-protocol.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): READY/LOG/ERR/MEM/STAT/PAD/EXIT lines, one protocol from 0x04FFFA00, >= 5 KB flush pad.
+- 0.2.0 (2026-09-26, WS2, T1): "Host runner" section: dsdude-host command line (a `.dsdb` path as the root), LF-only stdout, exit codes 0/1/2, empty ERR fields in program form and load errors, the `--input` key-script format, the `--trace` JSONL schema (one integer-only object per frame, fixed key order), and `--png-dir` (from tier v4).
 
 ## C8 Runtime artifact (`contracts/runtime-artifact.md`)
 - owed: WS3, with its first runtime/dist build.
@@ -52,6 +53,8 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.
 - 0.1.0 T0 (2026-09-26, WS4): compiler catalog `packages/compiler/src/diagnostics/catalog.ts` started: E101-E129 (syntax), W030, W032.
+- R5xx catalog 0.1.0 (2026-09-26, WS2, T0): `runtime/core/diagnostics/catalog.json` created with R500-R590 (sub-ranges R50x variables, R51x runaway scripts, R52x number range, R53x division and roots, R54x wrong kinds of value, R55x lists, R56x memory, R58x the game file, R59x script checks).
+- R5xx catalog (2026-09-26, WS2, T0): R551 "Not a list" ([] or a length on a value that is not a list).
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
@@ -62,6 +65,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C11 Platform seam (`runtime/core/include/dsd_platform.h`)
 - owed: WS2, by CP-A.
+- 0.1.0 (2026-09-26, WS2, publication; frozen at CP-A): lifecycle and frame (`dsd_plat_init/frame_begin/frame_end/read_input` with `dsd_input`), files (`dsd_plat_read_file`), C8 output (`dsd_plat_log`, `dsd_plat_log_flush` for the DS pad), `dsd_plat_fatal` (`dsd_fatal`), `dsd_plat_mem_report`, sprites/backgrounds/shadow OAM (`dsd_sprite_info`, `dsd_oam_entry`, `dsd_affine`), UI layer, sound (incl. `dsd_plat_music_active`), room-load primitives (`dsd_plat_screens_blank`, `dsd_plat_assets_free`, `dsd_plat_sfx_load`, `dsd_plat_music_load`), `dsd_plat_millis`, `dsd_plat_rng_seed`, and the `DSD_ITCM_CODE`/`DSD_DTCM_DATA`/`DSD_DTCM_BSS` placement macros (libnds section names under `ARM9`, empty on the host).
 
 ## C12 EditorPanel host API + preview API (`apps/ide/src/renderer/panels/api.ts`, `packages/asset-pipeline/src/preview.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): preview types (`PreviewSpriteFn`, `SpritePreview`). Panel API + mock-host owed by WS6 (CP-A).
