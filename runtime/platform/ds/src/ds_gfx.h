@@ -47,10 +47,14 @@ void ds_obj_reset(int screen);
 // Bytes in use on a screen (padded).
 uint32_t ds_obj_used(int screen);
 
-// Uploads a sprite sheet GRF (frames stacked vertically, width = frame width) for frames of w x h pixels to the
-// screen's OBJ VRAM, each frame at a 128-byte-aligned offset. Returns false when the size is not a DS sprite
-// size or OBJ VRAM is full. The GRF's palette is not touched: see ds_obj_palette.
-bool ds_obj_upload(int screen, const ds_grf *g, int w, int h, ds_sprite *out);
+// True when w x h is one of the 12 OBJ sizes.
+bool ds_obj_is_size(int w, int h);
+
+// Uploads `frames` frames of w x h pixels (0: as many as the GRF holds) from a sprite sheet GRF (frames stacked
+// vertically, width = frame width) to the screen's OBJ VRAM, each frame at a 128-byte-aligned offset. Returns false
+// when w x h is not an OBJ size, the GRF has fewer frames, or OBJ VRAM is full. The palette is not touched: see
+// ds_obj_palette.
+bool ds_obj_upload(int screen, const ds_grf *g, int w, int h, int frames, ds_sprite *out);
 
 // The VRAM address of a sprite frame (oamSet's gfxOffset).
 const void *ds_obj_frame_ptr(int screen, const ds_sprite *s, int frame);
