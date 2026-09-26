@@ -449,8 +449,21 @@ static bool enter_frame(DsdVm *vm, uint32_t func, uint32_t base) {
 
 // Runs from `func` at register `base` until the entry frame returns (DSD_R_NONE), HALT runs (DSD_R_NONE with
 // vm->halted), or an error is raised (its code). The entry frame is already set up by enter_frame.
+//
+// Dispatch cost on the ARM946E-S (WS3's M1 benchmark): the handler table used to be a `static const` array, which
+// GCC places in .rodata (main RAM), and its address came from a literal pool at every dispatch, so each opcode paid
+// two main-RAM loads before the jump. Now the table lives in DTCM (C11 DSD_DTCM_DATA: one-cycle loads), filled once
+// from the .rodata initialiser (label addresses exist only inside run(), so it cannot be initialised statically),
+// and its base is held in a register for the whole run (see dispatch_base below).
+static const void *g_dispatch[DSD_OPCODE_COUNT] DSD_DTCM_DATA;
+
+// Keeps `p` in a register (or a DTCM stack slot) across the handlers: the empty asm hides where the value came
+// from, so the compiler cannot re-materialise it from a literal pool at each use. No code is emitted.
+#define DSD_OPAQUE(p) __asm__("" : "+r"(p))
+
 DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
-    // One label per opcode number; unimplemented numbers never reach dispatch (the loader refuses them).
+    // One label per opcode number; unimplemented numbers never reach dispatch (the loader refuses them). This is
+    // only the initialiser of g_dispatch, copied on the first run (HALT's slot is never empty once filled).
     static const void *const labels[DSD_OPCODE_COUNT] = {
         [DSD_OP_HALT] = &&op_HALT,       [DSD_OP_MOV] = &&op_MOV,         [DSD_OP_LOADK] = &&op_LOADK,
         [DSD_OP_LOADI] = &&op_LOADI,     [DSD_OP_LOADB] = &&op_LOADB,     [DSD_OP_LOADUNDEF] = &&op_LOADUNDEF,
@@ -472,6 +485,9 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
         [DSD_OP_WITHBEGIN] = &&op_WITHBEGIN, [DSD_OP_WITHNEXT] = &&op_WITHNEXT, [DSD_OP_WITHEND] = &&op_WITHEND,
         [DSD_OP_CMPJ] = &&op_CMPJ,
     };
+    if (g_dispatch[DSD_OP_HALT] == NULL) memcpy(g_dispatch, labels, sizeof labels);
+    const void *const *dispatch_base = g_dispatch;
+    DSD_OPAQUE(dispatch_base);
     const DsdProgram *prog = vm->prog;
     const uint32_t *const code = prog->code;
     const DsdValue *const kons = prog->kons;
@@ -489,7 +505,7 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     do {                                                                                                               \
         if (budget-- == 0) goto watchdog_fired;                                                                        \
         ins = *ip++;                                                                                                   \
-        goto *labels[DSD_OP(ins)];                                                                                     \
+        goto *dispatch_base[DSD_OP(ins)];                                                                              \
     } while (0)
 // Record the running instruction's code index for errors and builtins (ip already points past it).
 #define SYNC_PC() (vm->pc = (uint32_t)(ip - 1 - code))
