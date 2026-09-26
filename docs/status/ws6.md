@@ -27,8 +27,36 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
     - Rollup warns about zod 4.6.5 `@__PURE__` comment placement while bundling the preload; this is harmless.
 - Electron: `node_modules\electron\path.txt` was present after the worktree `npm install` (no manual `install-electron`).
 
+- **Task 2: C5 IPC 0.2.0: done (2026-09-26).** T1 bump with a CHANGELOG line; the stub narrowings are listed there for WS0's review.
+  - `packages/ipc-contract`:
+    - One zod schema per channel. The whole C1 `Project` crosses IPC (`ProjectSchema`).
+    - `SettingsSchema` is typed, and `controls` defaults to the PLAN Controls mapping.
+    - `assets.preview` returns C12 `SpritePreview` (a `Uint8Array`) for an existing sprite or an import source.
+    - `build.progress` carries a C4 `BuildPhase`.
+    - New channels: `settings.getAll` and `dialog.open`.
+    - Compile-time links (`tsc -b`) to C1 `Project`, C4 `BuildRequest`/`BuildResult`/`BuildPhase` and C12 `SpritePreview`.
+  - `dispatch.ts` (Electron-free):
+    - `dispatchInvoke` validates the request, runs the handler and validates the response.
+    - `validateEvent` checks event payloads.
+    - `createLocalBridge` provides the same bridge without Electron, for the mock host and tests.
+    - `parseIpcError` handles the `[code]` error prefix (`unknown-channel`, `bad-sender`, `bad-request`, `bad-response`, `not-implemented`).
+  - Tests: one valid request/response plus one invalid request per invoke channel, a valid/invalid payload per event (a missing sample is a type error), `samples/flappy` round-trips through `ProjectSchema` unchanged, and 55 tests in all.
+  - `apps/ide` main:
+    - `registerIpc` checks the sender (main frame of a tracked IDE window on a trusted origin) before the schema, for every channel.
+    - `createEventSender` validates event payloads before sending them.
+    - `SettingsStore` writes `userData\settings.json` atomically and keeps valid fields of a damaged file.
+    - Core handlers: `project.open`/`project.save` over `@dsdude/project-format/node`, `settings.*` and `dialog.open`.
+    - Build, emulator, assets, toolchain and doctor answer `[not-implemented]` until task 3 (worker + MockBuildService) and task 5 (real BuildService).
+  - Renderer: `src/renderer/ipc.ts`, a typed client that re-validates events in dev builds; `setBridge` lets the mock host inject a bridge.
+  - `tests/ipc.spec.ts` (`_electron`, green) covers:
+    - settings persisting to `DSDUDE_HOME\userData\settings.json`;
+    - `samples/flappy` opening through the real preload;
+    - bad requests, unknown channels and unimplemented channels being refused with their codes.
+  - The preload bundle still `require`s only `electron`.
+- **Lockfile:** `packages/ipc-contract/package.json` now depends on `@dsdude/asset-pipeline` (for the type-only C12 link). WS0: please regenerate `package-lock.json` at the next integration. Nothing breaks without it, because the workspace link already exists.
+
 ## Next
-- Task 2: C5 IPC: complete the schemas, main-side handler registry with sender + schema validation, `contracts/ipc.md` bump.
+- Task 3: zustand store over project-format, dockview layout (project tree, editor tabs, Output, Problems), build worker + EmulatorManager host, Play/Stop against `MockBuildService`.
 
 ## Leftovers / ADR-pending
 - None.

@@ -4,15 +4,38 @@
  */
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { app, BrowserWindow, net, protocol, session } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  type IpcMainInvokeEvent,
+  ipcMain,
+  net,
+  protocol,
+  session,
+  type WebContents,
+} from "electron";
+import { createCoreHandlers } from "./handlers.ts";
+import { createEventSender, registerIpc, type SendEvent } from "./ipc.ts";
 import { APP_ORIGIN, APP_SCHEME, resolveAppUrl } from "./protocol.ts";
 import { isDockviewPopout, isTrustedRendererUrl } from "./security.ts";
+import { SettingsStore } from "./settings.ts";
 
 const devServerUrl = process.env.ELECTRON_RENDERER_URL;
 const rendererDir = join(__dirname, "../renderer");
 
 // Per-worktree state: userData under DSDUDE_HOME, never DSDUDE_HOME itself (it also holds emulators\ and build\).
 if (process.env.DSDUDE_HOME) app.setPath("userData", join(process.env.DSDUDE_HOME, "userData"));
+
+/** webContents of the IDE windows (and their dockview popouts): the only trusted IPC senders and event targets. */
+const appContents = new Set<WebContents>();
+function track(wc: WebContents): void {
+  appContents.add(wc);
+  wc.once("destroyed", () => appContents.delete(wc));
+}
+
+/** Sends a validated C5 event to every IDE window (build log, emulator log, project changes). */
+export const sendEvent: SendEvent = createEventSender(() => appContents);
 
 protocol.registerSchemesAsPrivileged([
   { scheme: APP_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -33,6 +56,8 @@ function createWindow(): BrowserWindow {
       webSecurity: true,
     },
   });
+  track(win.webContents);
+  win.webContents.on("did-create-window", (child) => track(child.webContents));
   win.once("ready-to-show", () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) =>
     isDockviewPopout(url, devServerUrl) ? { action: "allow" } : { action: "deny" },
@@ -62,6 +87,16 @@ app.whenReady().then(() => {
   });
   // No permission (camera, notifications, ...) is ever granted to the renderer.
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+  registerIpc(
+    ipcMain,
+    createCoreHandlers({ settings: new SettingsStore(join(app.getPath("userData"), "settings.json")), dialog }),
+    (event: IpcMainInvokeEvent) => ({
+      url: event.senderFrame?.url ?? null,
+      isMainFrame: !!event.senderFrame && event.senderFrame.parent === null,
+      isAppWindow: appContents.has(event.sender),
+    }),
+    devServerUrl,
+  );
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
