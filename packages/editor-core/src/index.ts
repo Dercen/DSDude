@@ -7,6 +7,7 @@ export * from "./color.ts";
 export * from "./history.ts";
 export * from "./pixels.ts";
 export * from "./room.ts";
+export * from "./sound.ts";
 export * from "./sprite.ts";
 
 export const packageName = "@dsdude/editor-core";

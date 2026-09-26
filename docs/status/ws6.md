@@ -269,10 +269,39 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - **Editor-saved room for WS0: `fixtures/editors/flappy-rm_game/room.json`.** A browser test empties rm_game (rubber band + Delete) and rebuilds it with the mouse. The saved `room.json` is byte-identical to the sample's (the DoD round trip). One `obj_pipe` is then added, and the result is the fixture (written when missing, compared otherwise). I built it: flappy with this room gives `dsdude build` a ROM, and `dsdude screenshot --frames 20` shows the bird, the score and the pipe.
   - Tests: editor-core 20; browser 20 (room 5: place + undo, paint 16 invisible walls in one step then erase one, the 129th-sprite red meter, rm_game with the mouse + round trip, and an fps report of 25 fps in headless software WebGL); node 94; Playwright 14 (`room-editor.spec.ts` enforces 55+ fps panning a 1024x512 room with 200 instances at 4x: measured 60; full suite green). Screenshots checked.
 
+- **2026-09-26: merged `main` (checkpoint-18, `a518f8e`). IF-1 was resolved by WS0 without a fix. As a precaution, `vitest.browser.config.ts` now pre-bundles `pixi.js` and `pixi.js/unsafe-eval` (66ffaa3).**
+- **Task 7, batch C, the background editor and the sound panel: done.**
+  - `packages/editor-core/src/background.ts`:
+    - loads a background as a one-frame document through the pipeline's own 256-colour quantisation (the C12 preview in "256" mode);
+    - computes its padded text-BG size, its unique 8x8 tiles merged across flips, and VRAM;
+    - finds the "one-off" tiles.
+    - Tile counts and VRAM equal `convertBackground`'s on the Phase-0 background, and its E406 figure on a picture over 1024 tiles.
+  - `apps/ide/src/renderer/editors/background/`: the sprite editor's view in a new background variant (the `SpriteEditor` export), so every drawing tool and undo carry over.
+    - No animation strip or onion skin; tile lines from 2x zoom; 255 colours.
+    - Meters under the palette: "Tiles: n/1024" and "Size: WxH" (red past the limits, with a plain hint; grit/VRAM terms in tooltips), plus a "One-off tiles" overlay.
+    - Save writes a DS indexed PNG over the background's file.
+  - `packages/editor-core/src/sound.ts`:
+    - WAV info; reads, writes and removes the `smpl` loop, copying every other chunk byte for byte;
+    - `dsLoop`, the pipeline's scaleLoop (22050 Hz cap, floor, under 16 samples dropped);
+    - waveform peaks.
+    - It duplicates the pipeline's small `smpl` reader, because `@dsdude/asset-pipeline/browser` does not export the sound helpers (a possible WS5 export later).
+  - `apps/ide/src/renderer/editors/sound/`, the sound panel:
+    - the kind (effect/music; one undo step);
+    - a waveform decoded at the file's own rate, and Listen/Stop, looping over the loop;
+    - for WAV effects, loop points set by dragging on the wave or typing, one undo step each, with the DS loop shown ("On the DS: loops samples 500..4500 at 22050 Hz") and a red "too short to loop on the DS" under 16 samples;
+    - save rewrites the WAV's `smpl` chunk.
+    - MP3 effects and music modules get a plain note instead of loop points.
+    - New sounds still come in through the import dialog (task 6h).
+  - Tests:
+    - editor-core 27; node 94.
+    - Browser 24: background 2 (the tile meter follows a line, undo, save; the over-limit meters) and sound 2 (drag, type and undo the loop, the 16-sample warning, save into `smpl`, Listen/Stop, remove the loop; a music module).
+    - Playwright 14: the import test opens the imported sound in the panel; the full suite passes; room 60 fps.
+    - Screenshots checked.
+
 ## Next
 - Task 6: done.
 - CP-A (2026-09-28): the C12 panel API and mock host freeze; WS0 runs the e2e suite locally.
-- Task 7 continues: batch C the background editor + sound panel, batch D in-editor meters.
+- Task 7 continues: batch D, the live meters inside the editors (C13 + `assets.manifest.json`).
 - Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 

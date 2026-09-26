@@ -1021,6 +1021,50 @@ canvas.pixelated {
   opacity: 1;
 }
 
+.sound-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+}
+
+.sound-info {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.sound-wave {
+  display: block;
+  width: min(720px, calc(100% - 32px));
+  height: 120px;
+  margin: 16px;
+  background: #151515;
+  border: 1px solid #333;
+  cursor: col-resize;
+}
+
+.sound-note,
+.sound-loop {
+  margin: 0 16px 12px;
+  font-size: 13px;
+}
+
+.sound-loop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sound-loop input[type="number"] {
+  width: 90px;
+}
+
+.sound-ds {
+  width: 100%;
+  margin: 4px 0 0;
+}
+
 .bg-meters {
   width: 100%;
   margin-top: 10px;
@@ -1105,7 +1149,9 @@ canvas.pixelated {
   outline: none;
 }
 
-.room-editor select {
+.room-editor select,
+.sound-panel select,
+.sound-panel input[type="number"] {
   background: #3c3c3c;
   border: 1px solid #45494e;
   border-radius: 3px;
