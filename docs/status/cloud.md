@@ -10,8 +10,8 @@ its own `docs/status/wsN.md`; WS0 then updates its line here.
 
 ## Streams
 
-- WS2: environment `dsdude-ws2`; session https://claude.ai/code/session_01UQP5ApgJ5KffdkvUkBKc2A (opened on `main`; start.sh adopts the stream line); push target `ws2-runtime-core`; started 2026-09-25 (`start-ws2` at 57efe6c); last merged ded8080 (2026-09-26)
-- WS4: environment `dsdude-ws4`; session https://claude.ai/code/session_012JYcY9ehVdLYuqmugJcqmm (opened on `main`; start.sh adopts the stream line); push target `ws4-compiler`; started 2026-09-25 (`start-ws4` at 57efe6c); last merged e899c34 (2026-09-26)
+- WS2: environment `dsdude-ws2`; session https://claude.ai/code/session_01UQP5ApgJ5KffdkvUkBKc2A (opened on `main`; start.sh adopts the stream line); push target `ws2-runtime-core`; started 2026-09-25 (`start-ws2` at 57efe6c); last merged 3172853 (2026-09-26)
+- WS4: environment `dsdude-ws4`; session https://claude.ai/code/session_012JYcY9ehVdLYuqmugJcqmm (opened on `main`; start.sh adopts the stream line); push target `ws4-compiler`; started 2026-09-25 (`start-ws4` at 57efe6c); last merged 8cbe933 (2026-09-26)
 - WS5: environment `dsdude-ws5`; session https://claude.ai/code/session_01GkN34Fn94o6GRuzGiXK4EW (opened on `ws5-assets`); push target `ws5-assets`; started 2026-09-26 (`start-ws5`, early: all its inputs were on main and it is on the CP-B/M2 critical path); last merged 8dc1314 (2026-09-26)
 
 Not yet launched: WS7 (CP-A, D+3), WS6b (CP-B, D+7, if usage limits allow).

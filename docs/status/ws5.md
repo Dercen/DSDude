@@ -29,3 +29,4 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
 - None yet.
 
 ## Integration feedback
+- IF-1 2026-09-26 checkpoint-4 @83d3eed: merge failed: `git merge --no-ff origin/ws5-assets` -> Auto-merging contracts/CHANGELOG.md / CONFLICT (content): Merge conflict in contracts/CHANGELOG.md / Automatic merge failed; fix conflicts and then commit the result.. Action: merge origin/main into your branch (after git restore package-lock.json), resolve the conflict, and push.
