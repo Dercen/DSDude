@@ -69,7 +69,7 @@ export interface BuiltinsEnv {
   functionIndex: ReadonlyMap<string, number>;
   /**
    * Builtin variable names by dense runtime index (variable entries in id order, DSD_BUILTIN_VARS): the
-   * `bivar` operand of GETBI/SETBI/GETBIX/SETBIX/GETBIO/SETBIO (ADR-0003).
+   * `bivar` operand of GETBI/SETBI/GETBIX/SETBIX/GETBIO/SETBIO (ADR-0005).
    */
   variables: readonly string[];
   variableIndex: ReadonlyMap<string, number>;

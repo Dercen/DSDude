@@ -225,7 +225,7 @@ describe("helpers", () => {
   });
 });
 
-describe("ADR-0003 operand kinds: sym and bivar", () => {
+describe("ADR-0005 operand kinds: sym and bivar", () => {
   const TEXT = `.dsda 0.1
 .seed 0
 .symbol score

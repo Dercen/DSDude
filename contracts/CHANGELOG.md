@@ -14,6 +14,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C2 opcodes (`contracts/opcodes.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): 29 stable opcodes (0-28), 22 provisional (29-50), 4 reserved int-specialised (51-54).
 - 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): operand kinds `sym` (GETDYN/SETDYN C) and `bivar` (GETBI/SETBI Bx); new provisional GETBIX/SETBIX (55-56, builtin array variables) and GETBIO/SETBIO (57-58, builtin variables of another instance); stated meanings for WITHBEGIN/WITHNEXT/WITHEND, NEWARR and SETIDX; runtime/gen/opcodes.h and packages/dsdb/src/gen/opcodes.ts regenerated.
+- 0.2.0 T0 (2026-09-26, WS4): WS0 renumbered the opcode-operands ADR from 0003 to **ADR-0005** (co-signed by WS2); the "ADR-0003" in the two WS4 lines of 2026-09-26 above (C2 container and opcodes) means ADR-0005.
 
 ## C2 builtins (`contracts/builtins.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): ids 0-84 the 85 section-4 functions, 85-116 instance variables, 117-124 globals, 125-142 constants; ABI hash 0x0dd9987a; docs for the 30 builtins the samples use, TODO(WS7) elsewhere.

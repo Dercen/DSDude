@@ -148,8 +148,8 @@ bits 16-31 signed. `contracts/opcodes.json` gives each opcode's number, status a
 | `builtin` | dense runtime index of a builtin function (C) | the builtin's name |
 | `global` | GLOB index (Bx) | the global's name |
 | `func` | FUNC index (Bx) | the function's name |
-| `sym` | SYMS index (C, 8 bits; ADR-0003) | the symbol's name |
-| `bivar` | dense builtin-variable index (`DSD_BUILTIN_VARS` order; ADR-0003) | the variable's name |
+| `sym` | SYMS index (C, 8 bits; ADR-0005) | the symbol's name |
+| `bivar` | dense builtin-variable index (`DSD_BUILTIN_VARS` order; ADR-0005) | the variable's name |
 
 **The 29 stable opcodes** (numbers 0-28): HALT, MOV, LOADK, LOADI, LOADB, LOADUNDEF, ADD, SUB, MUL, DIV, IDIV, MOD,
 NEG, EQ, NE, LT, LE, GT, GE, NOT, JMP, JMPT, JMPF, CALLN, RET, CONCAT, TOSTR, GETGLOB, SETGLOB. Numbers 29-50 are
