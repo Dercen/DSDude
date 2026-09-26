@@ -161,10 +161,28 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     temporaries and writes its destination last. Only v0/04's golden moved (`IDIV r3, r3, r5`); host tests green
     (115,906 checks).
 
+- **GameMaker names (builtins.json 0.3.0, WS0 relay main a4276e7), 2026-09-26:** `codegen/gamemaker.ts` rewrites
+  each function body (a copy; the language service's tree is untouched) before code generation.
+  - Aliases (ids 159-169) compile as their target with the `argMap` arguments only, plus **W060** ("{name} is a
+    GameMaker name, so DSDude reads it as {target}.", hint = the entry's note): `keyboard_check(vk_left)` compiles
+    byte-for-byte like `button_check(btn_left)`, `instance_create_layer(x, y, layer, obj)` like
+    `instance_create(x, y, obj)`.
+  - Unsupported names (ids 170-202) are **E207** (message = the entry's message, hint = the manual link) and become
+    an error placeholder, so no E201/E202 follows. Exact names match reads, writes (the assignment is dropped) and
+    `obj.name`; prefix families (`ds_list_*`) match only calls, so a variable such as `file_name` stays legal.
+  - The project's own names win: locals and parameters, user functions, and (for aliases) instance variables the
+    project assigns.
+  - C7: hover and signature help show an alias as its target, with the note as its doc.
+  - Tests: `src/gamemaker.test.ts`, three new beginner mistakes (E207 x2, W060; `fixtures/compiler/mistakes.json`),
+    a host hover test; CHANGELOG C9 line for E207/W060. No golden moved.
+  - **For WS0:** the prefix entries' messages in builtins.json read "ds_list functions are isn't available ..."
+    (ids 189-202: "are isn't"); they surface verbatim in E207, so they need rewording (a T0 doc change on your file).
+  - Not covered: an alias inside a user function's default parameter value (`function f(k = vk_left)`) is still an
+    unknown name; rare, left until someone hits it.
+
 ## Next
 
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).
-- Blocked on WS0: `alias`/`unsupported` builtins.json entries (E207 for unsupported GameMaker names).
 
 ## Goldens (tier status)
 

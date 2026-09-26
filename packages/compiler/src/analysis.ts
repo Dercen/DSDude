@@ -7,7 +7,7 @@
  * and inherited functions, instance variable, builtin variable, global functions, builtin functions, constants,
  * assets. Offsets are UTF-16 code units, ranges half-open.
  */
-import { builtinConstants, builtinFunctions, builtinVariables } from "./codegen/builtins.ts";
+import { builtinAliases, builtinConstants, builtinFunctions, builtinVariables } from "./codegen/builtins.ts";
 import type { AssetNameKind } from "./codegen/env.ts";
 import type { CodeUnit, ObjectEntry, ProjectIndex, SourceLocation, SourceText } from "./project-index.ts";
 import type { Expr, FunctionDecl, Span, Stmt } from "./syntax/ast.ts";
@@ -186,7 +186,7 @@ export class Analysis {
     if (call) {
       if (user !== null)
         return this.userFunctionSymbol(name, user.decl, user.file, owner !== null && user.funcName !== name);
-      return builtin === undefined ? null : this.builtinFunctionSymbol(name);
+      return builtin === undefined ? this.aliasSymbol(name, true) : this.builtinFunctionSymbol(name);
     }
     const constant = builtinConstants.get(name);
     if (constant !== undefined) return plain(name, "constant", `${name} = ${constant.value}`);
@@ -195,10 +195,13 @@ export class Analysis {
     if (asset !== undefined) return plain(name, asset, asset);
     const ivar = this.instanceVariable(scope.self, name, scope.unit !== null && this.index.hasInstance);
     if (ivar !== null) return ivar;
+    const alias = this.aliasSymbol(name, false);
+    if (alias !== null) return alias;
     if (user !== null)
       return this.userFunctionSymbol(name, user.decl, user.file, owner !== null && user.funcName !== name);
     if (builtin !== undefined) return this.builtinFunctionSymbol(name);
-    return null;
+    // A GameMaker function name written without brackets (hovering it by name) still shows what it maps to.
+    return this.aliasSymbol(name, true);
   }
 
   /** `object.name`: a builtin variable, a slot of a known object, or a variable some instance has. */
@@ -279,6 +282,25 @@ export class Analysis {
       ...(variadic ? ["..."] : []),
     ];
     return { ...plain(name, "builtinFunction", `${name}(${text.join(", ")}): ${f.returns}`), params, variadic };
+  }
+
+  /**
+   * A GameMaker alias (builtins.json `alias` entries): shown as the DSDude builtin it compiles to, with the alias
+   * note as its doc. Null when `name` is not an alias of the wanted kind (a function when `call`, else a constant).
+   */
+  private aliasSymbol(name: string, call: boolean): SymbolInfo | null {
+    const alias = builtinAliases.get(name);
+    if (alias === undefined) return null;
+    const constant = builtinConstants.get(alias.aliasOf);
+    const target = call
+      ? builtinFunctions.has(alias.aliasOf)
+        ? this.builtinFunctionSymbol(alias.aliasOf)
+        : null
+      : constant === undefined
+        ? null
+        : plain(alias.aliasOf, "constant", `${alias.aliasOf} = ${constant.value}`);
+    if (target === null) return null;
+    return { ...target, name, detail: `GameMaker name for ${target.detail}`, doc: alias.note };
   }
 
   private builtinVariableSymbol(name: string): SymbolInfo {

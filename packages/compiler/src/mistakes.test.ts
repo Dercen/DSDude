@@ -54,6 +54,14 @@ const MISTAKES: Mistake[] = [
   { title: "touch event on the top screen", stem: "touch_pressed", code: "x = 0;\n", expected: "W031" },
   { title: "misspelt event file", stem: "stepp", code: "x = 0;\n", expected: "E308" },
   { title: "a word DSS uses as a name", stem: "step", code: "var if = 3;\n", expected: "E126" },
+  { title: "a GameMaker function the DS lacks", stem: "draw", code: "draw_set_alpha(0.5);\n", expected: "E207" },
+  { title: "a GameMaker data structure", stem: "create", code: "list = ds_list_create();\n", expected: "E207" },
+  {
+    title: "a GameMaker keyboard check",
+    stem: "step",
+    code: "if (keyboard_check(btn_left)) x -= 2;\n",
+    expected: "W060",
+  },
 ];
 
 /** Compiles one mistake inside a small project: obj_player (spr_player) and obj_enemy with a helper. */
