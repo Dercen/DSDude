@@ -33,12 +33,12 @@ export const FAKE_SONG_BYTES = 400;
  * An MSL image with `samples` effect samples and `songs` songs of fixed sizes; each song uses no bank sample. The
  * layout is the one src/sound/soundbank.ts reads.
  */
-export function fakeSoundbank(samples: number, songs: number): Uint8Array {
+export function fakeSoundbank(samples: number, songs: number, sampleBytes = FAKE_SAMPLE_BYTES): Uint8Array {
   const MSL_HEADER = 12;
   const PREFIX = 8;
   const SONG_HEADER = 276;
   const entries = [
-    ...Array.from({ length: samples }, () => new Uint8Array(FAKE_SAMPLE_BYTES)),
+    ...Array.from({ length: samples }, () => new Uint8Array(sampleBytes)),
     ...Array.from({ length: songs }, () => new Uint8Array(Math.max(FAKE_SONG_BYTES, SONG_HEADER))),
   ];
   let at = MSL_HEADER + entries.length * 4;
@@ -64,7 +64,19 @@ export function fakeSoundbank(samples: number, songs: number): Uint8Array {
  * and a CRLF header numbering the WAVs, then the modules, from 0 (as the real one does when WAVs come first).
  * `fail` makes the named tool exit 1 without output; `silent` makes it exit 0 without output.
  */
-export function fakeTools(dir: string, opts: { fail?: "grit" | "mmutil"; silent?: "grit" | "mmutil" } = {}): FakeTools {
+/** How a fake tool misbehaves or what it writes (all optional). */
+export interface FakeToolOptions {
+  /** This tool exits 1 without output. */
+  fail?: "grit" | "mmutil";
+  /** This tool exits 0 without output. */
+  silent?: "grit" | "mmutil";
+  /** Payload bytes of every effect sample in the fake soundbank (default FAKE_SAMPLE_BYTES). */
+  sampleBytes?: number;
+  /** Added to every SFX_ id in soundbank.h, to imitate a header that disagrees with the expected ids. */
+  idShift?: number;
+}
+
+export function fakeTools(dir: string, opts: FakeToolOptions = {}): FakeTools {
   const paths = { grit: path.join(dir, "grit.exe"), mmutil: path.join(dir, "mmutil.exe") };
   for (const p of Object.values(paths)) writeFileSync(p, "fake");
   const calls: FakeCall[] = [];
@@ -87,13 +99,13 @@ export function fakeTools(dir: string, opts: { fail?: "grit" | "mmutil"; silent?
     const wavs = inputs.filter((p) => p.endsWith(".wav"));
     const mods = inputs.filter((p) => !p.endsWith(".wav"));
     const lines = [
-      ...wavs.map((p, i) => `#define SFX_${stem(p)}\t${i}`),
+      ...wavs.map((p, i) => `#define SFX_${stem(p)}\t${i + (opts.idShift ?? 0)}`),
       ...mods.map((p, i) => `#define MOD_${stem(p)}\t${i}`),
       `#define MSL_NSONGS\t${mods.length}`,
       `#define MSL_NSAMPS\t${wavs.length}`,
     ];
     writeFileSync(header, `${lines.join("\r\n")}\r\n`);
-    writeFileSync(bank, fakeSoundbank(wavs.length, mods.length));
+    writeFileSync(bank, fakeSoundbank(wavs.length, mods.length, opts.sampleBytes));
     return ok();
   };
   return { run, calls, paths };

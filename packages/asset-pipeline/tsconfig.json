@@ -13,6 +13,9 @@
     },
     {
       "path": "../toolchain"
+    },
+    {
+      "path": "../compiler"
     }
   ]
 }

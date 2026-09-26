@@ -1,14 +1,17 @@
 # WS5 asset pipeline status
 
+**WS5: DoD complete, idle until CP-B.** Every kickoff task and every WS5-owned definition-of-done item is merged and
+green on Windows; the one open DoD item (the py-desmume golden in `fixtures/assets/golden/`) is WS0's. Next WS5 work:
+IF entries, the C12 freeze at CP-B (2026-10-02), and contract T1s others ask for.
+
 Cloud push target: `ws5-assets`
 
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
-- start.sh (2026-09-26, "continue" relay; main b47cd2c+ merged; latest checkpoint-12, all WS5 work merged and green): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
-  origin/main by 17 (then merged, main 5b8d0cc+); latest checkpoint: docs/status/checkpoint-8.md; open IF entries: 1
-  by start.sh's count (see Blockers). Lockfile guard passed. WS0 merged ws5-assets@3bbe1f8 at checkpoint-8, green on
-  Windows.
+- start.sh (2026-09-26, "check the DoD" relay; main a4276e7+ merged; latest checkpoint-14): node v24.16.0,
+  npm 11.13.0; push target: ws5-assets; open IF entries: 1 by start.sh's count (IF-2, fixed; see Blockers).
+  Lockfile guard passed.
 
 ## Progress
 - [x] Task 1 (day 1): `contracts/assetpack.md` C3 0.1.0 written, CHANGELOG line appended.
@@ -65,6 +68,16 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   18.7k colours, 256-colour mode) went from 586 ms to 151 ms after caching each median-cut box's widest axis and a
   typed-array nearest search. Only the two gradient goldens changed. `PIPELINE_VERSION` 0.1.1, so every cached
   asset converts once again. `image-q` 4.0.0 is a devDependency of packages/asset-pipeline only.
+- [x] Budgets against WS4's real room sets: `src/pack/room-sets.test.ts` runs packAssets (fake tools) ->
+  `compileProject` -> `checkRoomBudgets` on samples/flappy (rm_game: 2432 bytes of sprite memory, three 16-colour
+  sets, three sounds; no diagnostics) and on samples/minimal plus 17 placed one-colour sprites (E414 from the
+  compiler's own room set). `@dsdude/compiler` is a devDependency (no cycle: the compiler does not depend on WS5).
+- [x] E4xx coverage: every code E401-E422 now has a test. New: E410 (bank over 1 MB, naming the biggest sounds),
+  E411 (one sound over a room's sound memory), E420 (unsafe name, built in memory), E421 (soundbank.h ids disagree;
+  the header's ids are used), E404 (unreadable sheet and icon). Music edge cases: a MOD and an XM numbered 0, 1 in
+  name order after every effect; E409 for a tracker file as an effect, a WAV as music and a broken IT module.
+- [x] Wording: the E409 detail for a wrong kind reads ".xm files can't be effects"; the PNG decoder's reasons (shown
+  inside E404) are plain words, e.g. "it does not start like a PNG file" (C9 style). No catalog entry changed.
 - [ ] Remaining DoD item (WS0-owned): the py-desmume golden in `fixtures/assets/golden/` for a ROM built from the
   sample assets. Otherwise WS5 is at its definition of done; later work is fixes from IF entries and contract T1s.
 
@@ -91,6 +104,8 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   `@dsdude/toolchain` would let `src/pack/tools.ts` drop its small copy of them.
 - Browser consumers (editor-core, the IDE renderer, WS6b) import `@dsdude/asset-pipeline/browser` (WS0 decision,
   checkpoint-3 relay); the root also exports the Node-only `packAssets` and `cliCommands`.
+- WS0: the lockfile needs `@dsdude/compiler` 0.1.0 as a devDependency of packages/asset-pipeline (workspace link,
+  for `src/pack/room-sets.test.ts`; tsconfig references ../compiler).
 - WS0: the lockfile needs `image-q` 4.0.0 (a new devDependency of packages/asset-pipeline, MIT; it brings its own
   `@types/node` 16.9.1, nested). Please also add `*.mp3 binary` to `.gitattributes` (git already detects
   `fixtures/assets/tone-44k.mp3` as binary, so nothing is broken today).
