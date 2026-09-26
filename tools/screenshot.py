@@ -8,14 +8,14 @@ top.png and bottom.png (256x192 each) and screenshot.json into dir:
 The same JSON is printed on stdout, but libdesmume's own output may interleave with it there: read the file.
 `uniform` is true when a screen is a single colour: a hung ROM is detected from the pixels, not is_running().
 
-Key script (--keys; ADR-pending ADR-0003 until WS2's "Host runner" section of contracts/log-protocol.md lands):
-  <frames> <button>...        buttons held on those frames (A B X Y L R START SELECT UP DOWN LEFT RIGHT)
-  <frames> TOUCH <x> <y>      the bottom screen touched at (x, y), x 0-255, y 0-191
-<frames> is N or N-M, 1-based and inclusive: frame N is the Nth cycle(). Buttons are separated by spaces or commas.
-A button is held on every frame some line lists it; overlapping lines add up. When several TOUCH lines cover a
-frame the last line wins; the screen is released on frames no TOUCH line covers. `#` starts a comment.
-Example: `30-35 START` then `200 TOUCH 128 96`. The screenshot after frame N shows the input of frame N-2 at the
-earliest (measured with the SDK's touch_input), so screenshot a few frames after the input you check.
+Key script (--keys): the one format of contracts/log-protocol.md "Key scripts (--input)" (C8 0.2.0), which
+dsdude-host reads too. One line per change of input, `<frame> <spec>`, frames 0-based and strictly increasing; the
+input holds from that frame until the next line, and nothing is held before the first line. `spec` is `-` (nothing
+held, stylus up) or `+`-joined parts: key names (a b x y l r start select up down left right) and at most one touch
+`T<x>,<y>` in bottom-screen pixels (x 0-255, y 0-191). Blank lines and lines starting with `#` are ignored.
+Example: `30 start`, `31 -`, `90 T128,96`, `91 -`. Frame f is the (f+1)th cycle(). The screenshot after frame N shows
+the input of frame N-2 at the earliest (measured with the SDK's touch_input; ADR-0003), so screenshot a few frames
+after the input you check.
 
 Exit codes: 0 ok; 1 bad arguments or key script; 2 py-desmume missing or the ROM could not run.
 Only ROMs built with BlocksDS boot in py-desmume.
@@ -24,12 +24,16 @@ Only ROMs built with BlocksDS boot in py-desmume.
 import argparse
 import json
 import os
+import re
 import sys
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
-BUTTONS = ("A", "B", "SELECT", "START", "RIGHT", "LEFT", "UP", "DOWN", "R", "L", "X", "Y")
+# Key names in btn_* order (C6); py-desmume's are the same, upper-case, after KEY_.
+KEYS = ("a", "b", "x", "y", "l", "r", "start", "select", "up", "down", "left", "right")
+LINE = re.compile(r"[ \t]*(\d+)[ \t]+(.*?)[ \t]*")
+TOUCH = re.compile(r"T(\d+),(\d+)")
 
 
 def fail(code, message):
@@ -38,55 +42,57 @@ def fail(code, message):
     sys.exit(code)
 
 
+def parse_spec(spec):
+    """(set of key names, (x, y) or None) for a C8 spec, or None when it is malformed."""
+    if spec == "-":
+        return set(), None
+    keys = set()
+    touch = None
+    for part in spec.split("+"):
+        m = TOUCH.fullmatch(part)
+        if m and touch is None and int(m.group(1)) <= 255 and int(m.group(2)) <= 191:
+            touch = (int(m.group(1)), int(m.group(2)))
+        elif part in KEYS:
+            keys.add(part)
+        else:
+            return None
+    return keys, touch
+
+
 def parse_keys(path):
-    """Returns a list of (first_frame, last_frame, [button names], (x, y) or None), in file order."""
-    ranges = []
+    """Returns the changes as a list of (frame, set of key names, (x, y) or None), frames increasing."""
+    changes = []
     try:
-        f = open(path, encoding="utf-8")
+        with open(path, encoding="utf-8", newline="") as f:
+            text = f.read()
     except OSError as e:
         fail(1, f"The key script {path} could not be read: {e.strerror}")
-    with f:
-        for number, raw in enumerate(f, 1):
-            where = f"{path}:{number}"
-            line = raw.split("#", 1)[0].strip()
-            if not line:
-                continue
-            parts = line.replace(",", " ").split()
-            span = parts[0].split("-")
-            if len(span) > 2 or not all(s.isdigit() for s in span):
-                fail(1, f"{where}: '{parts[0]}' is not a frame or frame range like 30 or 30-35")
-            first = int(span[0])
-            last = int(span[-1])
-            if first < 1 or last < first:
-                fail(1, f"{where}: the frame range {parts[0]} is empty or starts before frame 1")
-            names = [p.upper() for p in parts[1:]]
-            if not names:
-                fail(1, f"{where}: say which buttons to press, or TOUCH x y")
-            touch = None
-            if names[0] == "TOUCH":
-                if len(names) != 3 or not (names[1].isdigit() and names[2].isdigit()):
-                    fail(1, f"{where}: TOUCH needs two numbers, like TOUCH 128 96")
-                x, y = int(names[1]), int(names[2])
-                if x > 255 or y > 191:
-                    fail(1, f"{where}: TOUCH {x} {y} is off the bottom screen (x 0-255, y 0-191)")
-                touch, names = (x, y), []
-            for name in names:
-                if name not in BUTTONS:
-                    fail(1, f"{where}: unknown button '{name}' (use {' '.join(BUTTONS)} or TOUCH x y)")
-            ranges.append((first, last, names, touch))
-    return ranges
+    for number, raw in enumerate(text.split("\n"), 1):
+        where = f"{path}:{number}"
+        line = raw[:-1] if raw.endswith("\r") else raw
+        if line.strip(" \t") == "" or line.lstrip(" \t").startswith("#"):
+            continue
+        m = LINE.fullmatch(line)
+        if not m:
+            fail(1, f"{where}: want '<frame> <keys>', like 30 a+right or 40 T128,96")
+        frame = int(m.group(1))
+        if changes and frame <= changes[-1][0]:
+            fail(1, f"{where}: frame numbers must increase from line to line")
+        parsed = parse_spec(m.group(2))
+        if parsed is None:
+            fail(1, f"{where}: keys must be '-' or names like a+right, with T<x>,<y> for touch (x 0-255, y 0-191)")
+        changes.append((frame, parsed[0], parsed[1]))
+    return changes
 
 
-def input_for(ranges, frame):
-    """The buttons held and the touch point (or None) on one frame."""
-    buttons = set()
-    touch = None
-    for first, last, names, point in ranges:
-        if first <= frame <= last:
-            buttons.update(names)
-            if point is not None:
-                touch = point
-    return buttons, touch
+def input_for(changes, frame):
+    """The keys held and the touch point (or None) on one 0-based frame: the last change at or before it."""
+    held, touch = set(), None
+    for first, keys, point in changes:
+        if first > frame:
+            break
+        held, touch = keys, point
+    return held, touch
 
 
 def is_uniform(image):
@@ -105,7 +111,7 @@ def main():
         fail(1, "--frames must be at least 1")
     if not os.path.isfile(args.rom):
         fail(1, f"The ROM {args.rom} does not exist.")
-    ranges = parse_keys(args.keys) if args.keys else []
+    changes = parse_keys(args.keys) if args.keys else []
 
     try:
         from desmume.controls import Keys, keymask
@@ -121,12 +127,12 @@ def main():
             fail(2, f"py-desmume could not open {args.rom}: {e}")
         held = set()
         touching = None
-        for frame in range(1, args.frames + 1):
-            want, touch = input_for(ranges, frame)
+        for frame in range(args.frames):
+            want, touch = input_for(changes, frame)
             for name in held - want:
-                emu.input.keypad_rm_key(keymask(getattr(Keys, "KEY_" + name)))
+                emu.input.keypad_rm_key(keymask(getattr(Keys, "KEY_" + name.upper())))
             for name in want - held:
-                emu.input.keypad_add_key(keymask(getattr(Keys, "KEY_" + name)))
+                emu.input.keypad_add_key(keymask(getattr(Keys, "KEY_" + name.upper())))
             held = want
             if touch != touching:
                 if touch is None:
