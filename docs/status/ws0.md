@@ -7,7 +7,7 @@ Mode: **hybrid** (no fallback recorded). Schedule position: Phase 0, Day 1 (2026
 - **Location:** stay in place at `C:\Users\zache\OneDrive\Desktop\Projects\DSDude` (no move, no pointer README). OneDrive sync inactive.
 - **BlocksDS install consent:** given at WS1's launch by approving its prompts.
 - **Mode:** hybrid (local WS0 + WS1/WS3/WS6/WS8 at standard-mode limits; cloud WS2, WS4, WS5, WS7, optional WS6b).
-- **Usage limits for ~4 local + 4-5 cloud sessions:** not yet confirmed. WS0 asks again before the tag launches (open question 3).
+- **Usage limits for ~4 local + 4-5 cloud sessions:** confirmed on Day 1 (2026-09-25): the user has Claude Max. Open question 3 closed.
 - **Names:** confirmed: DSDude / DSS (`.dss`) / DSDB.
 - **GitHub origin:** https://github.com/Dercen/DSDude.git, private. Claude GitHub App installed: yes.
 - **Public releases and the unsigned installer:** decided by M6.
@@ -68,15 +68,11 @@ any time: README section 8.1 steps 1-3 (environments), then the probe prompt in 
 
 ## Open ADRs
 
-- ADR-0001 Flappy pipe geometry (proposed; the user decides): two 128-px pipes around the 48-px gap.
+- ADR-0001 Flappy pipe geometry: **accepted** by the user (2026-09-25) and applied to `samples/flappy` (two 128-px pipes around the 48-px gap).
 
 ## Open questions for the user
 
-- Open question 3: do the usage limits cover ~4 local + 4-5 cloud sessions? Needed before the tag launches.
-- ADR-0001 (Flappy pipe geometry): accept the recommended two-pipe fix?
 - After the cloud probe: did the claude.ai/code branch selector offer branches other than `main` (P8)?
-- `ws1.ps` (your WS1 launch script) sits untracked in the repo root. WS0 never commits it; moving it outside the
-  repo avoids an accidental `git add`.
 
 ## End-of-day report: Day 1 (2026-09-25)
 

@@ -1,1 +1,2 @@
 hspeed = -2;
+image_yscale = 2;   // 128 px, within the 2x scale limit (ADR-0001)

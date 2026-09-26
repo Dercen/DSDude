@@ -4,9 +4,9 @@ DSDude is a GameMaker-Studio-style IDE for Nintendo DS homebrew with its own GML
 - Planning is done: `PLAN.md` v1.2 (verified; Day-0 decisions applied).
 - **Phase 0 in progress** (Day 1, 2026-09-25): WS0 builds the monorepo, hooks and contracts on `main`; WS1 installs BlocksDS from hour zero on `ws1-toolchain`. `git tag phase0` (day 2) releases the other streams. Progress: `docs/status/ws0.md`.
 - **Repo:** this folder, `C:\Users\zache\OneDrive\Desktop\Projects\DSDude`, stays in place (user decision; Desktop is OneDrive-redirected but nothing syncs). `origin` = https://github.com/Dercen/DSDude.git (private; Claude GitHub App installed). Day 0 is done: first commit `8f8f55d` pushed, `vendor/` local only.
-- **Operating mode: hybrid** (Capacity below; 7.2). Usage limits for ~4 local + 4-5 cloud sessions: **not yet confirmed** (asked before the tag launches). **Names:** confirmed: DSDude, DSS (`.dss`), DSDB.
+- **Operating mode: hybrid** (Capacity below; 7.2). Usage limits for ~4 local + 4-5 cloud sessions: **confirmed** (Claude Max; user, 2026-09-25). **Names:** confirmed: DSDude, DSS (`.dss`), DSDB.
 - Your kickoff file governs. WS0 rewrites this block at the `phase0` tag, at every launch and at every checkpoint, and records here the cloud probe's working push order and any switch to a fallback mode.
-- Open (PLAN 10): 3 usage limits for ~4 local + 4-5 cloud sessions (before the tag); 4 flashcart and DS model; 5 the M5 tester (~week 10-11); 6 public releases and the unsigned installer (by M6). Answered on Day 0: 1 BlocksDS install consent (at WS1's launch), 2 the `origin` URL and the Claude GitHub App.
+- Open (PLAN 10): 4 flashcart and DS model; 5 the M5 tester (~week 10-11); 6 public releases and the unsigned installer (by M6). Answered: 1 BlocksDS install consent (at WS1's launch) and 2 the `origin` URL + Claude GitHub App (Day 0); 3 usage limits (Claude Max, Day 1).
 
 ## Where to read (never all of PLAN.md: ~55K tokens)
 1. Your `docs/kickoff/wsN.md` (index: `docs/kickoff/README.md`; cloud sessions also its section 8), then your package's `CLAUDE.md` (WS3: `runtime/platform/ds/CLAUDE.md`). That short brief is your primary guide.

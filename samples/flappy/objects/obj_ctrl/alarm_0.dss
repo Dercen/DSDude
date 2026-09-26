@@ -1,4 +1,5 @@
 var gy = irandom_range(48, 144);
-instance_create(272, gy, obj_pipe);
-instance_create(272, gy, obj_gap);
+instance_create(272, gy - 152, obj_pipe);   // upper pipe: gy-152 .. gy-25 (ADR-0001)
+instance_create(272, gy + 24, obj_pipe);    // lower pipe: gy+24 .. gy+151
+instance_create(272, gy, obj_gap);          // score trigger: gy-24 .. gy+23
 alarm[0] = 90;
