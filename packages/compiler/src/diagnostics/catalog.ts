@@ -215,6 +215,12 @@ export const COMPILER_CATALOG = {
     "{name}() is a helper of {owner}, so {here} can't use it.",
     "To use it from {here}, move it to Scripts.",
   ),
+  E206: err(
+    "E206",
+    "Unknown asset",
+    "There is no {kind} called {name}.",
+    "{suggestion}Check the name in the {list} list.",
+  ),
   E208: err(
     "E208",
     "Function made twice",
@@ -223,7 +229,12 @@ export const COMPILER_CATALOG = {
   ),
 
   // ---- E3xx: types, arguments and event misuse ------------------------------------------------------------------
-  E301: err("E301", "Wrong number of values", "{name} takes {expected}, but {count} given.", "Give {name} {expected}."),
+  E301: err(
+    "E301",
+    "Wrong number of values",
+    "{name}() takes {expected}, but {count} given.",
+    "Give {name}() {expected}.",
+  ),
   E302: err(
     "E302",
     "Can't be changed",
@@ -265,13 +276,39 @@ export const COMPILER_CATALOG = {
     "E308",
     "Unknown event file",
     "{file} is not an event DSDude knows.",
-    "Rename it to an event such as step.dss, create.dss or alarm_0.dss (see the Events list), or move the code into functions.dss.",
+    "Rename it to an event such as step.dss, create.dss or alarm_0.dss, or move the code into functions.dss.",
   ),
   E309: err(
     "E309",
     "Collision with an unknown object",
     "{file} is a collision event, but there is no object called {name}.",
     "Rename the file to collision_ followed by an object's name.",
+  ),
+
+  E310: err(
+    "E310",
+    "Text + number",
+    "Text and a number can't be joined with +.",
+    'Turn the number into text first, like "Score: " + string(score).',
+  ),
+  E311: err(
+    "E311",
+    "Wrong kind of value",
+    "{name}() needs {expected} as its {position} value, but this is {actual}.",
+    "Give it {expected} here.",
+  ),
+  E312: err(
+    "E312",
+    "No value to use",
+    "{name}() doesn't give back a value, so there is nothing to use here.",
+    "Call it on a line of its own instead.",
+  ),
+  E313: err("E313", "Drawing outside Draw", "{name}() only works in the Draw event.", "Move this line into draw.dss."),
+  E314: err(
+    "E314",
+    "Division by 0",
+    "This divides by 0, which would stop the game.",
+    "Check the number after the {op}.",
   ),
 
   // ---- E49x: hardware limits the compiler detects -----------------------------------------------------------------
@@ -307,11 +344,59 @@ export const COMPILER_CATALOG = {
     "This = compares the two sides; it doesn't change anything.",
     "Write == here to make that clear. To change a value, do it on its own line.",
   ),
+  W031: warn(
+    "W031",
+    "Touch on the top screen",
+    "{what} only works for objects on the bottom (touch) screen, but {object} is on the top screen.",
+    "Move {object} to the bottom screen, or use touch_pressed(), touch_x and touch_y, which work anywhere.",
+  ),
   W032: warn(
     "W032",
     "Line joined to the one above",
     "This line starts with {bracket}, so DSS joins it to the line above.",
     "End the line above with ; if the two lines are meant to be separate.",
+  ),
+  W040: warn(
+    "W040",
+    "Squaring a position",
+    "Multiplying {name} by itself can go past 524288 and wrap around.",
+    "Use point_distance() for distances, or divide before you multiply.",
+  ),
+  W041: warn(
+    "W041",
+    "Fraction in an array index",
+    "This array index has a fraction, so it is rounded down.",
+    "Use floor() to make the rounding clear.",
+  ),
+  W042: warn(
+    "W042",
+    "Fraction with div",
+    "div rounds {value} down to a whole number first.",
+    "Use / to divide with fractions, or floor() to make the rounding clear.",
+  ),
+  W043: warn(
+    "W043",
+    "Letter the DS font lacks",
+    "The DS font only has A-Z, a-z, 0-9 and punctuation, so {char} won't show.",
+    "Use plain letters instead.",
+  ),
+  W050: warn(
+    "W050",
+    "Empty room",
+    "The room {room} has no instances on either screen.",
+    "Place an object in it, or remove the room.",
+  ),
+  W051: warn(
+    "W051",
+    "Invisible object",
+    "{object} is placed in {room} but has no sprite and no Draw event, so nothing shows.",
+    "Give it a sprite or a Draw event, or turn Visible off if it is meant to be invisible.",
+  ),
+  W052: warn(
+    "W052",
+    "Unused sprite",
+    "The sprite {sprite} is not used anywhere.",
+    "Use it in an object or in code, or delete it.",
   ),
 } as const satisfies Record<string, CatalogEntry>;
 

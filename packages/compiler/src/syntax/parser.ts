@@ -61,13 +61,18 @@ export interface ParseResult {
 export function parse(text: string, options: ParseOptions): ParseResult {
   const reporter = new Reporter(options.file, text);
   const { tokens, comments } = lex(text, reporter);
-  // Lexer errors must not mute the parser's first report on a later line; each keeps its own diagnostic.
+  // Lexer errors must not mute the parser's first report on a later line; each keeps its own diagnostic. On a line
+  // that already has a lexer error, though, a parser error is its echo (an unclosed text swallows the `)` after
+  // it), so it is dropped: one mistake, one diagnostic.
+  const lexed = reporter.diagnostics.length;
+  const lexerErrorLines = new Set(reporter.diagnostics.filter((d) => d.severity === "error").map((d) => d.line));
   reporter.suppressed = false;
   const parser = new Parser(text, tokens, reporter, options.kind);
   const ast = parser.parseFile();
-  const diagnostics = [...reporter.diagnostics].sort(
-    (a, b) => (a.line ?? 0) - (b.line ?? 0) || (a.col ?? 0) - (b.col ?? 0),
-  );
+  const echoes = reporter.diagnostics.slice(lexed).filter((d) => d.severity === "error" && lexerErrorLines.has(d.line));
+  const diagnostics = reporter.diagnostics
+    .filter((d) => !echoes.includes(d))
+    .sort((a, b) => (a.line ?? 0) - (b.line ?? 0) || (a.col ?? 0) - (b.col ?? 0));
   return { ast, diagnostics, tokens, comments };
 }
 
