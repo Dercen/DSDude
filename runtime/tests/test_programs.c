@@ -195,6 +195,9 @@ static const ProgramCase CASES[] = {
     // Debug arithmetic (header flags 0): the first overflow stops the game with R520 (test_release_flag runs the
     // same program as a release build).
     {"fixtures/bytecode/runtime/wrap.dsdb", "fixtures/bytecode/runtime/wrap.out", false, DSD_GAME_FAILED, 0, NULL},
+    // The same program as a release build (`.release`, ADR-0008): every overflow wraps and it runs to the end.
+    {"fixtures/bytecode/runtime/wrap-release.dsdb", "fixtures/bytecode/runtime/wrap-release.out", false,
+     DSD_GAME_EXITED, 0, NULL},
     // Rule 8 (music) and the RNG seed rule (language.md section 7); test_music_and_seed checks the rest.
     {"fixtures/bytecode/runtime/music.dsdb", "fixtures/bytecode/runtime/music.out", false, DSD_GAME_RUNNING, 1, NULL},
     {"fixtures/bytecode/runtime/rng-platform.dsdb", "fixtures/bytecode/runtime/rng-platform.out", false,
@@ -533,13 +536,12 @@ static void test_broadphase(void) {
     CHECK(check_candidates() > 0);
 }
 
-// ---- Debug and release builds (ADR-pending ADR-0008: DSDB header flags bit 0) --------------------------------------
+// ---- Debug and release builds (ADR-0008: DSDB header flags bit 0) --------------------------------------------------
 
 #define WRAP_DSDB "fixtures/bytecode/runtime/wrap.dsdb"
-#define WRAP_RELEASE_COPY "runtime/build-host/wrap-release.dsdb" // the build directory exists whenever tests run
+#define WRAP_RELEASE_DSDB "fixtures/bytecode/runtime/wrap-release.dsdb" // wrap.dsda plus `.release`
 #define WRAP_BAD_COPY "runtime/build-host/wrap-bad-flags.dsdb"
 #define HEADER_FLAGS_OFFSET 22 // contracts/dsdb.md section 2: u16 flags
-#define FLAG_RELEASE 0x01u
 #define FLAG_UNKNOWN 0x02u     // a bit no runtime knows yet
 
 // Writes a copy of `src` with header flags `flags` (the low byte) to `dst`. False on an I/O error.
@@ -555,16 +557,8 @@ static bool write_with_flags(const char *src, const char *dst, uint8_t flags) {
 }
 
 static void test_release_flag(void) {
-    // Release: every overflow wraps (int32 and Q20.12) and the program runs to the end.
-    if (CHECK(write_with_flags(WRAP_DSDB, WRAP_RELEASE_COPY, FLAG_RELEASE))) {
-        CHECK_EQ(run_program(WRAP_RELEASE_COPY), DSD_GAME_EXITED);
-        if (CHECK(read_expected("fixtures/bytecode/runtime/wrap-release.out"))) {
-            dsd_test_mask_abi(g_capture);
-            dsd_test_mask_abi(g_expected);
-            CHECK_STR(g_capture, g_expected);
-        }
-    }
-    // An unknown flag means a newer format: refused like a different runtime (R581).
+    // Release builds are ordinary fixtures now (`.release` in wrap-release.dsda, in the case table). What no assembler
+    // writes is an unknown flag: a newer format, refused like a different runtime (R581).
     if (CHECK(write_with_flags(WRAP_DSDB, WRAP_BAD_COPY, FLAG_UNKNOWN))) {
         CHECK_EQ(run_program(WRAP_BAD_COPY), DSD_GAME_FAILED);
         CHECK(strstr(g_capture, "DSD|ERR|R581|") != NULL);
@@ -692,16 +686,16 @@ static void test_int_specialised(void) {
     int32_t ng = dsd_test_read_file("runtime/build-host/bench-ii.jsonl", got, sizeof got - 1);
     CHECK(nw > 0 && nw == ng && memcmp(want, got, (size_t)nw) == 0);
 
-    // wrap: its int-only overflow lines (1 ADD, 2 MUL, 4 SUB; line 3 adds a fraction and keeps ADD). Debug: R520
-    // on line 1, as wrap.out; release (header flag bit 0): the wrapped values, as wrap-release.out.
-    int32_t n = dsd_test_read_file(WRAP_DSDB, bytes, sizeof bytes);
-    if (!CHECK(n > HEADER_FLAGS_OFFSET)) return;
-    CHECK_EQ(rewrite_ops(bytes, DSD_OP_ADD, DSD_OP_ADDII, 0) + rewrite_ops(bytes, DSD_OP_MUL, DSD_OP_MULII, 0) +
-                 rewrite_ops(bytes, DSD_OP_SUB, DSD_OP_SUBII, 0),
-             3);
+    // wrap and wrap-release with their int-only overflow lines (1 ADD, 2 MUL, 4 SUB; line 3 adds a fraction and keeps
+    // ADD) in int form: R520 on line 1 in the debug build, the wrapped values in the release build, as before.
+    const char *sources[2] = {WRAP_DSDB, WRAP_RELEASE_DSDB};
     const char *goldens[2] = {"fixtures/bytecode/runtime/wrap.out", "fixtures/bytecode/runtime/wrap-release.out"};
     for (uint32_t release = 0; release < 2; release++) {
-        bytes[HEADER_FLAGS_OFFSET] = (char)(release ? FLAG_RELEASE : 0);
+        int32_t n = dsd_test_read_file(sources[release], bytes, sizeof bytes);
+        if (!CHECK(n > 0)) return;
+        CHECK_EQ(rewrite_ops(bytes, DSD_OP_ADD, DSD_OP_ADDII, 0) + rewrite_ops(bytes, DSD_OP_MUL, DSD_OP_MULII, 0) +
+                     rewrite_ops(bytes, DSD_OP_SUB, DSD_OP_SUBII, 0),
+                 3);
         if (!CHECK(write_bytes(II_COPY, bytes, n))) return;
         run_program(II_COPY);
         if (CHECK(read_expected(goldens[release]))) {
