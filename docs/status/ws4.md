@@ -89,7 +89,14 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 
 ## Next
 
-- Task 7: peephole passes (constant folding, fused compare+jump, ADDI/SUBI/MULI); formatter done.
+- Task 7 (formatter done): the peephole passes wait on purpose.
+  - ADDI/SUBI/MULI and a fused compare+jump (CMPJ, encoding still open) are provisional opcodes WS2 has not
+    implemented; emitting them now would stop the v0/v1 goldens from running on WS2's first VM (stable opcodes
+    only). They come after WS2 implements them (and ADR-0003's operands are co-signed), or at CP-C if the M1 gate
+    needs them.
+  - Constant folding must not apply to the conformance programs, which exist to test the VM's arithmetic (v0/02's
+    `0.25 + 0.25`); it will be an option of `compileProject` (on for games), with folding that matches the runtime's
+    int32/Q20.12 rules exactly.
 - Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
   child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
 
