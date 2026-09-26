@@ -163,6 +163,29 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   checks (spike 15, the scanline limits, the M1 hardware figure) run there in DS mode; results come back as on-screen
   output that the user reports.
 
+## Hardware results (2026-09-26, user: original 3DS, TWiLight Menu++ default settings)
+
+ROMs from WS3's hardware set, built ~11:54 from `runtime/dist` near main `0e67e27` (DTCM dispatch table and the
+cheaper CALLN; not yet the watchdog change or the int ops). Read from the user's photos.
+- **5-flappy.nds:** plays, with sound; bird and pipes on the top screen.
+- **3-hello.nds:** `READY 0.1.0 f1d376bb`, `LOG hello`, `EXIT 0` (log protocol shown on screen, as C8 legacy mode).
+- **4-numeric.nds (spike 12):** every line matches the host and melonDS values: trig 2802 7574, atan2 33076 23775,
+  sqrt 20444 21605, div 51 59715, mul 47882 38740, lengthdir 29239 47856, string 5784 62728, random 43187 48735, EXIT 0.
+- **2-bench.nds (M1):** VM 27.15 cycles/op, 41,261 ops/frame, "gate 35000: PASS"; loop 18.03 cycles/op (62,131
+  ops/frame); frame 46.25 cycles/op, overhead 22,047 cycles/frame; load main 1.11 vs dtcm 0.85; cstack 3644/11200 B.
+  **Provisional:** page 4 shows heap free 16,184 KB, so TWiLight ran the ROMs in DSi mode (16 MB; DS mode gives
+  ~3 MB, as melonDS's 3040 KB), possibly with the ARM9 at 133 MHz. The gate figure counts only after a re-run with
+  TWiLight's per-game settings "Run in: DS mode" and "ARM9 CPU speed: 67 MHz (NTR)" (asked of the user).
+- **1-selftest.nds, spike 15 (scanline):** largest N with every ring whole: normal N=33 (2178 OBJ line cycles),
+  affine N=15 (2070), affine2x N=8 (2128). With the next N costing 2244 / 2208 / 2394, the real limit lies in
+  2178-2207 cycles (the page's budget estimate is ~2124; 1530 with DISPCNT bit 23). C13's 1200 warning is
+  conservative. The 2D engine is the same in DS and DSi mode, so these hold.
+- **Selftest page 3:** the error box is readable ("Your game stopped", R999, "START: restart").
+- **Selftest page 4:** 0x04FFFA00 bytes 0-7 all 00, log protocol legacy (right on hardware); 1 MB NitroFS read in
+  232 ms (4401 KB/s) ok; maxmod load=0 blip=0 loop=0 and bad id=1 handle=1 active=1, as expected; cstack
+  3068/11200 B; heap free 16,184 KB (DSi mode, above).
+- Relayed to WS3 (spike 15, page 4, bench) and WS2 (the bench figure, provisional).
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
