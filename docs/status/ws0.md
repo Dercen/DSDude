@@ -133,7 +133,12 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   Problems links go to `docs/reference/errors.md#<code lowercased>`; F1 goes to `docs/reference/functions.md#<name>`
   (`variables.md` for variables and constants). Documented in `apps/ide/src/renderer/panels/api.ts`; another form
   needs an ADR. The mock host is `@dsdude/ide/mock-host` (`fixtures/ide/mock-host`).
-- The c_* colour constants arrive in builtins.json once WS2's tests stop hard-coding the ABI hash (ADR-0004 notes).
+- From WS6 (2026-09-26, C5 0.7.0 TemplateIndexSchema in contracts/ipc.md): the New Project wizard reads
+  `templates/index.json` as `{ "templates": [ { "id": "flappy", "title": "Flappy Bird", "description": "...", "dir": "flappy" } ] }`;
+  `id` matches /^[a-z0-9-]+$/, `description` is optional (default ""), `dir` is a folder under `templates/` holding a
+  complete C1 project; list order is wizard order; the template whose id or title matches /flappy/ is preselected.
+  Until the file exists the wizard offers a built-in Empty (and `samples/*` in dev builds). Another shape is a T1/ADR on C5.
+- The c_* colour constants are in builtins.json since 2026-09-26 (ids 143-158; docs/examples are TODO(WS7)).
 
 ## Integration log (continued)
 
