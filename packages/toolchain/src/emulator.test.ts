@@ -2,7 +2,18 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { LineSplitter, LocalEmulatorManager, MELONDS_KEYS, melonDsOverrides, patchToml } from "./emulator.ts";
+import {
+  DESMUME_KEYS,
+  desmumeOverrides,
+  LineSplitter,
+  LocalEmulatorManager,
+  MELONDS_KEYS,
+  melonDsOverrides,
+  type ProcessInfo,
+  patchIni,
+  patchToml,
+  RECONCILE_TOLERANCE_MS,
+} from "./emulator.ts";
 import { desmumeExe, melonDsExe } from "./layout.ts";
 import { type FakeChild, FIXTURE_ROM, fakeChild } from "./test-support.ts";
 
@@ -40,8 +51,15 @@ describe("melonDS.toml", () => {
     "",
   ].join("\r\n");
 
-  it("sets DSDude's keys and keeps everything else", () => {
-    const out = patchToml(existing, melonDsOverrides());
+  it("sets DSDude's keys, keeps everything else and keeps the file's CRLF line endings", () => {
+    const crlf = patchToml(existing, melonDsOverrides());
+    expect(
+      crlf
+        .split("\r\n")
+        .slice(0, -1)
+        .every((l) => !l.includes("\n")),
+    ).toBe(true);
+    const out = crlf.replace(/\r\n/g, "\n");
     expect(out).toContain('RecentROM = [\n    "C:\\\\a.nds",\n]');
     expect(out).toContain('Geometry = "AdnQ"');
     expect(out).toContain("HK_Lid = -1");
@@ -52,7 +70,6 @@ describe("melonDS.toml", () => {
     expect(out).toContain("Renderer = 0");
     expect(out).toMatch(/\[Screen\]\nUseGL = false/);
     expect(out).toMatch(/\[Instance0\.Gdb\]\nEnabled = false/);
-    expect(out).not.toContain("\r");
     expect(out.match(/^A = /gm)).toHaveLength(1);
   });
 
@@ -60,6 +77,27 @@ describe("melonDS.toml", () => {
     const once = patchToml(null, melonDsOverrides());
     expect(patchToml(once, melonDsOverrides())).toBe(once);
     expect(once.startsWith("[Instance0.Keyboard]\n")).toBe(true);
+  });
+
+  it("desmume.ini gets the same mapping as Windows virtual-key codes under [Controls]", () => {
+    const ini = patchIni("[Video]\nWidth=256\n[Controls]\nA=1\n", desmumeOverrides());
+    expect(ini).toMatch(/^\[Video\]\nWidth=256\n\[Controls\]\nA=88\n/);
+    for (const line of [
+      "B=90",
+      "X=83",
+      "Y=65",
+      "L=81",
+      "R=87",
+      "Start=13",
+      "Select=16",
+      "Up=38",
+      "Down=40",
+      "Left=37",
+      "Right=39",
+    ]) {
+      expect(ini).toContain(`${line}\n`);
+    }
+    expect(Object.keys(DESMUME_KEYS)).toEqual(Object.keys(MELONDS_KEYS));
   });
 
   it("enables the GDB stub only when asked", () => {
@@ -87,8 +125,8 @@ describe("LocalEmulatorManager", () => {
         kills.push(args);
         onKill(args, children.at(-1));
       },
-      // No real tasklist in unit tests.
-      imageName: async () => null,
+      // No real PowerShell in unit tests.
+      processInfo: async () => null,
       ...extra,
     });
 
@@ -155,27 +193,58 @@ describe("LocalEmulatorManager", () => {
     expect(children).toHaveLength(2);
   });
 
-  it("reconcile kills a recorded emulator only while the PID still is that exe", async () => {
-    const recorded = (name: string | null) =>
-      manager(() => {}, { imageName: async () => name }) as LocalEmulatorManager;
-    for (const [name, expectKill] of [
-      ["melonds.exe", true],
-      ["notepad.exe", false],
-      [null, false],
-    ] as const) {
+  it("reconcile kills a recorded emulator only while the PID is still that exe, started at that time", async () => {
+    const t = Date.parse("2026-09-26T10:00:00Z");
+    const exe = melonDsExe(home);
+    const cases: [ProcessInfo | null, boolean, string][] = [
+      [{ path: exe.toUpperCase(), startedAt: new Date(t + 800) }, true, "same exe, same start"],
+      [{ path: exe, startedAt: new Date(t + RECONCILE_TOLERANCE_MS + 1) }, false, "PID reused later"],
+      [{ path: "C:\\other\\melonDS-1.1\\melonDS.exe", startedAt: new Date(t) }, false, "another worktree"],
+      [null, false, "no such process"],
+    ];
+    for (const [info, expectKill, label] of cases) {
       kills = [];
-      const mgr = recorded(name);
+      const mgr = manager(() => {}, { processInfo: async () => info });
       mkdirSync(path.dirname(mgr.runningFile), { recursive: true });
-      writeFileSync(mgr.runningFile, JSON.stringify({ pid: 777, kind: "melonds", rom: "x", startedAt: "" }));
-      await mgr.reconcile();
-      expect(kills.length > 0).toBe(expectKill);
+      const rec = { pid: 777, kind: "melonds", exe, rom: "x", startedAt: new Date(t).toISOString() };
+      writeFileSync(mgr.runningFile, JSON.stringify(rec));
+      expect(await mgr.reconcile(), label).toBe(expectKill);
+      expect(kills.length > 0, label).toBe(expectKill);
+      if (expectKill) expect(kills[0]).toEqual(["/F", "/T", "/PID", "777"]);
       expect(existsSync(mgr.runningFile)).toBe(false);
     }
   });
 
-  it("E620 when the emulator is missing, E607 when the ROM is", async () => {
+  it("records exe and start time at launch", async () => {
+    const mgr = manager((_args, child) => child?.finish(0));
+    const before = Date.now();
+    const handle = await mgr.launch(FIXTURE_ROM, { kind: "melonds" });
+    const rec = JSON.parse(readFileSync(mgr.runningFile, "utf8")) as { pid: number; exe: string; startedAt: string };
+    expect(rec).toMatchObject({ pid: handle.pid, exe: melonDsExe(home) });
+    expect(Date.parse(rec.startedAt)).toBeGreaterThanOrEqual(before);
+    await handle.stop();
+  });
+
+  it("Debug turns on melonDS's GDB stub; DeSmuME has none (E623)", async () => {
+    const mgr = manager((_args, child) => child?.finish(0));
+    const handle = await mgr.launch(FIXTURE_ROM, { kind: "melonds", debug: true });
+    const toml = readFileSync(path.join(path.dirname(melonDsExe(home)), "melonDS.toml"), "utf8");
+    expect(toml).toMatch(/\[Instance0\.Gdb\]\nEnabled = true/);
+    expect(toml).toMatch(/\[Instance0\.Gdb\.ARM9\]\nPort = 3333/);
+    await handle.stop();
+    await mgr.launch(FIXTURE_ROM, { kind: "melonds" });
+    expect(readFileSync(path.join(path.dirname(melonDsExe(home)), "melonDS.toml"), "utf8")).toMatch(
+      /\[Instance0\.Gdb\]\nEnabled = false/,
+    );
+    await mgr.stopCurrent();
+    await expect(mgr.launch(FIXTURE_ROM, { kind: "desmume", debug: true })).rejects.toMatchObject({
+      diagnostics: [expect.objectContaining({ code: "E623" })],
+    });
+  });
+
+  it("E620 when DeSmuME is missing, E607 when the ROM is", async () => {
     const empty = new LocalEmulatorManager({ home: mkdtempSync(path.join(tmpdir(), "dsdude-emu-")) });
-    await expect(empty.ensureInstalled("melonds")).rejects.toMatchObject({
+    await expect(empty.ensureInstalled("desmume")).rejects.toMatchObject({
       diagnostics: [expect.objectContaining({ code: "E620" })],
     });
     const mgr = manager(() => {});

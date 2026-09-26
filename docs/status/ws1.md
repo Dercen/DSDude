@@ -2,8 +2,7 @@
 
 **toolchain-ok: passed 2026-09-25 4ddccb5**
 
-Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `41c7714`.
-WS1 now stops touching the branch until WS0 reports the merge and tags `toolchain-ok`.
+Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `ca892e8`. WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25).
 
 Gate evidence (all run 2026-09-25 on this machine, section 8 criteria):
 - **Install by `scripts/install-toolchain.ps1`:** fresh run into an empty `C:\msys64\opt\wonderful` (the earlier install was moved aside, then deleted), 23:05:22-23:06:33, exit 0, unattended, no UAC prompt. Then `scripts/smoke-test.ps1 -Screenshot`: 3/3 examples PASS plus a screenshot PASS.
@@ -48,15 +47,83 @@ Legend: todo / in progress / done (<sha>).
   - `packages/cli`: the registry of every package's `cliCommands`, and `--help`.
   - `tools/screenshot.py`, `scripts/smoke-test.ps1`, `contracts/toolchain-api.md` 0.2.0, `contracts/cli.md` 0.2.0.
   - Tests: toolchain 54 (mocked spawns assert argv, env, windowsHide and timeout; real-ndstool tests skip without ToolPaths), cli 4; `tsc -b` and Biome clean.
-- Task 3. CLI polish: todo. Next:
-  - `ensureInstalled("melonds")` downloads and SHA-256-checks the zip (today: E620 when missing);
-  - reconcile compares the start time as well as the image name;
-  - GDB 3333/3334 for Debug;
-  - `--keys` follows WS2's "Host runner" format once it exists (today: the provisional cli.md draft).
-- Task 4. `BuildService`: in progress.
-  - Plain-folder builds, cancellation, graceful Stop and the DeSmuME launch work.
-  - Todo: the `project.json` path with the injected WS4/WS5 functions, `createFakeToolchain()`, and a `desmume.ini` key map.
-- Task 5. Spike 5 + `dsdude doctor`: todo.
+- Task 3. CLI polish: **done** (5f40fcd, 6c7c469); C4 and C10 are now 0.3.0 (T1, CHANGELOG lines appended).
+  - **melonDS install.** `ensureInstalled("melonds")` reads a local release zip, else downloads it. It checks the
+    size and SHA-256 before writing (E622, or E624 when the download fails), then unpacks with System32 `tar.exe`.
+    A real-zip test runs with the hour-zero `%TEMP%\melonDS.zip` (0.4 s); the fakes cover the checksum, download and
+    local-zip cases.
+  - **Reconcile** by PID + exe path + start time (10 s tolerance) through `Get-Process`. Measured on a detached
+    melonDS:
+    - a matching record killed it; a record with a wrong start time left it alone;
+    - the OS start time was 13 ms from the recorded one;
+    - a launcher that exits without `stop()` takes melonDS down with it (closed stdout pipe, within 2 s), so the
+      stale record then matched nothing and was removed.
+  - **Debug.** `play --debug` makes melonDS listen on 3333 and 3334 (its own PID; verified with
+    `Get-NetTCPConnection`), and still logs `DSD|LOG|hello`. DeSmuME with `--debug` is E623, exit 2. melonDS binds
+    the stub on `0.0.0.0`, so it is on only while Debug runs.
+  - **`--keys`.** The ADR-0003 format (buttons, and `TOUCH x y`), because WS2's "Host runner" has no key format yet
+    (checked `main` and `origin/ws2-runtime-core`: no commits). Verified with the SDK's `input/touch_input` and
+    `input/key_input`:
+    - `40-120 TOUCH 128 96` reads back as (129, 97), with the box drawn at the centre;
+    - `60-120 A, RIGHT` shows "Held: A Right";
+    - bad lines give E631 naming file:line, exit 2;
+    - timing: a one-frame touch on frame 100 first shows in the frame-102 screenshot (`key_input` samples only
+      every 10th frame, so it misses one-frame presses; that is the ROM, not py-desmume).
+  - The C10 flags `--runtime --skip-compile --skip-assets --emulator --no-build --seed --jobs --json` and exit codes
+    0/1/2 were already in place (task 2).
+  - Tests: toolchain 61 (was 54), cli 4; `npm run check` green (Biome, `tsc -b`, generators).- Task 4. `BuildService`: **done for CP-A** (ac168f9), C4 0.4.0 (T1, CHANGELOG lines appended).
+  Only the wiring of WS4's and WS5's real functions remains; it happens when they land on `main`.
+  - **The `project.json` path:**
+    - `loadProject` → `packAssets(project, paths, buildDir)` → `compile` → `nitrofs\game.dsdb`, with `--seed`
+      patched at C2 offset 12 → `checkRoomBudgets` → runtime → pack, with `project.json`'s banner and the
+      pipeline's `icon.png`;
+    - `--skip-assets` and `--skip-compile` reuse `assets.manifest.json` and `game.dsdb` (E609 when missing);
+    - without the injected functions, a full build is E641.
+  - **`compileOnly`** needs no tools: it compiles against the saved manifest, or a provisional one built from the
+    project files.
+  - **`PackAssetsFn` gains `outDir`**, the build folder. This matches `docs/kickoff/ws5.md` ("writes
+    `<build>/nitrofs`, `<build>/icon.png`, `<build>/assets.manifest.json`"). A two-argument implementation still
+    type-checks.
+  - **`createFakeToolchain()`**: the real service with fake detect, make, packRom and emulators, runnable on Linux,
+    for WS6's `DSDUDE_FAKE_TOOLCHAIN=1` mode and the cloud streams. `MockBuildService` now shares
+    `MOCK_EMULATOR_LINES` and `BUILD_PHASES`, and names its ROM `game.nds`.
+  - **Cancellation** (the next phase never starts, and processes are tree-killed), **graceful Stop** and **Debug**
+    are unit-tested through the fake.
+  - **The DeSmuME profile:**
+    - `desmume.ini` `[Controls]` gets the Controls mapping as virtual-key codes, with key names from the exe's
+      `inputdx.cpp` strings;
+    - DeSmuME keeps the section when it rewrites the file, and still logs `DSD|LOG|hello`;
+    - **unverified:** whether DeSmuME reads those keys. That needs a real key press in the window, which I did not
+      send (it could land in another app).
+  - **`packages/cli`** injects `compileProject` (`@dsdude/compiler`) and `packAssets` + `checkRoomBudgets`
+    (`@dsdude/asset-pipeline`) as soon as both export them. Today neither does, so `dsdude build samples/minimal`
+    is E641, exit 2.
+  - **Regression:** the gate path is unchanged. `dsdude build samples/hello ...` gives the same SHA-256
+    (`73f8bb7e...`), and `play` in melonDS logs `DSD|LOG|hello`.
+  - **Tests:** toolchain 76, cli 6; `npm run check` green.
+  - **Leftover for CP-B** (or WS8 at CP-C): wire and run the real `compileProject`/`packAssets` on `samples/minimal`
+    and `samples/flappy` once they are on `main`.- Task 5. Spike 5 + `dsdude doctor`: **done** (115a22b, cb9abe9); C4 0.5.0, C10 0.4.0 (T1, CHANGELOG lines appended).
+  - **Tools pack:** `tools/tools-pack.json` pins every file and licence text by SHA-256 (spike 5 below).
+    `tools/fetch-vendor.ps1 -Test` builds `vendor\tools-pack\` (19 files, 5.3 MB, gitignored) and passes every check.
+  - **`dsdude doctor [project] [--json]`:**
+    - checks BlocksDS by running each tool (0xC0000135 is E602), melonDS/DeSmuME, and py-desmume (by importing it);
+    - warns about build paths near 250 characters (E651) and about OneDrive.exe running while a path is under
+      `%OneDrive%` (E650);
+    - names the fix for each problem, and exits 2 only on a failed check;
+    - on this machine every check is OK. The worktree is under `%OneDrive%`, but OneDrive.exe is not running.
+  - **Tests:** toolchain 84, cli 6; `npm run check` green.
+  - **My slip, no effect:** I included a read-only package-manager query (`-Q`) in one command. The deny rule
+    refused it, and I took the version from the install log instead. No package manager has run since `phase0`.
+
+## Leftovers (for CP-B, or WS8 at CP-C)
+
+- Wire and run the real `compileProject`/`packAssets`/`checkRoomBudgets` on `samples/minimal` and `samples/flappy`
+  once WS4 and WS5 have them on `main`. The composition root already picks them up.
+- The DeSmuME key map is written but not verified by a real key press.
+- ADR-0003 (the key-script format) is open with WS2; `tools/screenshot.py` carries `ADR-pending ADR-0003`.
+- `dsdude toolchain install` still points to `scripts/install-toolchain.ps1`; an `installToolchain()` in TypeScript
+  is not written.
+- The packaged IDE (WS8) must point `ToolPaths` at `resources/tools-pack/` instead of `C:\msys64`.
 
 ## Definition of done (section 6 WS1)
 
@@ -66,16 +133,28 @@ Legend: todo / in progress / done (<sha>).
 - [x] Header check passes on hello. The E6xx cases are unit-tested on the fixture: `NitroFS!` zeroed → E613; FAT size zeroed → E612; FAT below 0x8000 → E611; empty `-d` folder → E612 from the real ndstool.
 - [x] 20 consecutive Play launches leave no orphan: 20/20 in melonDS and 20/20 in DeSmuME, each logging `DSD|LOG|hello` (1.6-1.9 s per relaunch, including the graceful stop of the previous one); `tasklist` shows no emulator afterwards, and `running.json` is removed.
 - [x] Each worktree's emulator config lives only under its `DSDUDE_HOME` (`melonDS.toml`, `rtc.bin` and `desmume.ini` beside the exes in `.dsdude\emulators\`).
-- [ ] Tools-pack clean-PATH test (spike 5): task 5 or a WS8 leftover.
+- [x] Tools-pack clean-PATH test passes (spike 5): `tools/fetch-vendor.ps1 -Test`.
 
 ## Notes for WS0
 
-- **CHANGELOG lines owed.** C4 went to 0.2.0 (T1: `ToolPaths.arm7Elf/icon/gcc`, `RomHeaderInfo`/`RomInfo.header`; the `ndsPath` comment now names `game.nds`, as PLAN 3.2 does), and C10 went to 0.2.0 (T1: `play --seconds`, the plain-folder rules, the `--json` fields, the provisional key scripts). `contracts/CHANGELOG.md` does not exist on `main` yet, so the entries are in each file's "Changes" section; I append them to the CHANGELOG once it exists.
+- **T1 for review: C4 0.3.0 and C10 0.3.0** (6c7c469), all additive. The CHANGELOG lines are appended.
+  - C4: `LaunchOptions.debug`, `BuildRequest.debug`, optional `EmulatorManager.reconcile()`, and the melonDS
+    download in `ensureInstalled`.
+  - C10: `play --debug`, and the ADR-0003 key scripts.
+  - (0.2.0 was accepted at checkpoint 0.)
 - **C8 pad wording (for WS2, T0).** Five pad lines of 1023 chars are 5115 bytes, just under 5 KB (5120). `samples/hello` sends six (6138 bytes). "At least six lines" or ">= 5120 bytes" would remove the ambiguity.
 - **C4 `PackAssetsFn` (for WS5, task 4).** The signature says nothing about where the NitroFS files go. `LocalBuildService` packs `<DSDUDE_HOME>\build\<project-hash>\nitrofs\`, so `packAssets` must write there. Either WS5 computes that folder the same way (`projectBuildDir` is exported), or a T1 adds an `outDir` argument; I'll raise it when wiring.
 - **ADR-0002 (proposed):** DeSmuME's R4 slot-1 profile does not mount NitroFS, so DSDude uses DeSmuME's default slot 1 only.
 - **Python on PATH.** The Microsoft Store alias is found first; MSYS2's own `python.exe` 3.14.3 sits in `C:\msys64\ucrt64\bin` later on PATH. `detectToolchain` uses `lstat`, because `existsSync` misses the alias and would fall through to MSYS2's python.
-- No `ADR-pending` markers in WS1 code.
+- **T1 for review: C4 0.4.0** (ac168f9), details in Task 4.
+  - For WS5: `packAssets` receives the build folder as a third argument and writes only there.
+  - For WS6: `createFakeToolchain()` and `MockBuildService` now share their phases and output; the mock's ROM path
+    changed from `mock.nds` to `game.nds`. No code outside `packages/toolchain` used the mock yet.
+- **ADR-0003 (proposed, for WS2):** one key-script format for `dsdude screenshot --keys` and `dsdude-host`.
+  Open marker: `ADR-pending ADR-0003` in `tools/screenshot.py`; it goes when WS2's "Host runner" section adopts the
+  format.
+- **Memory gate.** Checkpoint 0 recorded a 1095 MB minimum during my install, with emulators open. Since then I run
+  one emulator at a time, for 4-6 s, and close it after each test.
 
 ## Deviations from PLAN.md (for WS0)
 
@@ -194,6 +273,18 @@ Each variant was repacked from a different `nitrofs/hello.txt` with the same ELF
 - **Boot:** melonDS PASS, DeSmuME with default settings (slot 1 "Retail MC+ROM") PASS, py-desmume PASS.
 - **DeSmuME `--slot1 R4 --slot1-fat-dir <dir>`:** FAIL. It prints `slot1 fat not successfully mounted` for an empty folder and for the ROM's own folder alike, and the ROM logs `nitroFSInit failed`. See `docs/adr/0002-desmume-r4-slot1-profile.md` (proposed: default slot 1 only).
 
-### Spike 5: todo (task 5, else a WS8 leftover)
+### Spike 5: tools pack (claim 7): PASS
+- **objdump import walk** (`C:\msys64\ucrt64\bin\objdump.exe -p`, recursive):
+  - ndstool needs `libgcc_s_seh-1`, `libiconv-2`, `libstdc++-6`, and through them `libwinpthread-1`;
+  - grit needs `libgcc_s_seh-1` and `libstdc++-6`; mmutil needs none;
+  - all four DLLs come from `C:\msys64\opt\wonderful\bin` and import `api-ms-win-crt-*`, never `msvcrt.dll`.
+- **Clean PATH** (`PATH=C:\Windows\System32`, pack in `%TEMP%\dsdude tools pack test <time>\`, a path with spaces):
+  - `ndstool -V`, `grit -V` and `mmutil -V` print `v1.24.0-dirty` and exit 0;
+  - ndstool repacks `fixtures/build/hello` byte for byte (SHA-256 `73f8bb7e...`).
+- **Without the four DLLs:** ndstool and grit exit 0xC0000135; mmutil still runs.
+- **Licence texts** (PLAN 2.11):
+  - `blocksds/{ndstool,grit,mmutil}` at `master` (the repos have no `v1.24.0` tag, so each text is pinned by SHA-256);
+  - GCC `COPYING.RUNTIME` from `gcc-mirror/gcc` (gnu.org's `gcc-exception-3.1.txt` now returns 404);
+  - LGPL-2.1 from gnu.org, and the winpthreads `COPYING` from `mingw-w64`.
 
 ## Integration feedback
