@@ -2,7 +2,7 @@
 #ifndef DSD_GEN_OPCODES_H
 #define DSD_GEN_OPCODES_H
 
-#define DSD_OPCODES_VERSION "0.2.0"
+#define DSD_OPCODES_VERSION "0.3.0"
 #define DSD_OPCODE_COUNT 59
 
 /* Instruction word: op = bits 0-7, A = 8-15, B = 16-23, C = 24-31, Bx/sBx = 16-31. */
@@ -42,36 +42,36 @@
 #define DSD_OP_TOSTR      26 /* stable: A:reg B:reg */
 #define DSD_OP_GETGLOB    27 /* stable: A:reg Bx:global */
 #define DSD_OP_SETGLOB    28 /* stable: A:reg Bx:global */
-#define DSD_OP_CALL       29 /* provisional: A:reg Bx:func */
-#define DSD_OP_ADDI       30 /* provisional: A:reg B:reg C:s8 */
-#define DSD_OP_SUBI       31 /* provisional: A:reg B:reg C:s8 */
-#define DSD_OP_MULI       32 /* provisional: A:reg B:reg C:s8 */
-#define DSD_OP_CMPJ       33 /* provisional: A:reg B:reg C:u8 */
-#define DSD_OP_GETSLOT    34 /* provisional: A:reg B:u8 */
-#define DSD_OP_SETSLOT    35 /* provisional: A:reg B:u8 */
-#define DSD_OP_GETSLOTO   36 /* provisional: A:reg B:u8 */
-#define DSD_OP_SETSLOTO   37 /* provisional: A:reg B:u8 */
-#define DSD_OP_GETDYN     38 /* provisional: A:reg B:reg C:sym */
-#define DSD_OP_SETDYN     39 /* provisional: A:reg B:reg C:sym */
-#define DSD_OP_GETBI      40 /* provisional: A:reg Bx:bivar */
-#define DSD_OP_SETBI      41 /* provisional: A:reg Bx:bivar */
-#define DSD_OP_WITHBEGIN  42 /* provisional: A:reg sBx:label */
-#define DSD_OP_WITHNEXT   43 /* provisional: A:reg sBx:label */
-#define DSD_OP_WITHEND    44 /* provisional: A:reg */
-#define DSD_OP_NEWARR     45 /* provisional: A:reg B:u8 */
-#define DSD_OP_GETIDX     46 /* provisional: A:reg B:reg C:reg */
-#define DSD_OP_SETIDX     47 /* provisional: A:reg B:reg C:reg */
-#define DSD_OP_LEN        48 /* provisional: A:reg B:reg */
-#define DSD_OP_TOINT      49 /* provisional: A:reg B:reg */
-#define DSD_OP_TOFIXED    50 /* provisional: A:reg B:reg */
+#define DSD_OP_CALL       29 /* stable: A:reg Bx:func */
+#define DSD_OP_ADDI       30 /* stable: A:reg B:reg C:s8 */
+#define DSD_OP_SUBI       31 /* stable: A:reg B:reg C:s8 */
+#define DSD_OP_MULI       32 /* stable: A:reg B:reg C:s8 */
+#define DSD_OP_CMPJ       33 /* stable: A:reg B:reg C:u8 */
+#define DSD_OP_GETSLOT    34 /* stable: A:reg B:u8 */
+#define DSD_OP_SETSLOT    35 /* stable: A:reg B:u8 */
+#define DSD_OP_GETSLOTO   36 /* stable: A:reg B:u8 */
+#define DSD_OP_SETSLOTO   37 /* stable: A:reg B:u8 */
+#define DSD_OP_GETDYN     38 /* stable: A:reg B:reg C:sym */
+#define DSD_OP_SETDYN     39 /* stable: A:reg B:reg C:sym */
+#define DSD_OP_GETBI      40 /* stable: A:reg Bx:bivar */
+#define DSD_OP_SETBI      41 /* stable: A:reg Bx:bivar */
+#define DSD_OP_WITHBEGIN  42 /* stable: A:reg sBx:label */
+#define DSD_OP_WITHNEXT   43 /* stable: A:reg sBx:label */
+#define DSD_OP_WITHEND    44 /* stable: A:reg */
+#define DSD_OP_NEWARR     45 /* stable: A:reg B:u8 */
+#define DSD_OP_GETIDX     46 /* stable: A:reg B:reg C:reg */
+#define DSD_OP_SETIDX     47 /* stable: A:reg B:reg C:reg */
+#define DSD_OP_LEN        48 /* stable: A:reg B:reg */
+#define DSD_OP_TOINT      49 /* stable: A:reg B:reg */
+#define DSD_OP_TOFIXED    50 /* stable: A:reg B:reg */
 #define DSD_OP_ADDII      51 /* reserved: - */
 #define DSD_OP_SUBII      52 /* reserved: - */
 #define DSD_OP_MULII      53 /* reserved: - */
 #define DSD_OP_CMPJII     54 /* reserved: - */
-#define DSD_OP_GETBIX     55 /* provisional: A:reg B:bivar C:reg */
-#define DSD_OP_SETBIX     56 /* provisional: A:reg B:bivar C:reg */
-#define DSD_OP_GETBIO     57 /* provisional: A:reg B:reg C:bivar */
-#define DSD_OP_SETBIO     58 /* provisional: A:reg B:reg C:bivar */
+#define DSD_OP_GETBIX     55 /* stable: A:reg B:bivar C:reg */
+#define DSD_OP_SETBIX     56 /* stable: A:reg B:bivar C:reg */
+#define DSD_OP_GETBIO     57 /* stable: A:reg B:reg C:bivar */
+#define DSD_OP_SETBIO     58 /* stable: A:reg B:reg C:bivar */
 
 /* X-macro: X(name, number, stable) */
 #define DSD_OPCODE_LIST(X) \
@@ -104,35 +104,35 @@
   X(TOSTR, 26, 1) \
   X(GETGLOB, 27, 1) \
   X(SETGLOB, 28, 1) \
-  X(CALL, 29, 0) \
-  X(ADDI, 30, 0) \
-  X(SUBI, 31, 0) \
-  X(MULI, 32, 0) \
-  X(CMPJ, 33, 0) \
-  X(GETSLOT, 34, 0) \
-  X(SETSLOT, 35, 0) \
-  X(GETSLOTO, 36, 0) \
-  X(SETSLOTO, 37, 0) \
-  X(GETDYN, 38, 0) \
-  X(SETDYN, 39, 0) \
-  X(GETBI, 40, 0) \
-  X(SETBI, 41, 0) \
-  X(WITHBEGIN, 42, 0) \
-  X(WITHNEXT, 43, 0) \
-  X(WITHEND, 44, 0) \
-  X(NEWARR, 45, 0) \
-  X(GETIDX, 46, 0) \
-  X(SETIDX, 47, 0) \
-  X(LEN, 48, 0) \
-  X(TOINT, 49, 0) \
-  X(TOFIXED, 50, 0) \
+  X(CALL, 29, 1) \
+  X(ADDI, 30, 1) \
+  X(SUBI, 31, 1) \
+  X(MULI, 32, 1) \
+  X(CMPJ, 33, 1) \
+  X(GETSLOT, 34, 1) \
+  X(SETSLOT, 35, 1) \
+  X(GETSLOTO, 36, 1) \
+  X(SETSLOTO, 37, 1) \
+  X(GETDYN, 38, 1) \
+  X(SETDYN, 39, 1) \
+  X(GETBI, 40, 1) \
+  X(SETBI, 41, 1) \
+  X(WITHBEGIN, 42, 1) \
+  X(WITHNEXT, 43, 1) \
+  X(WITHEND, 44, 1) \
+  X(NEWARR, 45, 1) \
+  X(GETIDX, 46, 1) \
+  X(SETIDX, 47, 1) \
+  X(LEN, 48, 1) \
+  X(TOINT, 49, 1) \
+  X(TOFIXED, 50, 1) \
   X(ADDII, 51, 0) \
   X(SUBII, 52, 0) \
   X(MULII, 53, 0) \
   X(CMPJII, 54, 0) \
-  X(GETBIX, 55, 0) \
-  X(SETBIX, 56, 0) \
-  X(GETBIO, 57, 0) \
-  X(SETBIO, 58, 0)
+  X(GETBIX, 55, 1) \
+  X(SETBIX, 56, 1) \
+  X(GETBIO, 57, 1) \
+  X(SETBIO, 58, 1)
 
 #endif

@@ -365,7 +365,7 @@ export function encode(m: DsdbModule, env: BuiltinsEnv): Uint8Array {
   out.align4();
   const sprg = spriteGeometry(m);
   if (sprg !== null) {
-    // ADR-pending ADR-0006: the extension table follows the ten sections; its offset takes the reserved word.
+    // ADR-0006: the extension table follows the ten sections; its offset takes the reserved word.
     out.patch32(EXTENSION_OFFSET_AT, out.length);
     out.bytes[6] = FORMAT_MINOR_EXTENSIONS & 0xff;
     out.bytes[7] = FORMAT_MINOR_EXTENSIONS >>> 8;

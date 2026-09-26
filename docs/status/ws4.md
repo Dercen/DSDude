@@ -90,7 +90,8 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 - **Checkpoint-3 relay (2026-09-26):** merged `origin/main` (no open IF entries); ADR-0003 references renumbered to
   **ADR-0005** (markers, `contracts/dsdb.md`, `contracts/opcodes.json`, an appended CHANGELOG line).
 - **WS4 co-signs WS2's ADR-0006 (sprite geometry in the DSDB, option A), 2026-09-26**, and has implemented its side
-  (C2 `dsdb.md` 0.3.0, T1, marked `ADR-pending ADR-0006`):
+  (C2 `dsdb.md` 0.3.0, T1). **ADR-0006 accepted by the user (option A, minor 2 only with extensions); markers
+  removed after checkpoint-4.**
   - One clarification: the ADR both bumps the format minor to 2 and promises no byte change for files without SPRG.
     WS4's writer sets minor 2 **only when the file carries an extension table**; files without one keep minor 1 and
     their exact bytes (all 34 committed `.dsdb` fixtures without sprites are unchanged). Loaders accept minor >= 1.
@@ -102,18 +103,34 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     loader (115,719 checks).
 - push.sh range check fixed by WS0 (`5b09e6c`); the checkpoint-3 batch went out through push.sh after merging main.
 
+- **Checkpoint-4 relay (2026-09-26):** merged `origin/main` (no open IF entries); ADR-0006 markers removed;
+  samples/flappy `spr_bird` bbox left 2 -> 1 (from WS5), `fixtures/compiler/samples/flappy.{dsda,dsdb}` regenerated.
+  **For WS2:** `flappy.dsdb` changed (dsdb fingerprint `0xcc46e211`), so `runtime/tests/test_programs.c` skips the
+  trace check until `fixtures/runtime-core/flappy-trace.fnv` is refreshed; please also re-check that
+  `flappy-keys.txt` still scores with the wider bird bbox. Host tests green here (115,765 checks).
+
+- **Helper overrides (events.md section 3) fixed, 2026-09-26:** a call to an object function that a descendant
+  overrides now dispatches on `object_index` (GETBI + LOADK @obj + EQ + JMPT per overriding object, then the right
+  `CALL`, each branch filling its own defaults). No per-object code copies, so `event_inherited()` keeps its meaning;
+  calls with no override are unchanged (no golden moved). **For WS2:** relies on `GETBI object_index` giving an
+  object ASSET value that `EQ` compares equal to `LOADK @obj` (language.md: ids compare by numeric value).
+
+- **ADR-0005 accepted (WS0 relay, main f6ecb1f); opcodes promoted to stable, 2026-09-26.** WS4 co-signs WS2's CMPJ
+  proposal (compare-and-skip, C = relation 0-5, always followed by a JMP) and takes WS2's three ADR-0005 runtime notes
+  into `contracts/dsdb.md` section 5. One T1: `contracts/opcodes.json` 0.3.0 (29-50 and 55-58 stable; 51-54 stay
+  reserved) and `contracts/dsdb.md` 0.4.0, outputs regenerated; runtime host tests (115,765 checks) and WS4's tests
+  green. WS2 listed these as implemented in docs/status/ws2.md ("With WS4: promote ...").
+  - The compiler does not emit ADDI/SUBI/MULI or CMPJ yet: that is task 7's peephole pass, now unblocked.
+
 ## Next
 
 - Task 7 (formatter done): the peephole passes wait on purpose.
-  - ADDI/SUBI/MULI and a fused compare+jump (CMPJ, encoding still open) are provisional opcodes WS2 has not
-    implemented; emitting them now would stop the v0/v1 goldens from running on WS2's first VM (stable opcodes
-    only). They come after WS2 implements them (ADR-0005's operands are co-signed; WS0 accepts it), or at CP-C if the M1 gate
-    needs them.
+  - ADDI/SUBI/MULI and CMPJ are stable now (opcodes 0.3.0) and WS2's VM runs them: the pass can go ahead, measured
+    against WS2's M1 bench.
   - Constant folding must not apply to the conformance programs, which exist to test the VM's arithmetic (v0/02's
     `0.25 + 0.25`); it will be an option of `compileProject` (on for games), with folding that matches the runtime's
     int32/Q20.12 rules exactly.
-- Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
-  child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
+- Leftovers: constant folding (task 7).
 
 ## Goldens (tier status)
 
@@ -127,10 +144,8 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 
 ## Open ADR-pending markers
 
-- `ADR-pending ADR-0006` in `packages/dsdb/src/encode.ts`, `packages/dsdb/src/model.ts` and
-  `packages/compiler/src/project.ts` (SPRG): until WS0 accepts ADR-0006.
 
-- `ADR-pending ADR-0005` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): WS2
-  co-signed (docs/status/ws2.md); open until WS0 accepts ADR-0005 and both streams promote the opcodes (T1).
+- None. ADR-0005 accepted by the user (WS0 relay, main f6ecb1f); its four markers in
+  `packages/compiler/src/codegen/function.ts` are removed.
 
 ## Integration feedback

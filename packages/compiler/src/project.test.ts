@@ -171,6 +171,31 @@ describe("compileProject: functions and events", () => {
     expect(ok.dsda).toContain("CALL r0, boom");
   });
 
+  it("dispatches a parent's call to a helper a child overrides (events.md section 3)", () => {
+    const r = compile(
+      makeProject({
+        obj_base: { functions: "function speak() {\n    show_debug_message(1);\n}\n", events: { step: "speak();\n" } },
+        obj_kid: { parent: "obj_base", functions: "function speak(loud = 2) {\n    show_debug_message(loud);\n}\n" },
+        obj_grandkid: { parent: "obj_kid" },
+      }),
+    );
+    expect(r.codes).toEqual([]);
+    const step = r.dsda.slice(
+      r.dsda.indexOf(".func obj_base__step"),
+      r.dsda.indexOf(".end", r.dsda.indexOf(".func obj_base__step")),
+    );
+    expect(step).toContain("GETBI r1, object_index");
+    expect(step).toContain("LOADK r2, @obj_grandkid");
+    expect(step).toContain("LOADK r2, @obj_kid");
+    expect(step).toContain("CALL r0, obj_base__fn_speak");
+    // The override takes one more parameter: its default is filled in its own branch.
+    expect(step).toMatch(/LOADI r0, 2\n {4}CALL r0, obj_kid__fn_speak/);
+    // The child's own code needs no dispatch: nothing below obj_kid overrides speak again.
+    expect(
+      compile(makeProject({ obj_a: { functions: "function f() {}\n", events: { step: "f();\n" } } })).dsda,
+    ).not.toContain("object_index");
+  });
+
   it("checks event file names (E308, E309)", () => {
     expect(compile(makeProject({ obj_a: { events: { stepp: "x = 1" } } })).codes).toEqual(["E308"]);
     expect(compile(makeProject({ obj_a: { events: { collision_obj_zz: "x = 1" } } })).codes).toEqual(["E309"]);
