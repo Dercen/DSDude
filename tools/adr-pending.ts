@@ -1,4 +1,4 @@
-// Inventory of `ADR-pending ADR-NNNN` markers (PLAN.md 7.4) across main, every local ws* branch and every cloud
+// Inventory of `ADR-pending ADR-NNNN` markers (PLAN.md 7.4; prose that only mentions the phrase is ignored) across main, every local ws* branch and every cloud
 // push target registered in docs/status/cloud.md (falling back to all origin/ws* and origin/claude/* refs).
 // Usage: node tools/adr-pending.ts [--json]
 import { execFileSync } from "node:child_process";
@@ -41,8 +41,6 @@ export function parseGrep(ref: string, out: string): Marker[] {
     if (!m) continue;
     for (const a of m[3].matchAll(/ADR-pending\s+(ADR-\d{4})/g))
       markers.push({ ref, adr: a[1], file: m[1], line: Number(m[2]), text: m[3].trim() });
-    if (!/ADR-pending\s+ADR-\d{4}/.test(m[3]))
-      markers.push({ ref, adr: "ADR-????", file: m[1], line: Number(m[2]), text: m[3].trim() });
   }
   return markers;
 }
