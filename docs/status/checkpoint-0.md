@@ -44,6 +44,6 @@ No cloud stream has run yet; WS2 and WS4 launch after this tag.
   WS1's install, with emulators open): gate FAIL over the whole day; since 23:30 the minimum is 2432 MB (PASS). Peak
   commit charge 19.0 GB at 23:10.
 - `ADR-pending` markers: none.
-- ADRs: ADR-0001 Flappy pipe geometry accepted and applied; ADR-0002 DeSmuME R4 slot-1 profile **proposed** by WS1
-  (WS0 recommends accepting it).
+- ADRs: ADR-0001 Flappy pipe geometry accepted and applied; ADR-0002 DeSmuME R4 slot-1 profile (WS1) accepted by the
+  user after the tag (2026-09-25).
 - Integration feedback (`IF-` entries): none.
