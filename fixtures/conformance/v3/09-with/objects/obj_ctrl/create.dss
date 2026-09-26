@@ -1,0 +1,16 @@
+tag = "ctrl";
+var count = 0;
+repeat (4) {
+    var b = instance_create(count * 32, 0, obj_ball);
+    b.n = count;
+    count += 1;
+}
+with (obj_ball) {
+    if (n == 0) with (obj_ball) if (n == 2) instance_destroy();
+    show_debug_message("ball " + string(n) + " from " + other.tag);
+}
+with (obj_ball) {
+    if (n == 3) break;
+    with (other) show_debug_message("ctrl sees " + string(other.n));
+}
+alarm[0] = 2;

@@ -1,0 +1,27 @@
+// v1/07: arrays, variadic builtins (language.md rule 5) and fractional indices (the small rule: they floor)
+// Intended output, one DSD|LOG line each:
+//   3 / [10, 20, 30, 0, 0, 60] / 11 / [[1, 2], [33, 4]] / 20 / 8 / 80 / [7, 7, 7] / [60, 70] / 1 / 2.5 / 42 / 6
+var a = [10, 20, 30];
+show_debug_message(array_length(a));
+a[5] = 60;                                     // writing past the end grows the array, filling 0
+show_debug_message(a);
+var b = a;                                     // arrays are shared by reference
+b[0] = 11;
+show_debug_message(a[0]);
+var grid = [[1, 2], [3, 4]];
+grid[1][0] += 30;
+show_debug_message(grid);
+show_debug_message(a[1.75]);                   // a fractional index floors to 1
+array_push(a, 70, 80);
+show_debug_message(array_length(a));
+show_debug_message(array_pop(a));
+var c = array_create(3, 7);
+show_debug_message(c);
+array_delete(a, 0, 5);
+show_debug_message(a);
+show_debug_message(min(5, 3, 9, 1, 7));
+show_debug_message(max(2.5, 2));
+show_debug_message(choose(42));                // one choice: no randomness
+var sum = 0;
+for (var i = 0; i < array_length(grid); i++) sum += grid[i][1];
+show_debug_message(sum);

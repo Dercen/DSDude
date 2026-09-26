@@ -16,11 +16,13 @@
 static HostConfig g_cfg;
 static uint32_t g_frame;    // frames completed
 static bool g_fatal;        // dsd_plat_fatal was called
+static int32_t g_sprite_handles; // sprite handles handed out since the last dsd_plat_assets_free
 
 void host_configure(const HostConfig *cfg) {
     g_cfg = *cfg;
     g_frame = 0;
     g_fatal = false;
+    g_sprite_handles = 0;
 }
 
 bool host_fatal_seen(void) { return g_fatal; }
@@ -84,19 +86,22 @@ void dsd_plat_fatal(const dsd_fatal *err) {
 
 void dsd_plat_mem_report(dsd_mem_report *out) { memset(out, 0, sizeof *out); }
 
-// ---- Graphics, UI, sound (recorded in task 6) -------------------------------------------------------------------
+// ---- Graphics, UI, sound ----------------------------------------------------------------------------------------
+// The host is headless: loading always succeeds, because the core never takes game logic from GRF files (its
+// geometry comes from the DSDB), so a run without the GRFs (the cloud) and one with them (WS0) trace the same.
+// Pixels are read for --png-dir from tier v4 on.
 
 int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_info *info) {
     (void)screen;
     (void)grf_path;
     memset(info, 0, sizeof *info);
-    return DSD_PLAT_ELOAD;
+    return g_sprite_handles++;
 }
 
 int32_t dsd_plat_bg_load(uint32_t screen, const char *grf_path) {
     (void)screen;
     (void)grf_path;
-    return DSD_PLAT_ELOAD;
+    return DSD_PLAT_OK;
 }
 
 void dsd_plat_bg_scroll(uint32_t screen, int32_t x, int32_t y) {
@@ -151,7 +156,7 @@ void dsd_plat_volume(int32_t volume_fx) { (void)volume_fx; }
 
 void dsd_plat_screens_blank(bool blank) { (void)blank; }
 
-void dsd_plat_assets_free(void) {}
+void dsd_plat_assets_free(void) { g_sprite_handles = 0; }
 
 int32_t dsd_plat_sfx_load(uint32_t sound_id) {
     (void)sound_id;

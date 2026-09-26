@@ -24,6 +24,17 @@ const DsdBuiltinFn dsd_builtin_fn[DSD_BUILTIN_FUNC_COUNT] = {
     IMPL(array_length),   IMPL(array_push),  IMPL(array_pop),        IMPL(array_create),
     IMPL(array_delete),   IMPL(random),      IMPL(random_range),     IMPL(irandom),
     IMPL(irandom_range),  IMPL(choose),      IMPL(randomize),
+    IMPL(instance_create), IMPL(instance_destroy), IMPL(instance_exists), IMPL(instance_number),
+    IMPL(instance_find),  IMPL(instance_nearest), IMPL(instance_place), IMPL(place_meeting),
+    IMPL(position_meeting), IMPL(place_free), IMPL(collision_rectangle), IMPL(collision_point),
+    IMPL(distance_to_object), IMPL(event_inherited), IMPL(event_user), IMPL(room_goto),
+    IMPL(room_goto_next), IMPL(room_goto_previous), IMPL(room_restart), IMPL(game_restart),
+    IMPL(game_end),       IMPL(button_check), IMPL(button_pressed),  IMPL(button_released),
+    IMPL(touch_check),    IMPL(touch_pressed), IMPL(touch_released), IMPL(touch_in_instance),
+    IMPL(motion_add),     IMPL(motion_set),  IMPL(move_towards_point), IMPL(move_wrap),
+    IMPL(audio_play_sound), IMPL(audio_stop_sound), IMPL(audio_play_music), IMPL(audio_stop_music),
+    IMPL(audio_set_volume), IMPL(audio_is_playing), IMPL(draw_text), IMPL(draw_set_screen),
+    IMPL(draw_set_color), IMPL(draw_rectangle), IMPL(draw_clear),
 };
 #undef IMPL
 
@@ -61,6 +72,23 @@ bool dsd_bi_arg_int(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, in
 bool dsd_bi_arg_q12(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, int64_t *q12) {
     if (!dsd_bi_want_number(vm, bi, args, i)) return false;
     return dsd_num_view_q12(args[i], q12);
+}
+
+bool dsd_bi_arg_asset(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, uint32_t kind, const char *what,
+                      uint32_t *index) {
+    DsdValue v = args[i];
+    if (v.tag != DSD_TAG_ASSET || ((uint32_t)v.payload >> DSD_ASSET_KIND_SHIFT) != kind) {
+        return wrong_kind(vm, bi, what, v);
+    }
+    *index = (uint32_t)v.payload & DSD_ASSET_INDEX_MASK;
+    return true;
+}
+
+bool dsd_bi_arg_q20(DsdVm *vm, uint32_t bi, const DsdValue *args, uint32_t i, int32_t *out) {
+    int64_t q;
+    if (!dsd_bi_arg_q12(vm, bi, args, i, &q)) return false;
+    *out = dsd_lo32(q);
+    return dsd_vm_number_status(vm, dsd_fits32(q) ? DSD_NUM_OK : DSD_NUM_OVERFLOW, dsd_real(*out));
 }
 
 bool dsd_bi_real_result(DsdVm *vm, int64_t q12, DsdValue *out) {

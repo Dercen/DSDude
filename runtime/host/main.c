@@ -132,8 +132,17 @@ int main(int argc, char **argv) {
     HostConfig cfg = {o.root, o.seed, o.input != NULL ? &g_keys : NULL, NULL, NULL};
     host_configure(&cfg);
     int32_t st = dsd_game_boot();
-    for (uint32_t f = 0; st == DSD_GAME_RUNNING && f < o.frames; f++) st = dsd_game_frame();
-    if (trace != NULL) fclose(trace);
+    bool trace_ok = true;
+    for (uint32_t f = 0; st == DSD_GAME_RUNNING && f < o.frames; f++) {
+        st = dsd_game_frame();
+        // A frame that ended in an error has no end state to trace.
+        if (trace != NULL && st != DSD_GAME_FAILED) trace_ok = host_trace_frame(trace, f) && trace_ok;
+    }
+    if (trace != NULL && fclose(trace) != 0) trace_ok = false;
+    if (!trace_ok) {
+        fprintf(stderr, "dsdude-host: can't write %s\n", o.trace);
+        return EXIT_USAGE;
+    }
     fflush(stdout);
     return st == DSD_GAME_FAILED ? EXIT_RUNTIME_ERROR : EXIT_OK;
 }

@@ -1,0 +1,2 @@
+show_debug_message("kid user_1");
+event_user(0);                      // obj_kid has no user_0: obj_base's runs

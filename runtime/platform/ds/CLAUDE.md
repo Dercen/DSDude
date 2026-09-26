@@ -28,10 +28,15 @@ npm run build:runtime -w runtime   # DSDUDE_MAKE_JOBS=4; commit dist/ with the s
 ```
 
 ## Layout
-- `src/main.c` boot; `ds_platform.c` init (NitroFS -> soundEnable -> mmInitDefault) and `ds_fatal`;
-  `ds_log.c` + `ds_legacy_stub.s` the C8 writer (pads after READY/ERR/STAT itself);
-  `ds_boot_stub.c` stands in for the core until WS2's loader (ADR-0004).
-- `runtime/src/` the TypeScript `build:runtime` (C4 `buildRuntime`, then size/nm report and `dist/VERSION`).
+- `src/main.c` boot; `ds_platform.c` init (NitroFS -> soundEnable -> mmInitDefault), `ds_fatal`, error screen;
+  `ds_log.c` + `ds_legacy_stub.s` the C8 writer (pads after READY/ERR/STAT itself); `ds_video.c` bank table,
+  BG0/BG1, OAM, ext palettes (16-bit VRAM stores only); `ds_ui.c` BG0 UI layer (font `runtime/data/font8x8.bin`,
+  16 colours, panel glyphs, error box, console); `ds_gfx.c` GRF load/free LIFO, OBJ VRAM allocator, `ds_bg_load`;
+  `ds_mem.c` C-stack paint/high-water, heap free; `ds_boot_stub.c` stands in for the core (ADR-0004).
+- `runtime/selftest/` the selftest ROM (`make DSD_SELFTEST=1`), assets by `make_assets.py`.
+- `runtime/src/` `build:runtime` (C4 `buildRuntime`, size/nm report, `dist/VERSION`) and `selftest` (screenshot
+  cases vs goldens in `fixtures/runtime/selftest/`).
+- GRF `mapAttr` is the map format (`GRF_BGFMT_SBB_8BPP`), not a bit depth.
 
 ## Gotchas
 - libnds headers need `-std=gnu11` (GNU `asm`): the Makefile adds it for `platform/**` only; the core stays c11.

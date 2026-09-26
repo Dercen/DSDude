@@ -21,7 +21,7 @@
 // Initialises the platform, loads and checks game.dsdb, prints DSD|READY and seeds the RNG. A program-form DSDB
 // then runs __main once and prints DSD|EXIT|0. Safe to call again (the host tests boot many programs).
 int32_t dsd_game_boot(void);
-// Runs one frame of a room game.
+// Runs one frame of a room game (contracts/events.md section 2); returns the new state.
 int32_t dsd_game_frame(void);
 // The running VM (for the host runner's trace and the tests).
 const DsdVm *dsd_game_vm(void);

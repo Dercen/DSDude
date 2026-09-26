@@ -1,8 +1,9 @@
 // dsd_platform.h: contract C11, the platform seam between the portable core (runtime/core, WS2) and a platform
 // layer: libnds/maxmod on the DS (runtime/platform/ds, WS3) and the headless host runner (runtime/host, WS2).
 //
-// Version: 0.1.0 (published 2026-09-26, frozen at CP-A; after that, changes follow contracts/README.md: an added
-// function or field is T1, a changed signature or meaning T2). Source: PLAN.md 2.4, 3.2, 3.3 and 5.2 C11.
+// Version: 0.2.0 (0.1.0 published 2026-09-26; 0.2.0 adds dsd_core_main and dsd_plat_init's results for WS3's ADR-0004;
+// frozen at CP-A; after that, changes follow contracts/README.md: an added function or field is T1, a changed
+// signature or meaning T2). Source: PLAN.md 2.4, 3.2, 3.3 and 5.2 C11.
 //
 // Rules:
 //   - Pure C11 on both sides; no libnds or maxmod type crosses the seam, only the fixed-width types below.
@@ -16,7 +17,7 @@
 #ifndef DSD_PLATFORM_H
 #define DSD_PLATFORM_H
 
-#define DSD_PLATFORM_VERSION "0.1.0" // C11 version (contracts/CHANGELOG.md)
+#define DSD_PLATFORM_VERSION "0.2.0" // C11 version (contracts/CHANGELOG.md)
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -141,9 +142,20 @@ typedef struct dsd_mem_report {
     uint32_t pal256_used[2];            // extended OBJ palettes in use per screen, of 16
 } dsd_mem_report;
 
+// ---- Called by the platform (the core's entry point, ADR-0004) -------------------------------------------------
+
+// Runs the whole game: dsd_plat_init, game.dsdb, DSD|READY, then one frame after another (the core calls
+// dsd_plat_frame_begin, dsd_plat_read_input and dsd_plat_frame_end) until the game ends. Returns 0 after DSD|EXIT,
+// 1 after DSD|ERR when dsd_plat_fatal returned (on the DS it does not, and START restarts by calling this again).
+// Every piece of core state is re-initialised on entry. The DS main() only calls it; the host runner uses game.h's
+// dsd_game_boot/dsd_game_frame instead, to write a trace line after each frame.
+int dsd_core_main(void);
+
 // ---- Lifecycle and frame ----------------------------------------------------------------------------------------
 
-// Brings up video, NitroFS, sound and input. 0 on success; otherwise the core reports R584 and stops.
+// Brings up video, NitroFS, sound (maxmod with soundbank.bin) and input. Returns DSD_PLAT_OK, DSD_PLAT_ENOENT when
+// NitroFS could not be mounted (the core reports R584 "file system"), or DSD_PLAT_ELOAD when the soundbank could not
+// be loaded (R571 "soundbank.bin"); the core then stops.
 int32_t dsd_plat_init(void);
 // Start of a frame: clears the UI layer's back map. Called before input is read.
 void dsd_plat_frame_begin(void);

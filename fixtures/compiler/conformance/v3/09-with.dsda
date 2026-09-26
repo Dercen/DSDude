@@ -1,0 +1,155 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_ball "gfx/spr_ball.grf" 1 origin=0,0 size=16,16 bbox=0,0,15,15
+
+.func obj_ball__create 0 1
+    .loc "objects/obj_ball/create.dss" 1
+    LOADI r0, 0
+    SETSLOT r0, 0
+    RET r0, 0
+.end
+
+.func obj_ctrl__create 0 8
+    .loc "objects/obj_ctrl/create.dss" 1
+    LOADK r2, "ctrl"
+    SETSLOT r2, 0
+    .loc "objects/obj_ctrl/create.dss" 2
+    LOADI r0, 0
+    .loc "objects/obj_ctrl/create.dss" 3
+    LOADI r2, 4
+    CALLN r2, 1, floor
+    LOADI r3, 0
+    LOADI r4, 1
+  L0:
+    GT r5, r2, r3
+    JMPF r5, L1
+    .loc "objects/obj_ctrl/create.dss" 4
+    LOADI r6, 32
+    MUL r5, r0, r6
+    LOADI r6, 0
+    LOADK r7, @obj_ball
+    CALLN r5, 3, instance_create
+    MOV r1, r5
+    .loc "objects/obj_ctrl/create.dss" 5
+    SETDYN r0, r1, n
+    .loc "objects/obj_ctrl/create.dss" 6
+    LOADI r5, 1
+    ADD r0, r0, r5
+    SUB r2, r2, r4
+    JMP L0
+  L1:
+    .loc "objects/obj_ctrl/create.dss" 8
+    LOADK r2, @obj_ball
+    WITHBEGIN r2, L6
+  L2:
+    .loc "objects/obj_ctrl/create.dss" 9
+    GETSLOT r3, 0
+    LOADI r4, 0
+    EQ r3, r3, r4
+    JMPF r3, L5
+    LOADK r3, @obj_ball
+    WITHBEGIN r3, L5
+  L3:
+    GETSLOT r4, 0
+    LOADI r5, 2
+    EQ r4, r4, r5
+    JMPF r4, L4
+    CALLN r4, 0, instance_destroy
+  L4:
+    WITHNEXT r3, L3
+    WITHEND r3
+  L5:
+    .loc "objects/obj_ctrl/create.dss" 10
+    LOADK r3, "ball "
+    GETSLOT r4, 0
+    CALLN r4, 1, string
+    CONCAT r3, r3, r4
+    LOADK r4, " from "
+    CONCAT r3, r3, r4
+    GETSLOTO r4, 0
+    ADD r3, r3, r4
+    CALLN r3, 1, show_debug_message
+    WITHNEXT r2, L2
+    WITHEND r2
+  L6:
+    .loc "objects/obj_ctrl/create.dss" 12
+    LOADK r2, @obj_ball
+    WITHBEGIN r2, L11
+  L7:
+    .loc "objects/obj_ctrl/create.dss" 13
+    GETSLOT r3, 0
+    LOADI r4, 3
+    EQ r3, r3, r4
+    JMPF r3, L8
+    WITHEND r2
+    JMP L11
+  L8:
+    .loc "objects/obj_ctrl/create.dss" 14
+    LOADI r3, -2
+    WITHBEGIN r3, L10
+  L9:
+    LOADK r4, "ctrl sees "
+    GETSLOTO r5, 0
+    CALLN r5, 1, string
+    CONCAT r4, r4, r5
+    CALLN r4, 1, show_debug_message
+    WITHNEXT r3, L9
+    WITHEND r3
+  L10:
+    WITHNEXT r2, L7
+    WITHEND r2
+  L11:
+    .loc "objects/obj_ctrl/create.dss" 16
+    LOADI r2, 0
+    LOADI r3, 2
+    SETBIX r3, alarm, r2
+    RET r0, 0
+.end
+
+.func obj_ctrl__alarm_0 0 1
+    .loc "objects/obj_ctrl/alarm_0.dss" 1
+    LOADK r0, "alarm"
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/alarm_0.dss" 2
+    CALLN r0, 0, game_end
+    RET r0, 0
+.end
+
+.func obj_wall__collision_obj_ball 0 2
+    .loc "objects/obj_wall/collision_obj_ball.dss" 1
+    LOADK r0, "hit "
+    GETSLOTO r1, 0
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_wall/collision_obj_ball.dss" 2
+    CALLN r0, 0, instance_destroy
+    RET r0, 0
+.end
+
+.object obj_ball sprite=spr_ball parent=- visible=1 screen=top depth=0
+    .slot n 0
+    .event create obj_ball__create
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .slot tag 0
+    .event create obj_ctrl__create
+    .event alarm_0 obj_ctrl__alarm_0
+.end
+
+.object obj_wall sprite=spr_ball parent=- visible=1 screen=top depth=0
+    .event collision_obj_ball obj_wall__collision_obj_ball
+.end
+
+.room rm_test 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 100 top -
+    .instance obj_wall 32 0 top -
+    .set top spr_ball -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_test

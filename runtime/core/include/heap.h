@@ -50,6 +50,8 @@ uint32_t dsd_heap_alloc(DsdVm *vm, uint32_t kind, uint32_t bytes);
 bool dsd_heap_resize(DsdVm *vm, uint32_t slot, uint32_t bytes);
 // Runs the collector now.
 void dsd_heap_collect(DsdVm *vm);
+// Marks the object v refers to as reachable. Only for root-marking hooks (DsdVm.mark_extra) during a collection.
+void dsd_heap_mark(DsdHeap *h, DsdValue v);
 // Pins / unpins a value across allocations (LIFO; at most DSD_HEAP_TEMP_ROOTS at once).
 void dsd_heap_pin(DsdHeap *h, DsdValue v);
 void dsd_heap_unpin(DsdHeap *h);

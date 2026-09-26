@@ -1,0 +1,65 @@
+.dsda 0.1
+.seed 0
+
+.func mover_create 0 3
+    .loc "objects/obj_mover/create.dss" 1
+    LOADI r0, 2
+    SETBI r0, hspeed
+    .loc "objects/obj_mover/create.dss" 2
+    GETBI r0, speed
+    CALLN r0, 1, show_debug_message
+    GETBI r0, direction
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_mover/create.dss" 3
+    LOADI r0, 90
+    LOADI r1, 3
+    CALLN r0, 2, motion_set
+    .loc "objects/obj_mover/create.dss" 4
+    GETBI r0, hspeed
+    CALLN r0, 1, show_debug_message
+    GETBI r0, vspeed
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_mover/create.dss" 5
+    LOADK r0, 0.5
+    SETBI r0, gravity
+    RET r0, 0
+.end
+
+.func mover_end_step 0 2
+    .loc "objects/obj_mover/end_step.dss" 1
+    GETBI r0, x
+    TOSTR r0, r0
+    LOADK r1, ","
+    CONCAT r0, r0, r1
+    GETBI r1, y
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    LOADK r1, " v="
+    CONCAT r0, r0, r1
+    GETBI r1, vspeed
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    LOADK r1, " dir="
+    CONCAT r0, r0, r1
+    GETBI r1, direction
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_mover sprite=- parent=- visible=0 screen=top depth=0
+    .event create mover_create
+    .event end_step mover_end_step
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_mover 100 100 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a

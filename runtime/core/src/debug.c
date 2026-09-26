@@ -5,7 +5,9 @@
 #include "dsd_log.h"
 #include "errors.h"
 #include "game.h"
+#include "instances.h"
 #include "vm.h"
+#include "world.h"
 
 #define LOG_PREFIX "DSD|LOG|"
 #define LOG_PREFIX_LEN 8u
@@ -87,6 +89,12 @@ void dsd_log_text(const char *text, uint32_t len) {
     emit(&t);
 }
 
+void dsd_log_line(const char *prefix, const char *fields, uint32_t len) {
+    DsdText t = line_begin(prefix);
+    dsd_text_bytes(&t, fields, len);
+    emit(&t);
+}
+
 void dsd_log_exit(int32_t code) {
     DsdText t = line_begin("DSD|EXIT|");
     dsd_text_int(&t, code);
@@ -125,30 +133,89 @@ const char *dsd_error_code_text(int32_t code, char *buf) {
     return buf;
 }
 
-// Name of the function containing `pc`, or "" when none does.
+// Name of the function containing `pc`, or "" when none does (or pc is DSD_VM_NO_PC).
 static const char *function_name(const DsdVm *vm, uint32_t pc) {
-    uint32_t f = dsd_prog_func_at(vm->prog, pc);
+    uint32_t f = pc == DSD_VM_NO_PC ? DSDB_NONE : dsd_prog_func_at(vm->prog, pc);
     uint32_t len;
     return f == DSDB_NONE ? "" : dsd_prog_str(vm->prog, vm->prog->funcs[f].name_str, &len);
 }
 
+// Display names of the event kinds, in kind order (contracts/events.md).
+static const char *const EVENT_NAMES[DSD_EV_KIND_COUNT] = {
+    "Create", "Destroy", "Begin Step", "Step", "End Step", "Alarm", "Draw", "Collision", "Button Pressed",
+    "Button Released", "Button Held", "Touch Pressed", "Touch Released", "Touch Held", "Global Touch Pressed",
+    "Global Touch Released", "Global Touch Held", "Game Start", "Game End", "Room Start", "Room End",
+    "Animation End", "Outside Room", "User Event",
+};
+// Button names by btn_* value, for the button events.
+static const char *const BUTTON_NAMES[] = {"a", "b", "x", "y", "l", "r", "start", "select", "up", "down", "left", "right"};
+
+void dsd_event_name(const DsdVm *vm, uint32_t ev_id, DsdText *t) {
+    if (ev_id == DSD_EV_CREATION_CODE_ID) {
+        dsd_text_str(t, "Creation Code");
+        return;
+    }
+    uint32_t kind = ev_id >> DSD_EV_KIND_SHIFT;
+    uint32_t arg = ev_id & DSD_EV_ARG_MASK;
+    if (kind >= DSD_EV_KIND_COUNT) return;
+    dsd_text_str(t, EVENT_NAMES[kind]);
+    uint32_t len;
+    switch (kind) {
+    case DSD_EV_ALARM:
+    case DSD_EV_USER:
+        dsd_text_char(t, ' ');
+        dsd_text_uint(t, arg);
+        break;
+    case DSD_EV_COLLISION:
+        dsd_text_char(t, ' ');
+        dsd_text_str(t, dsd_prog_str(vm->prog, vm->world->objects[arg].name_str, &len));
+        break;
+    case DSD_EV_BUTTON_PRESSED:
+    case DSD_EV_BUTTON_RELEASED:
+    case DSD_EV_BUTTON_HELD:
+        dsd_text_char(t, ' ');
+        dsd_text_str(t, BUTTON_NAMES[arg]);
+        break;
+    default:
+        break;
+    }
+}
+
+// Name of the object of the running instance, or "" (program form, engine errors).
+static const char *object_name(const DsdVm *vm) {
+    uint32_t len;
+    if (vm->world == 0 || vm->self == DSD_VM_NO_INST) return "";
+    return dsd_prog_str(vm->prog, vm->world->objects[dsd_inst_at(vm->self)->object].name_str, &len);
+}
+
 void dsd_describe_code(const DsdVm *vm, uint32_t pc, DsdText *t) {
-    // Program form has no objects: the function name alone. Events add "obj / " once instances exist (task 6).
+    // "obj_x / Step" inside an event (C9's R510 example); the function name in program form.
+    if (vm->ev_id != DSD_VM_NO_EVENT && vm->world != 0) {
+        dsd_text_str(t, object_name(vm));
+        dsd_text_str(t, " / ");
+        dsd_event_name(vm, vm->ev_id, t);
+        return;
+    }
     dsd_text_str(t, function_name(vm, pc));
 }
 
 void dsd_report_vm_error(const DsdVm *vm) {
+    static char event[DSD_ERR_MSG_MAX];
     char code[CODE_TEXT_MAX];
     uint32_t file_str;
     uint32_t line;
     uint32_t len;
     dsd_fatal f;
     f.code = dsd_error_code_text(vm->err_code, code);
-    f.object = "";
-    f.event = function_name(vm, vm->err_pc);
+    f.object = object_name(vm);
+    DsdText et;
+    dsd_text_init(&et, event, sizeof event);
+    if (vm->ev_id != DSD_VM_NO_EVENT && vm->world != 0) dsd_event_name(vm, vm->ev_id, &et);
+    else dsd_text_str(&et, function_name(vm, vm->err_pc));
+    f.event = event;
     f.file = "";
     f.line = 0;
-    if (dsd_prog_line(vm->prog, vm->err_pc, &file_str, &line)) {
+    if (vm->err_pc != DSD_VM_NO_PC && dsd_prog_line(vm->prog, vm->err_pc, &file_str, &line)) {
         f.file = dsd_prog_str(vm->prog, file_str, &len);
         f.line = (int32_t)line;
     }

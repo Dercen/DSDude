@@ -1,0 +1,5 @@
+# Page 2 (R), n 8 -> 10 (UP twice), then affine (A).
+50-51 R
+60-61 UP
+66-67 UP
+72-73 A

@@ -1,2 +1,2 @@
 DSD|READY|0.1.0|0dd9987a
-DSD|ERR|R582||__main|rt/missing-builtin.dss|1|This game uses something this DSDude runtime can't do yet (instance_exists)
+DSD|ERR|R582||__main|rt/missing-builtin.dss|1|This game uses something this DSDude runtime can't do yet (draw_self)

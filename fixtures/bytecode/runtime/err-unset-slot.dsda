@@ -1,0 +1,24 @@
+.dsda 0.1
+.seed 0
+
+.func hero_step 0 1
+    .loc "objects/obj_hero/step.dss" 1
+    GETSLOT r0, 0
+    RET r0, 0
+.end
+
+.object obj_hero sprite=- parent=- visible=0 screen=top depth=0
+    .slot hp 0
+    .event step hero_step
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_hero 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a
