@@ -172,6 +172,7 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 ## Next
 - CP-A (2026-09-28): C11 0.3.0 freezes (ADR-0004 closed by the user).
 - M1 gate (44,000 ops/frame on melonDS = ~25.46 cycles/op; 28.27 on the II mix after steps 5-7). Done: int-specialised ops (step 7, opcodes 0.4.0), CMPJ inline JMP (step 9), CALLN halt check (step 10), pre-decoded direct threading (step 11, C13 0.3.0). Waiting for WS3's re-bench of step 11; if still short, the next candidates are listed under step 11 (superinstructions with WS4 first).
+- Coverage still below 90% (next batch before CP-A): `arrays.c` 77% (the R56x out-of-memory path), `builtins/media.c` 77% (audio_stop_sound, audio_set_volume: need a sound asset in a project fixture), `builtins/lists.c` 86%, `instances.c` 87%, `vm.arm.c` 88% (slow-path messages), `debug.c`/`game.c` 89%. `vendor/trig.c` 23% is libnds code the core does not call.
 - Conformance programs for rule 8 and the seed rule (WS4's paths): runtime fixtures and expected values are ready (see above).
 
 ## Open ADR-pending markers
