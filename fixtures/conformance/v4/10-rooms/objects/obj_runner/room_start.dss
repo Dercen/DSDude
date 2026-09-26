@@ -1,0 +1,2 @@
+global.visits += 1;
+show_debug_message("room " + (room == rm_a ? "a" : "b") + " visit " + string(global.visits));

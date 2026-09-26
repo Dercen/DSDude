@@ -1,0 +1,2 @@
+show_debug_message("alarm");
+game_end();

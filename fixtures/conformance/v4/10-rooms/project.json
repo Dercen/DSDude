@@ -1,0 +1,14 @@
+{
+  "formatVersion": 0,
+  "name": "rooms",
+  "title": "Rooms",
+  "subtitle": "DSDude conformance",
+  "author": "DSDude",
+  "gamecode": "####",
+  "icon": "icon.png",
+  "firstRoom": "rm_a",
+  "rooms": [
+    "rm_a",
+    "rm_b"
+  ]
+}

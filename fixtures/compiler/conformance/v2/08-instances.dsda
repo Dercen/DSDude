@@ -1,0 +1,134 @@
+.dsda 0.1
+.seed 0
+.symbol bonus
+
+.func obj_base__create 0 2
+    .loc "objects/obj_base/create.dss" 2
+    LOADI r0, 10
+    SETSLOT r0, 0
+    .loc "objects/obj_base/create.dss" 3
+    LOADK r0, "base create "
+    GETSLOT r1, 0
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func obj_base__user_0 0 1
+    .loc "objects/obj_base/user_0.dss" 1
+    LOADK r0, "base user_0"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func obj_ctrl__create 0 5
+    .loc "objects/obj_ctrl/create.dss" 1
+    LOADI r2, 0
+    LOADI r3, 0
+    LOADK r4, @obj_kid
+    CALLN r2, 3, instance_create
+    MOV r0, r2
+    .loc "objects/obj_ctrl/create.dss" 2
+    LOADI r2, 0
+    LOADI r3, 0
+    LOADK r4, @obj_leaf
+    CALLN r2, 3, instance_create
+    MOV r1, r2
+    .loc "objects/obj_ctrl/create.dss" 3
+    GETDYN r2, r0, hp
+    CALLN r2, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 4
+    LOADI r2, 3
+    SETDYN r2, r0, hp
+    .loc "objects/obj_ctrl/create.dss" 5
+    GETDYN r2, r0, hp
+    CALLN r2, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 6
+    LOADI r2, 7
+    SETDYN r2, r0, bonus
+    .loc "objects/obj_ctrl/create.dss" 7
+    GETDYN r2, r0, bonus
+    CALLN r2, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 8
+    LOADK r2, @obj_base
+    CALLN r2, 1, instance_number
+    CALLN r2, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 9
+    GETBIO r2, r1, object_index
+    LOADK r3, @obj_leaf
+    EQ r2, r2, r3
+    JMPF r2, L0
+    LOADK r2, "leaf"
+    CALLN r2, 1, show_debug_message
+  L0:
+    RET r0, 0
+.end
+
+.func obj_ctrl__step 0 1
+    .loc "objects/obj_ctrl/step.dss" 1
+    CALLN r0, 0, game_end
+    RET r0, 0
+.end
+
+.func obj_kid__create 0 2
+    .loc "objects/obj_kid/create.dss" 1
+    CALLN r0, 0, event_inherited
+    .loc "objects/obj_kid/create.dss" 2
+    GETSLOT r0, 0
+    LOADI r1, 5
+    ADD r0, r0, r1
+    SETSLOT r0, 0
+    .loc "objects/obj_kid/create.dss" 3
+    LOADK r0, "kid create "
+    GETSLOT r1, 0
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_kid/create.dss" 4
+    LOADI r0, 1
+    CALLN r0, 1, event_user
+    RET r0, 0
+.end
+
+.func obj_kid__user_1 0 1
+    .loc "objects/obj_kid/user_1.dss" 1
+    LOADK r0, "kid user_1"
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_kid/user_1.dss" 2
+    LOADI r0, 0
+    CALLN r0, 1, event_user
+    RET r0, 0
+.end
+
+.object obj_base sprite=- parent=- visible=1 screen=top depth=0
+    .slot hp 0
+    .event create obj_base__create
+    .event user_0 obj_base__user_0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event create obj_ctrl__create
+    .event step obj_ctrl__step
+.end
+
+.object obj_kid sprite=- parent=obj_base visible=1 screen=top depth=0
+    .slot hp 0
+    .event create obj_kid__create
+    .event user_1 obj_kid__user_1
+.end
+
+.object obj_leaf sprite=- parent=obj_kid visible=1 screen=top depth=0
+    .slot hp 0
+.end
+
+.room rm_test 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_test
