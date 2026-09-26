@@ -1,0 +1,11 @@
+runtime=0.1.0
+abi=0dd9987a
+tree=3c41502f7f4519528de1d58784765d3ceb2d6ca1
+blocksds=1.24.0
+arm7=$BLOCKSDS/sys/arm7/main_core/arm7_maxmod.elf
+arm9_sha256=92d43dc0486b37e9bc9ec3325d333ba2ca9bfa1148a808a70f6bfa716d797c9c
+itcm=1088
+dtcm=0
+dtcm_data=4608
+cstack=11200
+image=92692

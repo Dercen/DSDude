@@ -1,0 +1,111 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 7
+    .loc "v0/04-control.dss" 2
+    LOADI r0, 0
+    .loc "v0/04-control.dss" 3
+    LOADI r1, 1
+  L0:
+    LOADI r5, 10
+    LE r5, r1, r5
+    JMPF r5, L1
+    ADD r0, r0, r1
+    LOADI r5, 1
+    ADD r1, r1, r5
+    JMP L0
+  L1:
+    .loc "v0/04-control.dss" 4
+    MOV r5, r0
+    CALLN r5, 1, show_debug_message
+    .loc "v0/04-control.dss" 5
+    LOADI r2, 0
+    .loc "v0/04-control.dss" 6
+    LOADI r6, 4
+  L2:
+    LOADI r5, 0
+    GT r5, r6, r5
+    JMPF r5, L3
+    LOADI r5, 3
+    ADD r2, r2, r5
+    LOADI r5, 1
+    SUB r6, r6, r5
+    JMP L2
+  L3:
+    .loc "v0/04-control.dss" 7
+    MOV r5, r2
+    CALLN r5, 1, show_debug_message
+    .loc "v0/04-control.dss" 8
+    LOADI r3, 10
+  L4:
+    .loc "v0/04-control.dss" 9
+    LOADI r5, 1
+    GT r5, r3, r5
+    JMPF r5, L5
+    .loc "v0/04-control.dss" 10
+    LOADI r5, 2
+    IDIV r3, r3, r5
+    JMP L4
+  L5:
+    .loc "v0/04-control.dss" 12
+    MOV r5, r3
+    CALLN r5, 1, show_debug_message
+    .loc "v0/04-control.dss" 13
+    LOADI r4, 0
+  L6:
+    .loc "v0/04-control.dss" 15
+    LOADI r5, 1
+    ADD r4, r4, r5
+    .loc "v0/04-control.dss" 16
+    LOADI r5, 3
+    GE r5, r4, r5
+    JMPF r5, L6
+    .loc "v0/04-control.dss" 17
+    MOV r5, r4
+    CALLN r5, 1, show_debug_message
+    .loc "v0/04-control.dss" 18
+    MOV r6, r4
+    LOADI r5, 1
+    EQ r5, r6, r5
+    JMPT r5, L7
+    LOADI r5, 3
+    EQ r5, r6, r5
+    JMPT r5, L8
+    LOADI r5, 4
+    EQ r5, r6, r5
+    JMPT r5, L9
+    JMP L10
+  L7:
+    .loc "v0/04-control.dss" 20
+    LOADK r5, "one"
+    CALLN r5, 1, show_debug_message
+    .loc "v0/04-control.dss" 21
+    JMP L11
+  L8:
+    .loc "v0/04-control.dss" 23
+    LOADK r5, "three"
+    CALLN r5, 1, show_debug_message
+  L9:
+    .loc "v0/04-control.dss" 25
+    LOADK r5, "four"
+    CALLN r5, 1, show_debug_message
+    .loc "v0/04-control.dss" 26
+    JMP L11
+  L10:
+    .loc "v0/04-control.dss" 28
+    LOADK r5, "other"
+    CALLN r5, 1, show_debug_message
+  L11:
+    .loc "v0/04-control.dss" 30
+    LOADI r5, 50
+    GT r5, r0, r5
+    JMPF r5, L12
+    LOADK r5, "big"
+    CALLN r5, 1, show_debug_message
+    JMP L13
+  L12:
+    LOADK r5, "small"
+    CALLN r5, 1, show_debug_message
+  L13:
+    RET r0, 0
+.end

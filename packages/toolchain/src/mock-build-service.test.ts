@@ -23,8 +23,18 @@ describe("MockBuildService", () => {
     svc.onEvent((e) => events.push(e));
     const res = await svc.play({ projectDir: "/p" });
     expect(res.ok).toBe(true);
-    expect(res.ndsPath).toBe("/p/build/mock.nds");
-    expect(events.map((e) => e.phase)).toEqual(["compile", "assets", "pack", "done", "running"]);
+    expect(res.ndsPath).toBe("/p/build/game.nds");
+    expect(events.map((e) => e.phase)).toEqual([
+      "load",
+      "assets",
+      "compile",
+      "budgets",
+      "runtime",
+      "pack",
+      "done",
+      "launch",
+      "running",
+    ]);
     const lines: string[] = [];
     res.emulator?.onLine((l) => lines.push(l));
     await svc.stop();

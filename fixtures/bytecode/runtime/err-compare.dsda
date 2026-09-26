@@ -1,0 +1,10 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 2
+    .loc "rt/compare.dss" 4
+    LOADK r0, "a"
+    LOADI r1, 1
+    LT r0, r0, r1
+    RET r0, 0
+.end

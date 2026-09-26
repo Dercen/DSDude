@@ -1,0 +1,34 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_dummy "gfx/spr_dummy.grf" 1
+
+.func __main 0 3
+    .loc "rt/strings.dss" 1
+    LOADK r0, "Score: "
+    LOADK r1, 1.5
+    TOSTR r1, r1
+    ADD r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "rt/strings.dss" 2
+    LOADK r1, "ab"
+    LOADK r2, "b"
+    CONCAT r1, r1, r2
+    LOADK r2, "abb"
+    EQ r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "rt/strings.dss" 3
+    LOADK r1, "apple"
+    LOADK r2, "banana"
+    LT r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "rt/strings.dss" 4
+    LOADK r1, "1"
+    LOADI r2, 1
+    EQ r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "rt/strings.dss" 5
+    LOADK r1, @spr_dummy
+    CALLN r1, 1, string
+    CALLN r1, 1, show_debug_message
+    RET r0, 0
+.end

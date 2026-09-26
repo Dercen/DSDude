@@ -1,0 +1,68 @@
+# runtime/Makefile.host: the host build of the portable runtime core (PLAN.md 2.4; docs/kickoff/ws2.md gotchas).
+#
+# Always run from the repo root:
+#   make -f runtime/Makefile.host test           (Linux gcc: WS2's and WS4's cloud sessions)
+#   mingw32-make -f runtime/Makefile.host test   (MSYS2 UCRT64 gcc 15.2: WS0's integration, recipes run by cmd.exe)
+#
+# Portability rules this file keeps (recipes run under both /bin/sh and cmd.exe):
+#   - every recipe is a single $(CC) call, a run of a built executable, or the one-level mkdir below;
+#   - no mkdir -p, rm -rf, diff or cmp: output directories and trace comparisons live in the C test runner;
+#   - ifeq ($(OS),Windows_NT) is used only for the executable suffix.
+# Each binary is a unity build (all sources in one gcc call): no object files, so no per-object directories.
+
+# ---- Toolchain and flags ------------------------------------------------------------------------------------
+# gcc on both hosts (make's built-in default `cc` is missing from MSYS2 UCRT64). Override on the command line.
+CC = gcc
+
+EXE :=
+ifeq ($(OS),Windows_NT)
+EXE := .exe
+endif
+
+# Identical on both compilers (PLAN.md 2.4). No -Werror: GCC 13 and 15 warn differently.
+CFLAGS := -std=c11 -O2 -fwrapv -fno-strict-aliasing -funsigned-char -Wall -Wextra -DDSD_HOST
+# UBSan in trap mode only (MSYS2 has no libubsan): a trap exits with SIGILL (Linux) / 0xC000001D (Windows).
+UBSAN_FLAGS := -fsanitize=undefined -fsanitize-trap=undefined
+# Generated headers are included by bare name ("opcodes.h", "builtins_table.h"); host code also sees runtime/host.
+INCLUDES := -Iruntime/core/include -Iruntime/gen -Iruntime/host
+
+# ---- Sources ------------------------------------------------------------------------------------------------
+# The core: every .c under runtime/core/src, one and two levels deep (src/*.c, src/vendor/*.c, src/builtins/*.c),
+# the same files WS3's DS Makefile compiles.
+CORE_SRC := $(wildcard runtime/core/src/*.c runtime/core/src/*/*.c)
+# The host platform (runtime/host): the tests link it without main.c, which only dsdude-host has.
+HOST_MAIN := runtime/host/main.c
+HOST_SRC := $(filter-out $(HOST_MAIN),$(wildcard runtime/host/*.c))
+TEST_SRC := $(wildcard runtime/tests/*.c)
+HEADERS := $(wildcard runtime/core/include/*.h runtime/core/include/*/*.h runtime/core/src/*/*.h runtime/gen/*.h \
+                      runtime/host/*.h runtime/tests/*.h)
+
+# ---- Outputs ------------------------------------------------------------------------------------------------
+BUILD := runtime/build-host
+HOST := $(BUILD)/dsdude-host$(EXE)
+TESTS := $(BUILD)/dsdude-tests$(EXE)
+TESTS_UBSAN := $(BUILD)/dsdude-tests-ubsan$(EXE)
+
+.PHONY: all test
+
+all: $(HOST) $(TESTS) $(TESTS_UBSAN)
+
+# The pre-commit command: build the runner and both test variants, then run the tests (either failing fails the
+# target). The tests run from the repo root and read fixtures/ by relative path.
+test: $(HOST) $(TESTS) $(TESTS_UBSAN)
+	$(TESTS)
+	$(TESTS_UBSAN)
+
+$(HOST): $(CORE_SRC) $(HOST_SRC) $(HOST_MAIN) $(HEADERS) | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(CORE_SRC) $(HOST_SRC) $(HOST_MAIN)
+
+$(TESTS): $(CORE_SRC) $(HOST_SRC) $(TEST_SRC) $(HEADERS) | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(CORE_SRC) $(HOST_SRC) $(TEST_SRC)
+
+$(TESTS_UBSAN): $(CORE_SRC) $(HOST_SRC) $(TEST_SRC) $(HEADERS) | $(BUILD)
+	$(CC) $(CFLAGS) $(UBSAN_FLAGS) $(INCLUDES) -o $@ $(CORE_SRC) $(HOST_SRC) $(TEST_SRC)
+
+# One level only (runtime/ always exists). The quotes keep cmd.exe from reading "/build-host" as a switch; sh
+# treats them as plain quoting. Make skips this recipe whenever the directory already exists.
+$(BUILD):
+	mkdir "$(BUILD)"

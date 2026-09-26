@@ -1,0 +1,234 @@
+html,
+body,
+#root,
+.app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.monaco-host {
+  width: 100%;
+  height: 100%;
+}
+
+.output {
+  margin: 0;
+  padding: 4px 8px;
+  height: 100%;
+  overflow: auto;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+}
+
+.workbench {
+  flex: 1;
+  min-height: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #252526;
+  border-bottom: 1px solid #333;
+}
+
+.toolbar button {
+  background: #3a3d41;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.toolbar button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.toolbar .play {
+  background: #2e7d32;
+  border-color: #388e3c;
+}
+
+.toolbar .stop {
+  background: #b71c1c;
+  border-color: #c62828;
+}
+
+.toolbar-gap {
+  flex: 1;
+}
+
+.statusbar {
+  padding: 2px 10px;
+  font-size: 12px;
+  background: #007acc;
+  color: #fff;
+}
+
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 36px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 4px;
+  background: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.toast-error {
+  background: #5a1d1d;
+  border: 1px solid #be1100;
+}
+
+.toast button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tree {
+  height: 100%;
+  overflow: auto;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.tree-title {
+  padding: 4px 8px;
+  font-weight: 600;
+}
+
+.tree-heading,
+.tree-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tree-heading {
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.tree-item:hover,
+.tree-heading:hover,
+.problem:hover {
+  background: #2a2d2e;
+}
+
+.tree-count {
+  opacity: 0.5;
+  font-weight: normal;
+}
+
+.panel-empty,
+.welcome {
+  padding: 12px 16px;
+}
+
+.welcome h1 {
+  font-weight: 400;
+}
+
+.output-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-toolbar {
+  padding: 2px 6px;
+}
+
+.panel-toolbar button {
+  background: none;
+  border: 1px solid #45494e;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.output {
+  flex: 1;
+  min-height: 0;
+}
+
+.out-line {
+  white-space: pre-wrap;
+}
+
+.out-build {
+  color: #9d9d9d;
+}
+
+.out-error {
+  color: #f48771;
+}
+
+.out-ready,
+.out-exit {
+  color: #89d185;
+}
+
+.problems {
+  height: 100%;
+  overflow: auto;
+  font-size: 13px;
+}
+
+.problem {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.problem-error .problem-icon {
+  color: #f48771;
+}
+
+.problem-warning .problem-icon {
+  color: #cca700;
+}
+
+.problem-text {
+  flex: 1;
+}
+
+.problem-hint,
+.problem-where,
+.problem-code {
+  opacity: 0.7;
+}
