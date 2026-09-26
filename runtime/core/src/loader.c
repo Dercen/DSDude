@@ -288,8 +288,8 @@ static const OpCheck OP_CHECKS[DSD_OPCODE_COUNT] = {
     [DSD_OP_WITHNEXT] = {1, V_REG, V_LABEL, V_NONE},
     [DSD_OP_WITHEND] = {1, V_REG, V_NONE, V_NONE},
     [DSD_OP_CMPJ] = {1, V_REG, V_REG, V_NONE}, // relation and the JMP after it checked below
-    // Int-specialised arithmetic and compare-and-jump (reserved 51-54, the M1 fallback; encoding provisional until
-    // WS4's T1 promotes them): the compiler emits them only when both operands are proven ints.
+    // Int-specialised arithmetic and compare-and-jump (51-54, the M1 fallback; stable in opcodes 0.4.0): the compiler
+    // emits them only when both operands are proven ints.
     [DSD_OP_ADDII] = {1, V_REG, V_REG, V_REG},
     [DSD_OP_SUBII] = {1, V_REG, V_REG, V_REG},
     [DSD_OP_MULII] = {1, V_REG, V_REG, V_REG},

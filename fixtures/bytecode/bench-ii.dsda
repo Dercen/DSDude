@@ -1,0 +1,1372 @@
+.dsda 0.1
+.seed 1
+
+.func bench_create 0 1
+    .loc "objects/obj_bench/create.dss" 1
+    LOADI r0, 1
+    SETSLOT r0, 0
+    LOADI r0, 2
+    SETSLOT r0, 1
+    LOADI r0, 3
+    SETSLOT r0, 2
+    LOADI r0, 4
+    SETSLOT r0, 3
+    RET r0, 0
+.end
+
+.func bench_step 0 16
+    .loc "objects/obj_bench/step.dss" 1
+    LOADI r0, 1
+    LOADI r1, 2
+    LOADI r2, 3
+    LOADI r3, 4
+    LOADI r4, 5
+    LOADI r5, 6
+    LOADI r6, 7
+    LOADI r7, 8
+    LOADI r8, 0
+    LOADI r9, 0
+    LOADI r11, 0
+    LOADI r15, -3
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r1, r4
+    ADDII r11, r11, r6
+    MOV r12, r8
+    LOADI r13, 0
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L0
+  L0:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r2, r5
+    ADDII r11, r11, r7
+    MOV r12, r9
+    LOADI r13, 1
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L1
+  L1:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r3, r6
+    ADDII r11, r11, r1
+    MOV r12, r10
+    LOADI r13, 2
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L2
+  L2:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r4, r7
+    ADDII r11, r11, r2
+    MOV r12, r11
+    LOADI r13, 3
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L3
+  L3:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r1, r4
+    ADDII r11, r11, r3
+    MOV r12, r8
+    LOADI r13, 4
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L4
+  L4:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r2, r5
+    ADDII r11, r11, r4
+    MOV r12, r9
+    LOADI r13, 5
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L5
+  L5:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r3, r6
+    ADDII r11, r11, r5
+    MOV r12, r10
+    LOADI r13, 6
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L6
+  L6:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r4, r7
+    ADDII r11, r11, r6
+    MOV r12, r11
+    LOADI r13, 7
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L7
+  L7:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r1, r4
+    ADDII r11, r11, r7
+    MOV r12, r8
+    LOADI r13, 8
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L8
+  L8:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r2, r5
+    ADDII r11, r11, r1
+    MOV r12, r9
+    LOADI r13, 9
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L9
+  L9:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r3, r6
+    ADDII r11, r11, r2
+    MOV r12, r10
+    LOADI r13, 10
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L10
+  L10:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r4, r7
+    ADDII r11, r11, r3
+    MOV r12, r11
+    LOADI r13, 11
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L11
+  L11:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r1, r4
+    ADDII r11, r11, r4
+    MOV r12, r8
+    LOADI r13, 12
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L12
+  L12:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r2, r5
+    ADDII r11, r11, r5
+    MOV r12, r9
+    LOADI r13, 13
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L13
+  L13:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r3, r6
+    ADDII r11, r11, r6
+    MOV r12, r10
+    LOADI r13, 14
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L14
+  L14:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r4, r7
+    ADDII r11, r11, r7
+    MOV r12, r11
+    LOADI r13, 15
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L15
+  L15:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r1, r4
+    ADDII r11, r11, r1
+    MOV r12, r8
+    LOADI r13, 16
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L16
+  L16:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r2, r5
+    ADDII r11, r11, r2
+    MOV r12, r9
+    LOADI r13, 17
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L17
+  L17:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r3, r6
+    ADDII r11, r11, r3
+    MOV r12, r10
+    LOADI r13, 18
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L18
+  L18:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r4, r7
+    ADDII r11, r11, r4
+    MOV r12, r11
+    LOADI r13, 19
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L19
+  L19:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r1, r4
+    ADDII r11, r11, r5
+    MOV r12, r8
+    LOADI r13, 20
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L20
+  L20:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r2, r5
+    ADDII r11, r11, r6
+    MOV r12, r9
+    LOADI r13, 21
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L21
+  L21:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r3, r6
+    ADDII r11, r11, r7
+    MOV r12, r10
+    LOADI r13, 22
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L22
+  L22:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r4, r7
+    ADDII r11, r11, r1
+    MOV r12, r11
+    LOADI r13, 23
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L23
+  L23:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r1, r4
+    ADDII r11, r11, r2
+    MOV r12, r8
+    LOADI r13, 24
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L24
+  L24:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r2, r5
+    ADDII r11, r11, r3
+    MOV r12, r9
+    LOADI r13, 25
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L25
+  L25:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r3, r6
+    ADDII r11, r11, r4
+    MOV r12, r10
+    LOADI r13, 26
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L26
+  L26:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r4, r7
+    ADDII r11, r11, r5
+    MOV r12, r11
+    LOADI r13, 27
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L27
+  L27:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r1, r4
+    ADDII r11, r11, r6
+    MOV r12, r8
+    LOADI r13, 28
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L28
+  L28:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r2, r5
+    ADDII r11, r11, r7
+    MOV r12, r9
+    LOADI r13, 29
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L29
+  L29:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r3, r6
+    ADDII r11, r11, r1
+    MOV r12, r10
+    LOADI r13, 30
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L30
+  L30:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r4, r7
+    ADDII r11, r11, r2
+    MOV r12, r11
+    LOADI r13, 31
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L31
+  L31:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r1, r4
+    ADDII r11, r11, r3
+    MOV r12, r8
+    LOADI r13, 32
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L32
+  L32:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r2, r5
+    ADDII r11, r11, r4
+    MOV r12, r9
+    LOADI r13, 33
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L33
+  L33:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r3, r6
+    ADDII r11, r11, r5
+    MOV r12, r10
+    LOADI r13, 34
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L34
+  L34:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r4, r7
+    ADDII r11, r11, r6
+    MOV r12, r11
+    LOADI r13, 35
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L35
+  L35:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r1, r4
+    ADDII r11, r11, r7
+    MOV r12, r8
+    LOADI r13, 36
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L36
+  L36:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r2, r5
+    ADDII r11, r11, r1
+    MOV r12, r9
+    LOADI r13, 37
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L37
+  L37:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r3, r6
+    ADDII r11, r11, r2
+    MOV r12, r10
+    LOADI r13, 38
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L38
+  L38:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r4, r7
+    ADDII r11, r11, r3
+    MOV r12, r11
+    LOADI r13, 39
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L39
+  L39:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r1, r4
+    ADDII r11, r11, r4
+    MOV r12, r8
+    LOADI r13, 40
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L40
+  L40:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r2, r5
+    ADDII r11, r11, r5
+    MOV r12, r9
+    LOADI r13, 41
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L41
+  L41:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r3, r6
+    ADDII r11, r11, r6
+    MOV r12, r10
+    LOADI r13, 42
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L42
+  L42:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r4, r7
+    ADDII r11, r11, r7
+    MOV r12, r11
+    LOADI r13, 43
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L43
+  L43:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r1, r4
+    ADDII r11, r11, r1
+    MOV r12, r8
+    LOADI r13, 44
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L44
+  L44:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r2, r5
+    ADDII r11, r11, r2
+    MOV r12, r9
+    LOADI r13, 45
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L45
+  L45:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r3, r6
+    ADDII r11, r11, r3
+    MOV r12, r10
+    LOADI r13, 46
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L46
+  L46:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r4, r7
+    ADDII r11, r11, r4
+    MOV r12, r11
+    LOADI r13, 47
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L47
+  L47:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r1, r4
+    ADDII r11, r11, r5
+    MOV r12, r8
+    LOADI r13, 48
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L48
+  L48:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r2, r5
+    ADDII r11, r11, r6
+    MOV r12, r9
+    LOADI r13, 49
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L49
+  L49:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r3, r6
+    ADDII r11, r11, r7
+    MOV r12, r10
+    LOADI r13, 50
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L50
+  L50:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r4, r7
+    ADDII r11, r11, r1
+    MOV r12, r11
+    LOADI r13, 51
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L51
+  L51:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r1, r4
+    ADDII r11, r11, r2
+    MOV r12, r8
+    LOADI r13, 52
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L52
+  L52:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r2, r5
+    ADDII r11, r11, r3
+    MOV r12, r9
+    LOADI r13, 53
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L53
+  L53:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r3, r6
+    ADDII r11, r11, r4
+    MOV r12, r10
+    LOADI r13, 54
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L54
+  L54:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r4, r7
+    ADDII r11, r11, r5
+    MOV r12, r11
+    LOADI r13, 55
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L55
+  L55:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r1, r4
+    ADDII r11, r11, r6
+    MOV r12, r8
+    LOADI r13, 56
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L56
+  L56:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r2, r5
+    ADDII r11, r11, r7
+    MOV r12, r9
+    LOADI r13, 57
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L57
+  L57:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r3, r6
+    ADDII r11, r11, r1
+    MOV r12, r10
+    LOADI r13, 58
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L58
+  L58:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r4, r7
+    ADDII r11, r11, r2
+    MOV r12, r11
+    LOADI r13, 59
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L59
+  L59:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r1, r4
+    ADDII r11, r11, r3
+    MOV r12, r8
+    LOADI r13, 60
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L60
+  L60:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r2, r5
+    ADDII r11, r11, r4
+    MOV r12, r9
+    LOADI r13, 61
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L61
+  L61:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r3, r6
+    ADDII r11, r11, r5
+    MOV r12, r10
+    LOADI r13, 62
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L62
+  L62:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r4, r7
+    ADDII r11, r11, r6
+    MOV r12, r11
+    LOADI r13, 63
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L63
+  L63:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r1, r4
+    ADDII r11, r11, r7
+    MOV r12, r8
+    LOADI r13, 64
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L64
+  L64:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r2, r5
+    ADDII r11, r11, r1
+    MOV r12, r9
+    LOADI r13, 65
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L65
+  L65:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r3, r6
+    ADDII r11, r11, r2
+    MOV r12, r10
+    LOADI r13, 66
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L66
+  L66:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r4, r7
+    ADDII r11, r11, r3
+    MOV r12, r11
+    LOADI r13, 67
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L67
+  L67:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r1, r4
+    ADDII r11, r11, r4
+    MOV r12, r8
+    LOADI r13, 68
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L68
+  L68:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r2, r5
+    ADDII r11, r11, r5
+    MOV r12, r9
+    LOADI r13, 69
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L69
+  L69:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r3, r6
+    ADDII r11, r11, r6
+    MOV r12, r10
+    LOADI r13, 70
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L70
+  L70:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r4, r7
+    ADDII r11, r11, r7
+    MOV r12, r11
+    LOADI r13, 71
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L71
+  L71:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r1, r4
+    ADDII r11, r11, r1
+    MOV r12, r8
+    LOADI r13, 72
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L72
+  L72:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r2, r5
+    ADDII r11, r11, r2
+    MOV r12, r9
+    LOADI r13, 73
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L73
+  L73:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r3, r6
+    ADDII r11, r11, r3
+    MOV r12, r10
+    LOADI r13, 74
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L74
+  L74:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r4, r7
+    ADDII r11, r11, r4
+    MOV r12, r11
+    LOADI r13, 75
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L75
+  L75:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r1, r4
+    ADDII r11, r11, r5
+    MOV r12, r8
+    LOADI r13, 76
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L76
+  L76:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r2, r5
+    ADDII r11, r11, r6
+    MOV r12, r9
+    LOADI r13, 77
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L77
+  L77:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r3, r6
+    ADDII r11, r11, r7
+    MOV r12, r10
+    LOADI r13, 78
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L78
+  L78:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r4, r7
+    ADDII r11, r11, r1
+    MOV r12, r11
+    LOADI r13, 79
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L79
+  L79:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r1, r4
+    ADDII r11, r11, r2
+    MOV r12, r8
+    LOADI r13, 80
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L80
+  L80:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r2, r5
+    ADDII r11, r11, r3
+    MOV r12, r9
+    LOADI r13, 81
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L81
+  L81:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r3, r6
+    ADDII r11, r11, r4
+    MOV r12, r10
+    LOADI r13, 82
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L82
+  L82:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r4, r7
+    ADDII r11, r11, r5
+    MOV r12, r11
+    LOADI r13, 83
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L83
+  L83:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r1, r4
+    ADDII r11, r11, r6
+    MOV r12, r8
+    LOADI r13, 84
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L84
+  L84:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r2, r5
+    ADDII r11, r11, r7
+    MOV r12, r9
+    LOADI r13, 85
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L85
+  L85:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r3, r6
+    ADDII r11, r11, r1
+    MOV r12, r10
+    LOADI r13, 86
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L86
+  L86:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r4, r7
+    ADDII r11, r11, r2
+    MOV r12, r11
+    LOADI r13, 87
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L87
+  L87:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r1, r4
+    ADDII r11, r11, r3
+    MOV r12, r8
+    LOADI r13, 88
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L88
+  L88:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r2, r5
+    ADDII r11, r11, r4
+    MOV r12, r9
+    LOADI r13, 89
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L89
+  L89:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r3, r6
+    ADDII r11, r11, r5
+    MOV r12, r10
+    LOADI r13, 90
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L90
+  L90:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r4, r7
+    ADDII r11, r11, r6
+    MOV r12, r11
+    LOADI r13, 91
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L91
+  L91:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r1, r4
+    ADDII r11, r11, r7
+    MOV r12, r8
+    LOADI r13, 92
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L92
+  L92:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r2, r5
+    ADDII r11, r11, r1
+    MOV r12, r9
+    LOADI r13, 93
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L93
+  L93:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r3, r6
+    ADDII r11, r11, r2
+    MOV r12, r10
+    LOADI r13, 94
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L94
+  L94:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r4, r7
+    ADDII r11, r11, r3
+    MOV r12, r11
+    LOADI r13, 95
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L95
+  L95:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r1, r4
+    ADDII r11, r11, r4
+    MOV r12, r8
+    LOADI r13, 96
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L96
+  L96:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r2, r5
+    ADDII r11, r11, r5
+    MOV r12, r9
+    LOADI r13, 97
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L97
+  L97:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r3, r6
+    ADDII r11, r11, r6
+    MOV r12, r10
+    LOADI r13, 98
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L98
+  L98:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r4, r7
+    ADDII r11, r11, r7
+    MOV r12, r11
+    LOADI r13, 99
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L99
+  L99:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r1, r4
+    ADDII r11, r11, r1
+    MOV r12, r8
+    LOADI r13, 0
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L100
+  L100:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r2, r5
+    ADDII r11, r11, r2
+    MOV r12, r9
+    LOADI r13, 1
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L101
+  L101:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r3, r6
+    ADDII r11, r11, r3
+    MOV r12, r10
+    LOADI r13, 2
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L102
+  L102:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r4, r7
+    ADDII r11, r11, r4
+    MOV r12, r11
+    LOADI r13, 3
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L103
+  L103:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r1, r4
+    ADDII r11, r11, r5
+    MOV r12, r8
+    LOADI r13, 4
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L104
+  L104:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r2, r5
+    ADDII r11, r11, r6
+    MOV r12, r9
+    LOADI r13, 5
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L105
+  L105:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r3, r6
+    ADDII r11, r11, r7
+    MOV r12, r10
+    LOADI r13, 6
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L106
+  L106:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r4, r7
+    ADDII r11, r11, r1
+    MOV r12, r11
+    LOADI r13, 7
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L107
+  L107:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r1, r4
+    ADDII r11, r11, r2
+    MOV r12, r8
+    LOADI r13, 8
+    GETSLOT r14, 0
+    CMPJII r8, r9, 0
+    JMP L108
+  L108:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r2, r5
+    ADDII r11, r11, r3
+    MOV r12, r9
+    LOADI r13, 9
+    SETSLOT r13, 1
+    CMPJII r8, r9, 1
+    JMP L109
+  L109:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r3, r6
+    ADDII r11, r11, r4
+    MOV r12, r10
+    LOADI r13, 10
+    GETSLOT r14, 2
+    CMPJII r8, r9, 2
+    JMP L110
+  L110:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r4, r7
+    ADDII r11, r11, r5
+    MOV r12, r11
+    LOADI r13, 11
+    SETSLOT r13, 3
+    CMPJII r8, r9, 3
+    JMP L111
+  L111:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r1, r4
+    ADDII r11, r11, r6
+    MOV r12, r8
+    LOADI r13, 12
+    GETSLOT r14, 0
+    CMPJII r8, r9, 4
+    JMP L112
+  L112:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r2
+    SUBII r9, r9, r5
+    MULII r10, r2, r5
+    ADDII r11, r11, r7
+    MOV r12, r9
+    LOADI r13, 13
+    SETSLOT r13, 1
+    CMPJII r8, r9, 5
+    JMP L113
+  L113:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r3
+    SUBII r9, r9, r6
+    MULII r10, r3, r6
+    ADDII r11, r11, r1
+    MOV r12, r10
+    LOADI r13, 14
+    GETSLOT r14, 2
+    CMPJII r8, r9, 0
+    JMP L114
+  L114:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r4
+    SUBII r9, r9, r7
+    MULII r10, r4, r7
+    ADDII r11, r11, r2
+    MOV r12, r11
+    LOADI r13, 15
+    SETSLOT r13, 3
+    CMPJII r8, r9, 1
+    JMP L115
+  L115:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r5
+    SUBII r9, r9, r1
+    MULII r10, r1, r4
+    ADDII r11, r11, r3
+    MOV r12, r8
+    LOADI r13, 16
+    GETSLOT r14, 0
+    CMPJII r8, r9, 2
+    JMP L116
+  L116:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r6
+    SUBII r9, r9, r2
+    MULII r10, r2, r5
+    ADDII r11, r11, r4
+    MOV r12, r9
+    LOADI r13, 17
+    SETSLOT r13, 1
+    CMPJII r8, r9, 3
+    JMP L117
+  L117:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r7
+    SUBII r9, r9, r3
+    MULII r10, r3, r6
+    ADDII r11, r11, r5
+    MOV r12, r10
+    LOADI r13, 18
+    GETSLOT r14, 2
+    CMPJII r8, r9, 4
+    JMP L118
+  L118:
+    CALLN r15, 1, abs
+    ADDII r8, r8, r1
+    SUBII r9, r9, r4
+    MULII r10, r4, r7
+    ADDII r11, r11, r6
+    MOV r12, r11
+    LOADI r13, 19
+    SETSLOT r13, 3
+    CMPJII r8, r9, 5
+    JMP L119
+  L119:
+    CALLN r15, 1, abs
+    RET r0, 0
+.end
+
+.object obj_bench sprite=- parent=- visible=0 screen=top depth=0
+    .slot s0 0
+    .slot s1 1
+    .slot s2 2
+    .slot s3 3
+    .event create bench_create
+    .event step bench_step
+.end
+
+.room rm_bench 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_bench 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_bench
