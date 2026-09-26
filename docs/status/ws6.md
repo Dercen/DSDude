@@ -276,3 +276,4 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
 
 ## Integration feedback
 - IF-1 2026-09-26 checkpoint-18 @fc470ae: IDE browser tests on Windows failed: `npm run test:browser -w apps/ide` -> Error: Failed to run the test C:/Users/zache/OneDrive/Desktop/Projects/DSDude/apps/ide/src/renderer/editors/room/room.browser.test.tsx.. Action: reproduce locally and fix.
+- IF-1 resolved by ee11008 (not reproducible: 5 files / 19 tests green on the re-run and room.browser.test.tsx alone 4/4; a first-run Vite re-optimisation of the newly linked pixi.js. integrate.ts now retries that case once)

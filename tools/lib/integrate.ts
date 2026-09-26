@@ -527,7 +527,11 @@ function main(argv: string[]): number {
     );
     if (!ideTouched) localChecks.push("IDE browser tests: skipped (no IDE package changed)");
     else if (existsSync(join(root, "apps/ide/vitest.browser.config.ts"))) {
-      const bt = sh("npm run test:browser -w apps/ide", 10 * MIN);
+      let bt = sh("npm run test:browser -w apps/ide", 10 * MIN);
+      // A dependency new to this tree makes Vite re-optimise and reload on the first run ("Failed to run the test",
+      // checkpoint-18, WS6 IF-1): retry once before calling it red.
+      if (bt.code !== 0 && !bt.timedOut && bt.out.includes("Failed to run the test"))
+        bt = sh("npm run test:browser -w apps/ide", 10 * MIN);
       const line = `npm run test:browser -w apps/ide (headless Chromium): ${bt.code === 0 ? "green" : `RED (exit ${bt.code}${bt.timedOut ? ", timed out" : ""}): ${failureExcerpt(bt.out)}`}`;
       localChecks.push(line);
       const ws6 = outcomes.find((o) => o.target.stream.ws === "WS6" && o.status === "merged");
