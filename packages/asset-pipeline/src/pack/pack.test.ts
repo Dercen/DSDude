@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import type { Project } from "@dsdude/project-format";
 import { loadProject } from "@dsdude/project-format/node";
@@ -154,6 +154,110 @@ describe("packAssets with fake grit and mmutil", () => {
   });
 });
 
+describe("packAssets sound limits and checks", () => {
+  /** samples/flappy (three effects) packed with a fake mmutil that writes the given sample size or ids. */
+  async function packFlappy(opts: { sampleBytes?: number; idShift?: number }) {
+    const project = await load(copySample("samples/flappy"));
+    const tools = fakeTools(tempDir(), opts);
+    return packAssets(project, tools.paths, tempDir(), { runTool: tools.run });
+  }
+
+  it("reports E411 for one sound bigger than a room's sound memory", async () => {
+    const TOO_BIG = 800_000; // above soundRamBytes (786432); the three together also exceed 1 MB (E410, not checked here)
+    const { diagnostics } = await packFlappy({ sampleBytes: TOO_BIG });
+    const e411 = diagnostics.filter((d) => d.code === "E411");
+    expect(e411.map((d) => [d.file, d.message])).toEqual(
+      ["snd_flap", "snd_hit", "snd_point"].map((n) => [
+        `sounds/${n}/${n.slice(4)}.wav`,
+        `${n} needs ${TOO_BIG} bytes of sound memory, but a room can use at most 786432.`,
+      ]),
+    );
+  });
+
+  it("reports E410 when the whole soundbank is bigger than 1 MB, naming the biggest sounds", async () => {
+    const LARGE = 400_000; // each fits a room, but three make a bank above 1048576 bytes
+    const { diagnostics, manifest } = await packFlappy({ sampleBytes: LARGE });
+    expect(diagnostics.map((d) => d.code)).toEqual(["E410"]);
+    expect(diagnostics[0]?.message).toBe(
+      `All sounds together take ${manifest.soundbank?.bytes} bytes, but a DS game can hold at most 1048576.`,
+    );
+    expect(diagnostics[0]?.hint).toBe("Shorten or remove some sounds. The biggest are snd_flap, snd_hit, snd_point.");
+  });
+
+  it("reports E421 when soundbank.h disagrees with the expected ids, and uses the header's ids", async () => {
+    const { diagnostics, manifest } = await packFlappy({ idShift: 1 });
+    expect(diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["E421", "The sound converter did not finish: soundbank.h gives SFX_SND_FLAP = 1, expected 0."],
+      ["E421", "The sound converter did not finish: soundbank.h gives SFX_SND_HIT = 2, expected 1."],
+      ["E421", "The sound converter did not finish: soundbank.h gives SFX_SND_POINT = 3, expected 2."],
+    ]);
+    expect(manifest.sounds.snd_flap?.id).toBe(1);
+  });
+
+  it("numbers music modules from 0 in name order after every effect, whatever their format", async () => {
+    const dir = copySample("samples/flappy");
+    addSound(dir, "mus_b", "music", "b.xm", readRepoFile("fixtures/assets/tune.xm"));
+    addSound(dir, "mus_a", "music", "a.mod", modFile());
+    const tools = fakeTools(tempDir());
+    const { manifest, diagnostics } = await packAssets(await load(dir), tools.paths, tempDir(), { runTool: tools.run });
+    expect(diagnostics).toEqual([]);
+    const mm = tools.calls.find((c) => c.tool === "mmutil");
+    expect(mm?.args.slice(0, 5).map((a) => path.basename(a))).toEqual([
+      "snd_flap.wav",
+      "snd_hit.wav",
+      "snd_point.wav",
+      "mus_a.mod",
+      "mus_b.xm",
+    ]);
+    expect([manifest.sounds.mus_a?.id, manifest.sounds.mus_b?.id]).toEqual([0, 1]);
+  });
+
+  it("reports E409 for a tracker file used as an effect, a WAV used as music, and a broken module", async () => {
+    const dir = copySample("samples/minimal");
+    addSound(dir, "snd_xm", "effect", "x.xm", readRepoFile("fixtures/assets/tune.xm"));
+    addSound(dir, "mus_wav", "music", "m.wav", readRepoFile("fixtures/assets/blip.wav"));
+    addSound(dir, "mus_bad", "music", "bad.it", new TextEncoder().encode("not a module"));
+    const { diagnostics } = await packAssets(await load(dir), {}, tempDir());
+    expect(diagnostics.filter((d) => d.code === "E409").map((d) => [d.file, d.message])).toEqual([
+      [
+        "sounds/mus_bad/bad.it",
+        "mus_bad: DSDude can't read sounds/mus_bad/bad.it as a sound (it is not a valid IT module).",
+      ],
+      [
+        "sounds/mus_wav/m.wav",
+        "mus_wav: DSDude can't read sounds/mus_wav/m.wav as a sound (.wav files can't be music).",
+      ],
+      ["sounds/snd_xm/x.xm", "snd_xm: DSDude can't read sounds/snd_xm/x.xm as a sound (.xm files can't be effects)."],
+    ]);
+  });
+
+  it("reports E420 for a name that cannot be a DS file name (only reachable in memory: C1 names always pass)", async () => {
+    const project = await load(copySample("samples/flappy"));
+    const flap = project.sounds[0];
+    if (flap === undefined) throw new Error("fixture sound missing");
+    project.sounds = [{ ...flap, name: "snd.flap" }, ...project.sounds.slice(1)];
+    const { diagnostics, manifest } = await packAssets(project, {}, tempDir());
+    expect(diagnostics.filter((d) => d.code === "E420").map((d) => d.message)).toEqual([
+      "The name snd.flap can't be used as a file name on the DS.",
+    ]);
+    expect(Object.keys(manifest.sounds)).not.toContain("snd.flap");
+  });
+});
+
+/** A minimal 4-channel ProTracker MOD: 20-byte title, 31 empty sample records, order table, "M.K." and one pattern. */
+function modFile(): Uint8Array {
+  const TITLE = 20;
+  const SAMPLE_RECORD = 30;
+  const SAMPLES = 31;
+  const ORDER_TABLE = 128;
+  const PATTERN_BYTES = 64 * 4 * 4; // 64 rows x 4 channels x 4 bytes
+  const header = TITLE + SAMPLES * SAMPLE_RECORD;
+  const out = new Uint8Array(header + 2 + ORDER_TABLE + 4 + PATTERN_BYTES);
+  out[header] = 1; // song length: one order
+  out.set(new TextEncoder().encode("M.K."), header + 2 + ORDER_TABLE);
+  return out;
+}
+
 describe("packAssets limits", () => {
   it("names the asset, the limit and a fix", async () => {
     const dir = copySample("samples/minimal");
@@ -194,6 +298,23 @@ describe("packAssets limits", () => {
     ]);
     expect(Object.keys(manifest.sprites)).not.toContain("spr_tiny");
     expect(Object.keys(manifest.sounds)).not.toContain("snd_a");
+  });
+
+  it("reports an unreadable sheet or icon as E404 with the reason", async () => {
+    const dir = copySample("samples/minimal");
+    const junk = new TextEncoder().encode("this is not a PNG");
+    writeFileSync(path.join(dir, "sprites/spr_player/sheet.png"), junk);
+    writeFileSync(path.join(dir, "icon.png"), junk);
+    const { diagnostics, manifest } = await packAssets(await load(dir), {}, tempDir());
+    expect(diagnostics.filter((d) => d.code === "E404").map((d) => [d.file, d.message])).toEqual([
+      [
+        "sprites/spr_player/sheet.png",
+        "spr_player: sprites/spr_player/sheet.png is not a PNG image DSDude can read (it does not start like a PNG file).",
+      ],
+      ["icon.png", "The game icon: icon.png is not a PNG image DSDude can read (it does not start like a PNG file)."],
+    ]);
+    expect(manifest.sprites).toEqual({});
+    expect(manifest.icon).toBeNull();
   });
 
   it("reports a missing sheet as E403 and a missing icon as the warning E418", async () => {

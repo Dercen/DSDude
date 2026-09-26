@@ -20,6 +20,7 @@
     "pngjs": "7.0.0"
   },
   "devDependencies": {
+    "@dsdude/compiler": "0.1.0",
     "image-q": "4.0.0"
   }
 }

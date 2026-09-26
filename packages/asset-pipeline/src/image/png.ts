@@ -13,7 +13,7 @@ import { dsToRgb } from "./rgb555.ts";
 /** Decoded image (C12 `PreviewImage`): `rgba` holds width * height * 4 bytes, row-major, R G B A per pixel. */
 export type RgbaImage = PreviewImage;
 
-/** Thrown for anything that is not a readable PNG; callers turn it into E404. */
+/** Thrown for anything that is not a readable PNG; callers turn it into E404, so messages are plain words (C9). */
 export class PngError extends Error {}
 
 /** The 8-byte PNG signature. */
@@ -142,7 +142,7 @@ interface PngHeader {
 /** Splits the file into chunks, checks CRCs, and returns the header and the concatenated IDAT data. */
 function readChunks(bytes: Uint8Array): { header: PngHeader; idat: Uint8Array } {
   if (bytes.length < SIGNATURE.length || SIGNATURE.some((b, i) => bytes[i] !== b)) {
-    throw new PngError("not a PNG file (bad signature)");
+    throw new PngError("it does not start like a PNG file");
   }
   let at = SIGNATURE.length;
   let header: PngHeader | null = null;
@@ -153,12 +153,13 @@ function readChunks(bytes: Uint8Array): { header: PngHeader; idat: Uint8Array } 
     const typeAt = at + CHUNK_LENGTH_BYTES;
     const dataAt = typeAt + CHUNK_TYPE_BYTES;
     const crcAt = dataAt + length;
-    if (crcAt + CHUNK_CRC_BYTES > bytes.length) throw new PngError("truncated PNG chunk");
-    if (crc32(bytes, typeAt, crcAt) !== readU32(bytes, crcAt)) throw new PngError("PNG chunk checksum mismatch");
+    if (crcAt + CHUNK_CRC_BYTES > bytes.length) throw new PngError("the file ends too early");
+    if (crc32(bytes, typeAt, crcAt) !== readU32(bytes, crcAt))
+      throw new PngError("part of the file is damaged (a checksum does not match)");
     const type = chunkType(bytes, typeAt);
     const data = bytes.subarray(dataAt, crcAt);
     if (type === "IHDR") {
-      if (length !== IHDR_BYTES) throw new PngError("bad IHDR");
+      if (length !== IHDR_BYTES) throw new PngError("its header is damaged");
       header = {
         width: readU32(data, 0),
         height: readU32(data, 4),
@@ -169,7 +170,7 @@ function readChunks(bytes: Uint8Array): { header: PngHeader; idat: Uint8Array } 
         trns: null,
       };
     } else if (header === null) {
-      throw new PngError("IHDR is not the first chunk");
+      throw new PngError("its header is not where it should be");
     } else if (type === "PLTE") {
       header.palette = data;
     } else if (type === "tRNS") {
@@ -182,13 +183,14 @@ function readChunks(bytes: Uint8Array): { header: PngHeader; idat: Uint8Array } 
     }
     at = crcAt + CHUNK_CRC_BYTES;
   }
-  if (header === null) throw new PngError("missing IHDR");
-  if (!sawEnd) throw new PngError("missing IEND");
-  if (idatParts.length === 0) throw new PngError("missing image data");
+  if (header === null) throw new PngError("its header is missing");
+  if (!sawEnd) throw new PngError("the file ends too early");
+  if (idatParts.length === 0) throw new PngError("it has no picture data");
   const { width, height, depth, colorType } = header;
-  if (width < 1 || height < 1 || width > MAX_SIDE || height > MAX_SIDE) throw new PngError("bad image size");
-  if (!(DEPTHS[colorType] ?? []).includes(depth)) throw new PngError("unsupported colour type or bit depth");
-  if (colorType === COLOR_PALETTE && header.palette === null) throw new PngError("palette image without PLTE");
+  if (width < 1 || height < 1 || width > MAX_SIDE || height > MAX_SIDE)
+    throw new PngError("its size is 0 or larger than 16384 pixels");
+  if (!(DEPTHS[colorType] ?? []).includes(depth)) throw new PngError("it uses a colour format PNG does not allow");
+  if (colorType === COLOR_PALETTE && header.palette === null) throw new PngError("its colour list is missing");
   let total = 0;
   for (const part of idatParts) total += part.length;
   const idat = new Uint8Array(total);
@@ -223,14 +225,14 @@ function unfilter(
 ): { data: Uint8Array; next: number } {
   const data = new Uint8Array(rowBytes * rows);
   for (let y = 0; y < rows; y++) {
-    if (at >= raw.length) throw new PngError("image data ends early");
+    if (at >= raw.length) throw new PngError("the picture data ends early");
     const filter = raw[at] as number;
     at++;
     const row = y * rowBytes;
     const prev = row - rowBytes;
     for (let x = 0; x < rowBytes; x++) {
       const value = raw[at + x];
-      if (value === undefined) throw new PngError("image data ends early");
+      if (value === undefined) throw new PngError("the picture data ends early");
       const left = x >= bpp ? (data[row + x - bpp] as number) : 0;
       const up = y > 0 ? (data[prev + x] as number) : 0;
       const upLeft = y > 0 && x >= bpp ? (data[prev + x - bpp] as number) : 0;
@@ -322,7 +324,7 @@ function putPixel(
     case COLOR_PALETTE: {
       const index = s(0);
       const pal = palette as Uint8Array;
-      if (3 * index + 2 >= pal.length) throw new PngError("palette index out of range");
+      if (3 * index + 2 >= pal.length) throw new PngError("a pixel uses a colour its colour list does not have");
       r = pal[3 * index] as number;
       g = pal[3 * index + 1] as number;
       b = pal[3 * index + 2] as number;
@@ -352,7 +354,7 @@ export function decodePng(bytes: Uint8Array): RgbaImage {
   try {
     raw = unzlibSync(idat);
   } catch {
-    throw new PngError("image data does not decompress");
+    throw new PngError("the picture data is damaged");
   }
   const { width, height, depth, colorType } = header;
   const channels = CHANNELS[colorType] as number;

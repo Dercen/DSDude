@@ -465,7 +465,12 @@ async function stageSound(ctx: PackContext, s: Project["sounds"][number]): Promi
     return null;
   }
   if ((s.kind === "music") !== isMusicExt) {
-    report(ctx, [{ code: "E409", args: { detail: `${ext} is not a ${s.kind} format` } }], s.name, file);
+    report(
+      ctx,
+      [{ code: "E409", args: { detail: `${ext} files can't be ${s.kind === "effect" ? "effects" : "music"}` } }],
+      s.name,
+      file,
+    );
     return null;
   }
   const bytes = readProjectFile(ctx.project, file);
@@ -478,7 +483,7 @@ async function stageSound(ctx: PackContext, s: Project["sounds"][number]): Promi
     if (!isTrackerModule(bytes, ext)) {
       report(
         ctx,
-        [{ code: "E409", args: { detail: `it is not a ${ext.slice(1).toUpperCase()} module` } }],
+        [{ code: "E409", args: { detail: `it is not a valid ${ext.slice(1).toUpperCase()} module` } }],
         s.name,
         file,
       );
