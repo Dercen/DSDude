@@ -107,15 +107,14 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 ## Open ADRs
 
 - ADR-0001 Flappy pipe geometry: **accepted** by the user (2026-09-25) and applied to `samples/flappy` (two 128-px pipes around the 48-px gap).
-- ADR-0002 DeSmuME R4 slot-1 profile does not mount NitroFS (proposed by WS1): WS0 recommends **accept** (launch
-  DeSmuME only with its default slot-1 device; flashcart-style boots wait for hardware, spike 15). The user decides.
+- ADR-0002 DeSmuME R4 slot-1 profile does not mount NitroFS: **accepted** by the user (2026-09-25). DeSmuME launches
+  only with its default slot-1 device; flashcart-style boots wait for hardware (spike 15).
 
 ## Open questions for the user
 
-- ADR-0002: accept?
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
   passes (2432 MB). When to launch WS6 and WS3 locally (see the Day-2 report).
-- P8 (branch selector): only `main` existed at the probe; answered at the first cloud launch.
+- P8 (branch selector): WS2 and WS4 were opened on `main` (2026-09-25); start.sh adopts `ws2-runtime-core` / `ws4-compiler`, so the procedure works either way.
 
 ## Notes for PLAN.md (fold in at CP-A)
 

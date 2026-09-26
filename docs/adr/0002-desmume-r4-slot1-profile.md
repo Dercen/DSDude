@@ -1,6 +1,6 @@
 # ADR-0002: DeSmuME's R4 slot-1 profile does not mount NitroFS
 
-- Status: **proposed** (WS1, 2026-09-25). WS0 numbers, merges and closes it (renumber if 0002 is taken).
+- Status: **accepted** (user, 2026-09-25; proposed by WS1, recommended by WS0). EmulatorManager never passes `--slot1`; the IDE offers no R4/FAT DeSmuME profile.
 - Affected streams: WS1/WS8 (EmulatorManager's DeSmuME profile), WS3 (runtime boot path), WS6 (emulator settings).
 - Sources: PLAN.md section 7.1 spike 9, `docs/research/verification.md` claim 3, `docs/status/ws1.md` spike 9.
 
