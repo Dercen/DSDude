@@ -69,6 +69,7 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
       packaged: false,
       defaultProjectsDir: "C:/Users/me/DSDudeProjects",
       oneDriveDirs: ["C:/Users/me/OneDrive"],
+      supportedKeys: ["a", "Enter", "ArrowUp"],
     },
     badReq: 0,
   },
@@ -190,7 +191,7 @@ const EVENT_SAMPLES: { [C in EventChannel]: { ok: unknown; bad: unknown } } = {
 };
 
 describe("C5 channel map", () => {
-  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0 and 0.4.0-0.9.0 additions", () => {
+  it("lists the PLAN.md 5.2 C5 channels plus the 0.2.0 and 0.4.0-0.10.0 additions", () => {
     expect(INVOKE_CHANNELS).toEqual([
       "project.open",
       "project.save",

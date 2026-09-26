@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.9.0";
+export const CONTRACT_VERSION = "0.10.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -262,6 +262,8 @@ export const invokeChannels = {
       defaultProjectsDir: z.string(),
       /** OneDrive folders (%OneDrive%, %OneDriveConsumer%, %OneDriveCommercial%): projects there get a warning. */
       oneDriveDirs: z.array(z.string()),
+      /** (0.10.0) C4 SUPPORTED_KEYS: the KeyboardEvent.key values the emulators can be rebound to. */
+      supportedKeys: z.array(z.string()).optional(),
     }),
   },
   /**

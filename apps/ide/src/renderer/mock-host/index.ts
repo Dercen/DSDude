@@ -157,7 +157,21 @@ export async function createMockHost(options: MockHostOptions = {}): Promise<Moc
     "project.templates": () => ({
       templates: [{ id: "empty", title: "Empty", description: "One room on both screens and nothing in it." }],
     }),
-    "app.info": () => ({ version: "0.1.0", packaged: false, defaultProjectsDir: "/projects", oneDriveDirs: [] }),
+    "app.info": () => ({
+      version: "0.1.0",
+      packaged: false,
+      defaultProjectsDir: "/projects",
+      oneDriveDirs: [],
+      supportedKeys: [
+        ..."abcdefghijklmnopqrstuvwxyz0123456789",
+        "Enter",
+        "Shift",
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+      ],
+    }),
     "learn.list": () => {
       const docs = listDocs();
       for (const path of Object.keys(options.docs ?? {}))

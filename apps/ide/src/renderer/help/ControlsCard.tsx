@@ -9,6 +9,7 @@ import { useActions, useIde } from "../ide-context.tsx";
 export function ControlsCard() {
   const open = useIde((s) => s.controlsCard);
   const settings = useIde((s) => s.settings);
+  const supported = useIde((s) => s.appInfo?.supportedKeys ?? null);
   const actions = useActions();
   useEffect(() => {
     if (!open) return;
@@ -19,7 +20,7 @@ export function ControlsCard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, actions]);
   if (!open) return null;
-  const rows = controlsRows(effectiveControls(settings));
+  const rows = controlsRows(effectiveControls(settings, supported));
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: clicking the backdrop closes the card; Escape is handled on window.
     <div className="overlay" onClick={() => actions.hideControls()}>

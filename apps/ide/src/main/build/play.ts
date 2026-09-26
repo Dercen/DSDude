@@ -8,6 +8,7 @@ import {
   type BuildEvent,
   type BuildRequest,
   type BuildResult,
+  type DsButton,
   type EmulatorHandle,
   type EmulatorKind,
   errorDiagnostics,
@@ -33,6 +34,8 @@ export interface PlayControllerDeps {
   defaultEmulator: () => Promise<EmulatorKind>;
   /** The runtime's arm9-debug.elf (C8 runtime artifact), named in the Debug attach command. */
   debugElf?: () => string;
+  /** The user's keys per DS button (settings.controls), passed as C4 LaunchOptions.keys (ADR-0007). */
+  keys?: () => Promise<Partial<Record<DsButton, string>>>;
 }
 
 /** What Output says when Debug starts melonDS with its GDB stub (C4 LaunchOptions.debug: ports 3333 / 3334). */
@@ -90,10 +93,18 @@ export class PlayController {
     this.#buildLog.flush();
     try {
       await this.stop();
-      const handle = await this.#d.emulators.launch(result.ndsPath, { kind, debug: request.debug });
+      const keys = await this.#d.keys?.();
+      const handle = await this.#d.emulators.launch(result.ndsPath, {
+        kind,
+        debug: request.debug,
+        ...(keys ? { keys } : {}),
+      });
       this.#attach(handle);
       this.#progress("running", 1);
-      return { ...result, emulator: { kind: handle.kind, pid: handle.pid } };
+      // Launch warnings (C4 E625: a key the emulator cannot use) join the build's diagnostics.
+      const diagnostics = [...result.diagnostics, ...(handle.diagnostics ?? [])];
+      if (diagnostics.length > result.diagnostics.length) this.#diagnostics(diagnostics);
+      return { ...result, diagnostics, emulator: { kind: handle.kind, pid: handle.pid } };
     } catch (err) {
       const diagnostics = [...result.diagnostics, ...errorDiagnostics(err)];
       this.#diagnostics(diagnostics);

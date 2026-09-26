@@ -6,6 +6,7 @@ import {
   type DsdudeBridge,
   type EventPayload,
   type InvokeRequest,
+  type InvokeResponse,
   type ManifestSummary,
   parseIpcError,
   type Settings,
@@ -61,6 +62,10 @@ export interface IdeState {
   firstRun: boolean;
   /** The import dialog, for a file the user picked. */
   importing: { kind: ImportKind; sourcePath: string } | null;
+  /** app.info from main (default folders, supported keys); null until boot has it. */
+  appInfo: InvokeResponse<"app.info"> | null;
+  /** The Settings dialog is open. */
+  settingsDialog: boolean;
 }
 
 export type ImportKind = "sprite" | "background" | "sound";
@@ -109,6 +114,11 @@ export interface IdeActions {
   cancelImport(): void;
   /** Imports the picked file as a new resource and adds it to the open project (unsaved edits stay). */
   importAsset(req: ImportRequest): Promise<void>;
+  showSettings(): void;
+  hideSettings(): void;
+  /** Saves the key mapping (settings.controls); the next Play passes it to the emulator. */
+  setControls(controls: Settings["controls"]): Promise<void>;
+  setEmulator(kind: Settings["emulator"]): Promise<void>;
   showNewProject(): void;
   hideNewProject(): void;
   /** Creates <parent>/<name> from a template and opens it; throws (for the dialog) when main refuses. */
@@ -147,6 +157,8 @@ const initial = (): IdeState => ({
   newProject: false,
   firstRun: false,
   importing: null,
+  appInfo: null,
+  settingsDialog: false,
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -225,6 +237,10 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
       try {
         const { settings } = await ipc.invoke("settings.getAll", {});
         set({ settings, firstRun: !settings.firstRunDone });
+        ipc.invoke("app.info", {}).then(
+          (appInfo) => set({ appInfo }),
+          () => {},
+        );
         const recent = settings.recentProjects[0];
         if (recent) await actions.openProject(recent);
         // The Learn panel opens on first launch (PLAN.md 6 WS6).
@@ -409,6 +425,34 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
       set({ importing: null });
       actions.showToast(`Imported ${req.name}.`);
       void actions.refreshManifest();
+    },
+
+    showSettings() {
+      set({ settingsDialog: true });
+    },
+
+    hideSettings() {
+      set({ settingsDialog: false });
+    },
+
+    async setControls(controls) {
+      const settings = get().settings;
+      if (settings) set({ settings: { ...settings, controls } });
+      try {
+        await ipc.invoke("settings.set", { key: "controls", value: controls });
+      } catch (err) {
+        actions.showToast(`Could not save the keys: ${parseIpcError(err).message}`, "error");
+      }
+    },
+
+    async setEmulator(kind) {
+      const settings = get().settings;
+      if (settings) set({ settings: { ...settings, emulator: kind } });
+      try {
+        await ipc.invoke("settings.set", { key: "emulator", value: kind });
+      } catch (err) {
+        actions.showToast(`Could not save the emulator: ${parseIpcError(err).message}`, "error");
+      }
     },
 
     showNewProject() {

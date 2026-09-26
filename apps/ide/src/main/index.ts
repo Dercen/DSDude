@@ -4,7 +4,7 @@
  */
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { dsdudeHome } from "@dsdude/toolchain";
+import { dsdudeHome, SUPPORTED_KEYS } from "@dsdude/toolchain";
 import {
   app,
   BrowserWindow,
@@ -117,7 +117,9 @@ app.whenReady().then(() => {
     worker,
     emulators,
     send: sendEvent,
-    controlsLine: async () => controlsLine(effectiveControls({ controls: await settings.get("controls") })),
+    controlsLine: async () =>
+      controlsLine(effectiveControls({ controls: await settings.get("controls") }, SUPPORTED_KEYS)),
+    keys: async () => ({ ...(await settings.get("controls")) }),
     defaultEmulator: () => settings.get("emulator"),
     // C8 runtime artifact: runtime/dist in the repo; resources/runtime when packaged (WS8's layout).
     debugElf: () =>
@@ -170,6 +172,7 @@ app.whenReady().then(() => {
           oneDriveDirs: [process.env.OneDrive, process.env.OneDriveConsumer, process.env.OneDriveCommercial].filter(
             (d, i, all): d is string => !!d && all.indexOf(d) === i,
           ),
+          supportedKeys: [...SUPPORTED_KEYS],
         },
       }),
       ...createBuildHandlers(play, emulators, home),

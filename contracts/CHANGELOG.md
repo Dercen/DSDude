@@ -48,6 +48,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.7.0 (2026-09-26, WS6, T1): new channels project.templates and app.info; TemplateIndexSchema (the reader's format for WS7's templates/index.json: {templates: [{id, title, description, dir}]}); project.create semantics pinned (creates <dir>/<name>, refuses a non-empty folder, sets name/title). Additive.
 - 0.8.0 (2026-09-26, WS6, T1): doctor.run checks gain an optional status (ok|warn|fail|info, from C10 dsdude doctor); ok stays false only for fail. Additive.
 - 0.9.0 (2026-09-26, WS6, T1): assets.import gains optional sprite (C1 SpriteJsonSchema, from the import dialog) and sound.kind, and its semantics are pinned (file copied into the resource folder, JSON written through C1, duplicate names refused); new channel dialog.readPicked (bytes of a file picked with dialog.open this session, <= 32 MB). Additive.
+- 0.10.0 (2026-09-26, WS6, T1): app.info gains optional supportedKeys (C4 0.6.0 SUPPORTED_KEYS, for Settings > Controls); settings.controls now reaches the emulators as C4 LaunchOptions.keys (ADR-0007). Additive.
 
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).

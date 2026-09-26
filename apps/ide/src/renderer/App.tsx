@@ -4,6 +4,7 @@ import { DockviewReact, type DockviewReadyEvent, themeDark } from "dockview-reac
 import { useEffect, useMemo } from "react";
 import { ControlsCard } from "./help/ControlsCard.tsx";
 import { HelpMenu } from "./help/HelpMenu.tsx";
+import { SettingsDialog } from "./help/SettingsDialog.tsx";
 import { IdeContext, useActions, useIde } from "./ide-context.tsx";
 import { ipc } from "./ipc.ts";
 import { LearnPanel } from "./learn/LearnPanel.tsx";
@@ -185,6 +186,8 @@ export function App() {
       void ide.actions.boot();
     }
     const onKey = (e: KeyboardEvent) => {
+      // Settings > Controls captures any key for rebinding, so the shortcuts are off while it is open.
+      if (ide.store.getState().settingsDialog) return;
       if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "s") {
         e.preventDefault();
         void ide.actions.save();
@@ -222,6 +225,7 @@ export function App() {
         <NewProjectDialog />
         <FirstRunWizard />
         <ImportDialog />
+        <SettingsDialog />
       </div>
     </IdeContext.Provider>
   );

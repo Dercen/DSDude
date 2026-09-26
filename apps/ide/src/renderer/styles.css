@@ -585,6 +585,7 @@ button.primary {
 }
 
 .field input,
+.field select,
 .dialog button {
   background: #3c3c3c;
   border: 1px solid #45494e;
@@ -894,4 +895,21 @@ canvas.pixelated {
   border: 1px solid #45494e;
   border-radius: 3px;
   cursor: pointer;
+}
+
+.settings-dialog h3 {
+  margin: 14px 0 4px;
+}
+
+.controls-table {
+  border-collapse: collapse;
+  margin: 6px 0;
+}
+
+.controls-table td {
+  padding: 2px 14px 2px 0;
+}
+
+.controls-shared td {
+  color: #ffe08a;
 }
