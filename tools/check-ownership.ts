@@ -239,8 +239,15 @@ function git(args: string[], opts: { allowFail?: boolean } = {}): string | null 
   }
 }
 
+const tagCache = new Map<string, boolean>();
+/** Cached: tags do not change during one run, and a git spawn per row per path took minutes on large commits. */
 export function gitTagExists(tag: string): boolean {
-  return git(["rev-parse", "-q", "--verify", `refs/tags/${tag}`], { allowFail: true }) !== null;
+  let hit = tagCache.get(tag);
+  if (hit === undefined) {
+    hit = git(["rev-parse", "-q", "--verify", `refs/tags/${tag}`], { allowFail: true }) !== null;
+    tagCache.set(tag, hit);
+  }
+  return hit;
 }
 
 /** ownership.json at main's HEAD (origin/main in a cloud session or without a local main); null if absent. */

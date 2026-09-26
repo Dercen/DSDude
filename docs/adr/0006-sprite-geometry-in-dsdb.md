@@ -1,4 +1,6 @@
-# ADR-0003: Sprite geometry (frame size, origin, bbox) reaches the runtime through the DSDB
+# ADR-0006: Sprite geometry (frame size, origin, bbox) reaches the runtime through the DSDB
+
+> **Renumbered by WS0 (2026-09-26):** filed by WS2 as ADR-0003; WS1's key-script ADR held 0003 on main first.
 
 - Status: **proposed** (WS2, 2026-09-26). Needs WS4's co-signature (C2 co-owner, `packages/dsdb`) and WS5's
   review (C3); WS0 numbers, decides with the user if needed, and merges. If another ADR took number 0003 in the

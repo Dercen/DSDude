@@ -3,11 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "description": "DSDude IDE (Electron shell). CJS main/preload: never add \"type\": \"module\".",
+  "main": "./out/main/index.js",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest run --pool=threads --maxWorkers=2"
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "test": "vitest run --pool=threads --maxWorkers=2",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "chokidar": "5.0.0",

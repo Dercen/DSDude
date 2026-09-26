@@ -9,6 +9,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import * as path from "node:path";
 import type { EmulatorHandle, EmulatorKind, EmulatorManager, LaunchOptions } from "./api.ts";
 import { ToolchainError, toolchainDiagnostic } from "./diagnostics/catalog.ts";
+import { type DownloadFn, type ExtractFn, installMelonDs } from "./emulator-install.ts";
 import { DESMUME_EXE, desmumeExe, emulatorsDir, melonDsExe } from "./layout.ts";
 import { runProcess } from "./process.ts";
 
@@ -78,6 +79,20 @@ export function melonDsOverrides(settings: MelonDsSettings = {}): [string, strin
  * ROMs). melonDS writes a flat file: section headers, `key = value` lines and top-level multi-line arrays.
  */
 export function patchToml(text: string | null, overrides: readonly [string, string, string][]): string {
+  return patchConfig(text, overrides, " = ");
+}
+
+/** Sets `[section] Key=Value` pairs in a desmume.ini text (Windows profile format) and keeps everything else. */
+export function patchIni(text: string | null, overrides: readonly [string, string, string][]): string {
+  return patchConfig(text, overrides, "=");
+}
+
+/**
+ * The shared patcher for flat `[section]` + `key<sep>value` files. It keeps the file's own line ending (CRLF if it
+ * has any) and every line it does not set.
+ */
+export function patchConfig(text: string | null, overrides: readonly [string, string, string][], sep: string): string {
+  const eol = text?.includes("\r\n") ? "\r\n" : "\n";
   const lines = text === null || text === "" ? [] : text.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
   const sectionOf = (line: string) => /^\[([^\][]+)\]\s*$/.exec(line)?.[1] ?? null;
   for (const [section, key, value] of overrides) {
@@ -85,7 +100,7 @@ export function patchToml(text: string | null, overrides: readonly [string, stri
     for (let i = 0; i < lines.length; i++) if (sectionOf(lines[i] ?? "") === section) start = i;
     if (start === -1) {
       if (lines.length > 0) lines.push("");
-      lines.push(`[${section}]`, `${key} = ${value}`);
+      lines.push(`[${section}]`, `${key}${sep}${value}`);
       continue;
     }
     let end = start + 1;
@@ -93,14 +108,37 @@ export function patchToml(text: string | null, overrides: readonly [string, stri
     const keyRe = new RegExp(`^\\s*${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*=`);
     const at = lines.slice(start + 1, end).findIndex((l) => keyRe.test(l));
     if (at >= 0) {
-      lines[start + 1 + at] = `${key} = ${value}`;
+      lines[start + 1 + at] = `${key}${sep}${value}`;
     } else {
       let insert = end;
       while (insert > start + 1 && (lines[insert - 1] ?? "").trim() === "") insert--;
-      lines.splice(insert, 0, `${key} = ${value}`);
+      lines.splice(insert, 0, `${key}${sep}${value}`);
     }
   }
-  return `${lines.join("\n")}\n`;
+  return `${lines.join(eol)}${eol}`;
+}
+
+/**
+ * The same Controls mapping for DeSmuME 0.9.13: `[Controls]` in desmume.ini (beside the exe) takes Windows
+ * virtual-key codes. Key names from the exe's own strings (frontend/windows/inputdx.cpp).
+ */
+export const DESMUME_KEYS: Readonly<Record<string, number>> = {
+  A: 0x58, // X
+  B: 0x5a, // Z
+  X: 0x53, // S
+  Y: 0x41, // A
+  L: 0x51, // Q
+  R: 0x57, // W
+  Start: 0x0d, // VK_RETURN
+  Select: 0x10, // VK_SHIFT
+  Up: 0x26,
+  Down: 0x28,
+  Left: 0x25,
+  Right: 0x27,
+};
+
+export function desmumeOverrides(): [string, string, string][] {
+  return Object.entries(DESMUME_KEYS).map(([key, vk]) => ["Controls", key, String(vk)]);
 }
 
 export type SpawnEmulatorFn = (
@@ -121,8 +159,12 @@ export interface EmulatorManagerOptions {
   spawn?: SpawnEmulatorFn;
   /** Runs taskkill; injectable for tests. */
   taskkill?: (args: string[]) => Promise<void>;
-  /** The lower-cased image name of a running PID, or null; injectable for tests (default: tasklist). */
-  imageName?: (pid: number) => Promise<string | null>;
+  /** The exe path and start time of a running PID, or null; injectable for tests (default: PowerShell). */
+  processInfo?: (pid: number) => Promise<ProcessInfo | null>;
+  /** A local melonDS 1.1 release zip (the installer's bundled copy); otherwise ensureInstalled downloads it. */
+  melonDsZip?: string;
+  download?: DownloadFn;
+  extract?: ExtractFn;
   /** How long stop() waits after taskkill /PID before /F; default GRACEFUL_STOP_MS. */
   gracefulStopMs?: number;
 }
@@ -138,8 +180,33 @@ const realTaskkill = async (args: string[]) => {
 interface RunningRecord {
   pid: number;
   kind: EmulatorKind;
+  /** The emulator exe that was spawned. */
+  exe: string;
   rom: string;
+  /** ISO time taken right after spawn; the OS start time must be within RECONCILE_TOLERANCE_MS of it. */
   startedAt: string;
+}
+
+export interface ProcessInfo {
+  /** Full path of the process image. */
+  path: string;
+  startedAt: Date;
+}
+
+/** How far the OS start time of a recorded PID may be from the recorded spawn time and still be that process. */
+export const RECONCILE_TOLERANCE_MS = 10_000;
+
+/** Get-Process path and start time (UTC) of one PID; null when there is no such process. */
+export async function powershellProcessInfo(pid: number): Promise<ProcessInfo | null> {
+  const script = `$p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($p) { $p.Path + '|' + $p.StartTime.ToUniversalTime().ToString('o') }`;
+  const run = await runProcess("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+    env: { ...process.env } as Record<string, string>,
+    timeoutMs: 20_000,
+    windowsHide: true,
+  });
+  const [p, t] = run.stdout.trim().split("|");
+  const startedAt = new Date(t ?? "");
+  return p && !Number.isNaN(startedAt.getTime()) ? { path: p, startedAt } : null;
 }
 
 export class LocalEmulatorManager implements EmulatorManager {
@@ -171,8 +238,23 @@ export class LocalEmulatorManager implements EmulatorManager {
         return exe;
       }
     }
-    const name = kind === "melonds" ? "melonDS 1.1" : "DeSmuME 0.9.13";
-    throw new ToolchainError([toolchainDiagnostic("E620", { emulator: name, path: exe, kind })]);
+    if (kind === "melonds") {
+      return installMelonDs({
+        exe,
+        zip: this.#opts.melonDsZip,
+        download: this.#opts.download,
+        extract: this.#opts.extract,
+      });
+    }
+    throw new ToolchainError([toolchainDiagnostic("E620", { emulator: "DeSmuME 0.9.13", path: exe, kind })]);
+  }
+
+  /** desmume.ini beside the DeSmuME exe, patched before every launch (the Controls mapping). */
+  writeDesmumeConfig(): string {
+    const file = path.join(path.dirname(this.exePath("desmume")), "desmume.ini");
+    const current = existsSync(file) ? readFileSync(file, "utf8") : null;
+    writeFileSync(file, patchIni(current, desmumeOverrides()));
+    return file;
   }
 
   /** melonDS.toml beside melonDS.exe (a portable build), rewritten before every launch. */
@@ -185,13 +267,15 @@ export class LocalEmulatorManager implements EmulatorManager {
 
   async launch(romPath: string, opts: LaunchOptions & { kind: EmulatorKind }): Promise<EmulatorHandle> {
     // One emulator per manager: the previous one must have exited before its config is rewritten.
+    if (opts.debug && opts.kind !== "melonds") throw new ToolchainError([toolchainDiagnostic("E623")]);
     await this.stopCurrent();
     await this.reconcile();
     const exe = await this.ensureInstalled(opts.kind);
     if (!existsSync(romPath)) {
       throw new ToolchainError([toolchainDiagnostic("E607", { what: "The ROM", path: romPath })]);
     }
-    if (opts.kind === "melonds") this.writeMelonDsConfig();
+    if (opts.kind === "melonds") this.writeMelonDsConfig({ gdb: opts.debug === true });
+    else this.writeDesmumeConfig();
     const spawnFn = this.#opts.spawn ?? spawnEmulator;
     const child = spawnFn(exe, [path.resolve(romPath)], {
       cwd: path.dirname(exe),
@@ -203,7 +287,7 @@ export class LocalEmulatorManager implements EmulatorManager {
       throw new ToolchainError([toolchainDiagnostic("E621", { emulator: name, detail: `${exe} did not start` })]);
     }
     this.#current = handle;
-    this.#writeRunning({ pid: child.pid, kind: opts.kind, rom: romPath, startedAt: new Date().toISOString() });
+    this.#writeRunning({ pid: child.pid, kind: opts.kind, exe, rom: romPath, startedAt: new Date().toISOString() });
     const pid = child.pid;
     handle.exited.then(() => {
       if (this.#current === handle) this.#current = null;
@@ -220,32 +304,33 @@ export class LocalEmulatorManager implements EmulatorManager {
   }
 
   /**
-   * Kills an emulator left running by an earlier process (its PID is in running.json), but only while that PID
-   * still belongs to the same emulator exe: Windows reuses PIDs.
+   * Kills (/F /T) an emulator left running by an earlier process, e.g. a crashed IDE or CLI: the PID in
+   * running.json, but only while it is still the same process. Windows reuses PIDs, so the process must run the
+   * recorded exe (this worktree's copy) and have started within RECONCILE_TOLERANCE_MS of the recorded time.
+   * Call it at startup and before quit; launch() calls it too. Returns whether it killed something.
    */
-  async reconcile(): Promise<void> {
-    if (!existsSync(this.runningFile)) return;
+  async reconcile(): Promise<boolean> {
+    if (!existsSync(this.runningFile)) return false;
+    let killed = false;
     try {
       const rec = JSON.parse(readFileSync(this.runningFile, "utf8")) as RunningRecord;
-      const image = path.basename(this.exePath(rec.kind)).toLowerCase();
-      if (Number.isInteger(rec.pid) && rec.pid > 0 && (await this.#imageName(rec.pid)) === image) {
-        await this.#taskkill(["/F", "/T", "/PID", String(rec.pid)]);
+      const recorded = Date.parse(rec.startedAt);
+      if (Number.isInteger(rec.pid) && rec.pid > 0 && typeof rec.exe === "string" && !Number.isNaN(recorded)) {
+        const info = await (this.#opts.processInfo ?? powershellProcessInfo)(rec.pid);
+        if (
+          info !== null &&
+          info.path.toLowerCase() === rec.exe.toLowerCase() &&
+          Math.abs(info.startedAt.getTime() - recorded) <= RECONCILE_TOLERANCE_MS
+        ) {
+          await this.#taskkill(["/F", "/T", "/PID", String(rec.pid)]);
+          killed = true;
+        }
       }
     } catch {
       // A broken record names no process we could safely kill.
     }
     rmSync(this.runningFile, { force: true });
-  }
-
-  async #imageName(pid: number): Promise<string | null> {
-    if (this.#opts.imageName) return this.#opts.imageName(pid);
-    const run = await runProcess("tasklist.exe", ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"], {
-      env: { ...process.env } as Record<string, string>,
-      timeoutMs: 10_000,
-      windowsHide: true,
-    });
-    const m = /^"([^"]+)","(\d+)"/m.exec(run.stdout);
-    return m && Number(m[2]) === pid ? (m[1] ?? "").toLowerCase() : null;
+    return killed;
   }
 
   #taskkill(args: string[]): Promise<void> {

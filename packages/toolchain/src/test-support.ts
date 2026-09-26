@@ -2,12 +2,8 @@
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import { fileURLToPath } from "node:url";
 
-export const FIXTURE_ROM = fileURLToPath(new URL("../../../fixtures/build/hello/game.nds", import.meta.url));
-export const FIXTURE_PACKROM = fileURLToPath(new URL("../../../fixtures/build/hello/packrom.json", import.meta.url));
-export const FIXTURE_NITROFS = fileURLToPath(new URL("../../../fixtures/build/hello/nitrofs", import.meta.url));
-export const FIXTURE_ELF = fileURLToPath(new URL("../../../fixtures/runtime/hello/arm9.elf", import.meta.url));
+export { FIXTURE_ELF, FIXTURE_NITROFS, FIXTURE_PACKROM, FIXTURE_ROM } from "./fixtures.ts";
 
 export interface FakeChild extends ChildProcess {
   /** Writes to stdout. */

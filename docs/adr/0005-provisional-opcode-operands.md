@@ -1,4 +1,6 @@
-# ADR-0003: Operands of the provisional instance, `with` and array opcodes
+# ADR-0005: Operands of the provisional instance, `with` and array opcodes
+
+> **Renumbered by WS0 (2026-09-26):** filed by WS4 as ADR-0003, which WS1's key-script ADR already held on main. WS4 updates its `ADR-pending ADR-0003` markers in `packages/compiler` and its references in `contracts/dsdb.md`, `contracts/opcodes.json` and `contracts/CHANGELOG.md` to ADR-0005.
 
 - Status: proposed (WS4, 2026-09-26); needs WS2's co-signature (contracts/opcodes.json, contracts/dsdb.md)
 - Contracts: C2 `contracts/opcodes.json` 0.1.0 -> 0.2.0 (T1), `contracts/dsdb.md` section 5 (T1: two operand kinds)

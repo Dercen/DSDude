@@ -1,6 +1,6 @@
 # C10: the `dsdude` CLI
 
-Version: 0.2.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+Version: 0.4.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
 
 Phase-0 draft by WS0; WS1 finalises it by CP-C. Source: PLAN.md section 5.2 C10 and section 6 WS1.
 Run it as `npx dsdude <command> ...` from a worktree or clone root; `packages/cli` declares the `dsdude` bin
@@ -17,8 +17,8 @@ Run it as `npx dsdude <command> ...` from a worktree or clone root; `packages/cl
 | `dsdude screenshot <rom> --frames N [--keys file] --out dir` | Run the ROM headless in py-desmume 0.0.9 (`SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy`) for N frames; write `top.png`, `bottom.png` and `screenshot.json` into `dir`. | no: exit 2 + E605 |
 | `dsdude toolchain status` | `detectToolchain()` (C4): whether BlocksDS is installed, and every tool path. | reports "missing" (E605) |
 | `dsdude toolchain install` | Not in the CLI yet: run `scripts/install-toolchain.ps1`. | no |
-| `dsdude emulator install\|status <melonds\|desmume>` | `EmulatorManager.ensureInstalled()` and its path. | no: exit 2 + E6xx |
-| `dsdude doctor` | Checks the toolchain, emulators, py-desmume, paths under 250 characters, and warns when `OneDrive.exe` runs and the repo or project is under `%OneDrive%`. (Planned; WS1 task 5 or WS8.) | partial |
+| `dsdude emulator install\|status <melonds\|desmume>` | `EmulatorManager.ensureInstalled()` and its path. `install melonds` downloads the 1.1 release zip and checks its SHA-256 (E622 on a mismatch, E624 when the download fails); `install desmume` copies it from `%USERPROFILE%\Downloads\desmume-0.9.13-win64\`. | no: exit 2 + E6xx |
+| `dsdude doctor [project]` | Checks, and names the fix for:<ul><li>BlocksDS, running each tool once (exit 0xC0000135 is E602, a missing DLL);</li><li>melonDS (E620) and DeSmuME (optional);</li><li>py-desmume, by importing it (E630);</li><li>build-folder paths near 250 characters (E651, warning);</li><li>`OneDrive.exe` running while the repo, the project or `DSDUDE_HOME` is under `%OneDrive%` (E650, warning).</li></ul>Changes nothing. Exit 2 only on a failed check; warnings exit 0. | E605 |
 | `dsdude gen-builtins` | Runs the builtins generator (`tools/gen-builtins.ts`). (Registered by its owner.) | yes |
 
 Commands are registered from each package's `cliCommands: CliCommand[]` export (C4, `packages/toolchain/src/api.ts`),
@@ -29,7 +29,10 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 
 ## Projects and plain BlocksDS folders
 
-- A **DSDude project** is a folder with `project.json` (C1).
+- A **DSDude project** is a folder with `project.json` (C1). `build` and `play` run assets, compile and budgets
+  (C4), which need `@dsdude/compiler` and `@dsdude/asset-pipeline` to export `compileProject`, `packAssets` and
+  `checkRoomBudgets`. Until they do, a project builds only with `--skip-compile --skip-assets`, which repacks the
+  last build; otherwise the result is E641, exit 2.
 - A folder without it is a **plain BlocksDS C project**, such as `samples/hello`. `build` and `play` accept it only
   with `--skip-compile --skip-assets` (otherwise E608, exit 2). Then:
   - `<dir>/nitrofs/` is copied to the build folder's `nitrofs/` and packed as the NitroFS root;
@@ -50,7 +53,8 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 | `--no-build` | play | Launch the last built ROM (`<build folder>/game.nds`); E609 if there is none. |
 | `--emulator melonds\|desmume` | play | Default `melonds`. |
 | `--seconds N` | play | Stop the emulator gracefully after N seconds (for scripts and tests; 0.2.0). |
-| `--seed N` | compile, build, play | DSDB header RNG seed (C2); 0 = the runtime picks. |
+| `--debug` | play | Start melonDS with its GDB stub on ports 3333 (ARM9) and 3334 (ARM7); DeSmuME has none (E623). 0.3.0. |
+| `--seed N` | compile, build, play | DSDB header RNG seed (C2); 0 = the runtime picks. `build`/`play` write it into `game.dsdb`, also into a reused one under `--skip-compile`. |
 | `--jobs N` | build, play | Runtime build parallelism; default `DSDUDE_MAKE_JOBS`, else 8. |
 | `--frames N`, `--keys file`, `--out dir` | screenshot | Frame count; key script; output folder. |
 
@@ -63,15 +67,28 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 | `build` | `ndsPath`, `timings` |
 | `play` | `ndsPath`, `emulator`, `pid`, `exitCode`, `ms`, `log` (the `DSD|` lines, pads dropped) |
 | `screenshot` | `top`, `bottom`, `uniform` (`{top, bottom}`: true when that screen is one solid colour), `log` |
+| `doctor` | `checks`: `[{name, status: "ok"\|"warn"\|"fail"\|"info", detail}]` |
 
 Without `--json`, `play` prints each `DSD|` line on stdout as it arrives and everything else on stderr.
 
-### Key scripts (`--keys`), provisional
+### Key scripts (`--keys`)
 
-One line per frame range: `<from>-<to> <buttons>`. Frames are 1-based and inclusive (`<n>` alone is one frame).
-Buttons are separated by spaces or commas, from `A B X Y L R START SELECT UP DOWN LEFT RIGHT`, and `#` starts a
-comment. Example: `30-35 START`. This becomes the key-script format of `contracts/log-protocol.md` "Host runner"
-(WS2) once that section defines one; until then `tools/screenshot.py` implements the draft above.
+The format of `docs/adr/0003-key-script-format.md` (proposed; it moves into `contracts/log-protocol.md` "Host
+runner" when WS2 accepts it, so `dsdude-host` reads the same files):
+
+```
+# comment
+<frames> <button>...          buttons held on those frames
+<frames> TOUCH <x> <y>         the bottom screen touched at (x, y), x 0-255, y 0-191
+```
+
+- `<frames>` is `N` or `N-M`: 1-based and inclusive, where frame N is the Nth emulated frame.
+- Buttons are `A B X Y L R START SELECT UP DOWN LEFT RIGHT`, separated by spaces or commas.
+- A button is held on every frame some line lists it; when several `TOUCH` lines cover a frame, the last one wins.
+- A bad line fails the screenshot with E631, naming the file and the line.
+- A screenshot shows an input's effect two frames later at the earliest, so take it a few frames after the input.
+
+Example: `30-35 START`, `90 A`, `200 TOUCH 128 96`.
 
 ## Exit codes
 
@@ -99,3 +116,6 @@ The folder holds `nitrofs\`, `game.nds` and `packrom.json` (C4).
 
 - 0.2.0 (WS1, 2026-09-25, T1): `play --seconds N`; the plain BlocksDS folder rules; the `--json` fields per
   command; `screenshot.json`; the provisional key-script format. `toolchain install` points to the script for now.
+- 0.3.0 (WS1, 2026-09-26, T1): `play --debug`; the `--keys` format of ADR-0003 (adds `TOUCH`); `emulator install melonds` downloads and SHA-256-checks.
+- 0.3.0 T0 (WS1, 2026-09-26): `--seed` is written into `game.dsdb`; DSDude projects need the injected compiler and asset pipeline (E641).
+- 0.4.0 (WS1, 2026-09-26, T1): `dsdude doctor [project]` implemented, with the `checks` `--json` field; E650/E651 warnings.

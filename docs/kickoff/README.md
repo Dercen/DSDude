@@ -364,7 +364,8 @@ export DSDUDE_PORT_BASE=5180   # the stream's base; only the WS7 (5180) and WS6b
 git restore package-lock.json 2>/dev/null || true
 node tools/check-lockfile.mjs
 B=origin/main; [ -n "$T" ] && git rev-parse -q --verify "origin/$T" >/dev/null && B=origin/$T
-for c in $(git rev-list --no-merges "$B..HEAD"); do
+# only the stream's own commits: exclude what is already on its target and on origin/main (WS0's lockfile commits arrive by merge)
+for c in $(git rev-list --no-merges HEAD "^$B" ^origin/main); do
   grep -qx package-lock.json <<<"$(git diff-tree --no-commit-id --name-only -r "$c")" && { echo "$c changes package-lock.json: revert it"; exit 1; }
   grep -q '^DSDude-WS: ' <<<"$(git log -1 --format=%B "$c")" || { echo "$c lacks the trailer: git commit --amend --no-edit --trailer 'DSDude-WS: $WS'"; exit 1; }
 done
