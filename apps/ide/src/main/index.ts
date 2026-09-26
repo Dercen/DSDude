@@ -141,8 +141,11 @@ app.whenReady().then(() => {
     if (!file) return new Response("Not found", { status: 404 });
     return net.fetch(pathToFileURL(file).toString());
   });
-  // No permission (camera, notifications, ...) is ever granted to the renderer.
-  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+  // No permission (camera, notifications, ...) is granted to the renderer, except writing text to the clipboard
+  // (the Learn panel's Copy buttons).
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) =>
+    callback(permission === "clipboard-sanitized-write"),
+  );
   registerIpc(
     ipcMain,
     { ...createCoreHandlers({ settings, dialog, learnRoot: learnRoot() }), ...createBuildHandlers(play, emulators) },

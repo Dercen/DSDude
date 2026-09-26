@@ -8,7 +8,10 @@ import { existsSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { posix } from "node:path";
 import { LEARN_SECTIONS } from "@dsdude/ipc-contract";
+import { IMAGE_TYPES, imageSources, imageTarget, titleOf } from "../shared/learn-text.ts";
 import { inside } from "./files.ts";
+
+export { imageSources, titleOf };
 
 export interface LearnDoc {
   path: string;
@@ -16,22 +19,10 @@ export interface LearnDoc {
   section: (typeof LEARN_SECTIONS)[number];
 }
 
-const IMAGE_TYPES: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  gif: "image/gif",
-  webp: "image/webp",
-};
 /** Larger images are left out (the renderer shows the alt text). */
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 const byName = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-
-export function titleOf(markdown: string, fallback: string): string {
-  const m = /^#\s+(.+?)\s*#*\s*$/m.exec(markdown);
-  return m?.[1] ?? fallback;
-}
 
 async function walk(root: string, rel: string): Promise<string[]> {
   const dir = inside(root, rel);
@@ -57,18 +48,6 @@ export async function listLearnDocs(root: string): Promise<LearnDoc[]> {
   return docs;
 }
 
-/** Relative image sources used by the markdown: `![alt](src "title")` and `<img src="...">`. */
-export function imageSources(markdown: string): string[] {
-  const out = new Set<string>();
-  // ![alt](src "title") and ![alt](<src with spaces> "title")
-  for (const m of markdown.matchAll(/!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^)\s]+))(?:\s+["'][^"']*["'])?\s*\)/g)) {
-    const src = m[1] ?? m[2];
-    if (src) out.add(src);
-  }
-  for (const m of markdown.matchAll(/<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi)) if (m[1]) out.add(m[1]);
-  return [...out].filter((src) => !/^[a-z][a-z0-9+.-]*:/i.test(src) && !src.startsWith("//") && !src.startsWith("#"));
-}
-
 export async function readLearnDoc(
   root: string,
   path: string,
@@ -76,9 +55,9 @@ export async function readLearnDoc(
   const markdown = await readFile(inside(root, path), "utf8");
   const images: Record<string, string> = {};
   for (const src of imageSources(markdown)) {
-    const target = posix.normalize(posix.join(posix.dirname(path), decodeURI(src.split(/[?#]/)[0] ?? "")));
-    const type = IMAGE_TYPES[posix.extname(target).slice(1).toLowerCase()];
-    if (!type || !target.startsWith("docs/")) continue;
+    const target = imageTarget(path, src);
+    const type = target ? IMAGE_TYPES[posix.extname(target).slice(1).toLowerCase()] : undefined;
+    if (!target || !type) continue;
     try {
       const file = inside(root, target);
       if ((await stat(file)).size > MAX_IMAGE_BYTES) continue;

@@ -3,6 +3,33 @@ import type { Project } from "@dsdude/project-format";
 import { type ReactNode, useState } from "react";
 import { useActions, useIde } from "../ide-context.tsx";
 import { eventDocId, eventLabel, functionsDocId, resourceDocId, scriptDocId, sortEvents } from "../store/documents.ts";
+import type { ResourceRef } from "./api.ts";
+
+function ResourceItem({
+  label,
+  resource,
+  depth,
+  dirty,
+}: {
+  label: string;
+  resource: ResourceRef;
+  depth: number;
+  dirty: boolean;
+}) {
+  const actions = useActions();
+  return (
+    <button
+      type="button"
+      className="tree-item"
+      style={{ paddingLeft: 8 + depth * 14 }}
+      data-testid={`tree:${resource.kind}:${resource.name}`}
+      onClick={() => actions.openResource(resource)}
+    >
+      {label}
+      {dirty ? " \u25cf" : ""}
+    </button>
+  );
+}
 
 function Item({ label, docId, depth, dirty }: { label: string; docId: string; depth: number; dirty: boolean }) {
   const actions = useActions();
@@ -47,7 +74,12 @@ function ObjectNode({ obj, dirty }: { obj: Project["objects"][number]; dirty: Re
       </button>
       {open ? (
         <>
-          <Item label="Properties" docId={resourceDocId("objects", obj.name)} depth={3} dirty={false} />
+          <ResourceItem
+            label="Properties"
+            resource={{ kind: "object", name: obj.name }}
+            depth={3}
+            dirty={!!dirty[resourceDocId("objects", obj.name)]}
+          />
           {sortEvents(Object.keys(obj.events)).map((ev) => {
             const id = eventDocId(obj.name, ev);
             return <Item key={id} label={eventLabel(ev)} docId={id} depth={3} dirty={!!dirty[id]} />;
@@ -79,10 +111,17 @@ export function ProjectTree() {
         </button>
       </div>
     );
+  const KIND = { sprites: "sprite", backgrounds: "background", sounds: "sound", rooms: "room" } as const;
   const plain = (kind: "sprites" | "backgrounds" | "sounds" | "rooms", title: string) => (
     <Section title={title} count={project[kind].length}>
       {project[kind].map((r) => (
-        <Item key={r.name} label={r.name} docId={resourceDocId(kind, r.name)} depth={1} dirty={false} />
+        <ResourceItem
+          key={r.name}
+          label={r.name}
+          resource={{ kind: KIND[kind], name: r.name }}
+          depth={1}
+          dirty={!!dirty[resourceDocId(kind, r.name)]}
+        />
       ))}
     </Section>
   );
@@ -111,7 +150,12 @@ export function ProjectTree() {
           />
         ))}
       </Section>
-      <Item label="Game Settings" docId="project.json" depth={0} dirty={false} />
+      <ResourceItem
+        label="Game Settings"
+        resource={{ kind: "settings", name: "" }}
+        depth={0}
+        dirty={!!dirty["project.json"]}
+      />
     </div>
   );
 }
