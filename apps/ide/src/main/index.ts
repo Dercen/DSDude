@@ -22,7 +22,7 @@ import { controlsLine, effectiveControls } from "../shared/controls.ts";
 import { buildServiceMode, createEmulatorManager } from "./build/modes.ts";
 import { PlayController } from "./build/play.ts";
 import { BuildWorkerHost, type WorkerChild } from "./build/worker-host.ts";
-import { createBuildHandlers, createCoreHandlers } from "./handlers.ts";
+import { createBuildHandlers, createCoreHandlers, createToolHandlers } from "./handlers.ts";
 import { createEventSender, registerIpc, type SendEvent } from "./ipc.ts";
 import { APP_ORIGIN, APP_SCHEME, resolveAppUrl } from "./protocol.ts";
 import { isDockviewPopout, isTrustedRendererUrl } from "./security.ts";
@@ -166,6 +166,7 @@ app.whenReady().then(() => {
         },
       }),
       ...createBuildHandlers(play, emulators, home),
+      ...createToolHandlers(mode),
     },
     (event: IpcMainInvokeEvent) => ({
       url: event.senderFrame?.url ?? null,

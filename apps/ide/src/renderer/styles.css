@@ -683,3 +683,65 @@ button.primary {
   padding: 4px 12px;
   cursor: pointer;
 }
+
+.first-run h3 {
+  margin: 14px 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.fr-checks {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+}
+
+.fr-check {
+  display: grid;
+  grid-template-columns: 20px 150px 1fr;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.fr-ok .fr-icon,
+.fr-ok {
+  color: #89d185;
+}
+
+.fr-warn .fr-icon {
+  color: #ffe08a;
+}
+
+.fr-fail .fr-icon {
+  color: #f48771;
+}
+
+.fr-info .fr-icon {
+  color: #3794ff;
+}
+
+.fr-detail {
+  opacity: 0.85;
+}
+
+.fr-setup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.fr-optional {
+  opacity: 0.7;
+}
+
+.dialog button.link {
+  background: none;
+  border: none;
+  color: #3794ff;
+  padding: 0;
+  text-decoration: underline;
+}
