@@ -13,6 +13,8 @@
 #define FRAMES_PER_SECOND 60u
 
 static HostConfig g_cfg;
+static int32_t g_music = HOST_NO_MUSIC; // the module playing (dsd_plat_music_play .. dsd_plat_music_stop)
+static uint32_t g_music_starts;         // dsd_plat_music_play calls since host_configure
 static uint32_t g_frame;    // frames completed
 static bool g_fatal;        // dsd_plat_fatal was called
 
@@ -21,6 +23,8 @@ void host_configure(const HostConfig *cfg) {
     g_frame = 0;
     g_fatal = false;
     host_gfx_reset();
+    g_music = HOST_NO_MUSIC;
+    g_music_starts = 0;
 }
 
 bool host_fatal_seen(void) { return g_fatal; }
@@ -98,11 +102,23 @@ int32_t dsd_plat_sfx_play(uint32_t sound_id) {
 
 void dsd_plat_sfx_stop(uint32_t sound_id) { (void)sound_id; }
 
-void dsd_plat_music_play(uint32_t module_id) { (void)module_id; }
+void dsd_plat_music_play(uint32_t module_id) {
+    g_music = (int32_t)module_id; // starts it from the beginning, replacing any module playing
+    g_music_starts++;
+}
 
-void dsd_plat_music_stop(void) {}
+void dsd_plat_music_stop(void) { g_music = HOST_NO_MUSIC; }
 
-bool dsd_plat_music_active(void) { return false; }
+bool dsd_plat_music_active(void) { return g_music != HOST_NO_MUSIC; }
+
+int32_t host_music_playing(void) { return g_music; }
+
+uint32_t host_music_starts(void) { return g_music_starts; }
+
+void dsd_plat_assets_free(void) {
+    host_gfx_free();
+    dsd_plat_music_stop(); // C11: freeing a room's assets stops its music
+}
 
 void dsd_plat_volume(int32_t volume_fx) { (void)volume_fx; }
 

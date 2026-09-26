@@ -1,0 +1,28 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 1
+    .loc "rt/rng-platform.dss" 1
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-platform.dss" 2
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-platform.dss" 3
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-platform.dss" 4
+    CALLN r0, 0, randomize
+    .loc "rt/rng-platform.dss" 5
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    .loc "rt/rng-platform.dss" 6
+    LOADK r0, 1000000
+    CALLN r0, 1, irandom
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end

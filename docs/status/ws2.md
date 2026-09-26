@@ -85,6 +85,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
   - Step 1+2 (this batch): the dispatch table moves from `.rodata` (main RAM) to a `DSD_DTCM_DATA` table of 59 x 4 = 236 bytes, filled once from the `.rodata` initialiser (label addresses exist only inside `run()`), and its base is held in a register for the whole run through an empty `__asm__` barrier (`DSD_OPAQUE`), so no dispatch reloads it from a literal pool. Checked on ARMv5TE code from clang 18 (`-mcpu=arm946e-s -marm -O2`; no ARM GCC in the cloud): before, 10 literal-pool loads of the table feed the dispatches; after, none, and every dispatch is `and; ldr rX, [r9, op, lsl #2]; bx rX`. Host results unchanged. **WS0/WS3: please re-measure** (`npm run bench -w runtime`) and record cycles/op.
   - Step 3, CALLN: the per-call "is this builtin implemented" check moves to the loader (a CALLN to a builtin without an implementation is refused at load with R582 naming it; every builtin function is implemented, so no program changes), and the argument checks every builtin starts with (`dsd_bi_want_number/string/array`) are inline tag tests with only the R542 message out of line (`dsd_bi_wrong_kind`), removing a call per builtin argument. Host: `bench.dsdb` 100,000 frames 0.37 s -> 0.30 s. No fixture can hit the load-time R582 today (nothing is unimplemented).
 
+- **Rule 8 (music) and the RNG seed rule, runtime side, 2026-09-26.** The host runner now models maxmod's module player (`host_music_playing`, `host_music_starts`; `dsd_plat_assets_free` stops the music as C11 says), so rule 8 is observable: `fixtures/bytecode/runtime/music` shows a second `audio_play_music` of the playing module is a no-op, a stop then play restarts it (3 starts in all). `runtime/rng-platform` / `rng-header` pin the seed rule: header seed 0 follows `--seed`, a non-zero header seed wins over it, `randomize()` is a no-op; the draws were checked against an independent xorshift32. **For WS4 (conformance programs, their paths):** the expected values in `fixtures/bytecode/README.md` are what a `v4` music program and a seed program should log; WS2 writes their `expected/*.log` when they land.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -132,7 +134,7 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 ## Next
 - CP-A (2026-09-28): C11 0.3.0 freezes (ADR-0004 closed by the user).
 - Spike 12: WS3's DS run of `numeric-hashes` (by CP-C). Spike 14 / the M1 gate: WS3's timer harness on `bench.dsdb` (M1); below the gate, WS2 adds the reserved int-specialised opcodes.
-- Open conformance rules without fixtures: rule 8 (music) and the RNG seed rule (WS4 programs; the expected values are WS2's).
+- Conformance programs for rule 8 and the seed rule (WS4's paths): runtime fixtures and expected values are ready (see above).
 
 ## Open ADR-pending markers
 - ADR-0008 (WS2, proposed: debug/release header flag): `runtime/core/include/dsdb.h` (DSDB_FLAG_RELEASE), `runtime/core/src/loader.c` (flags check), `runtime/core/src/game.c` (vm->debug from the flag).

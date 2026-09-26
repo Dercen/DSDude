@@ -80,6 +80,16 @@ typedef uint16_t HostScreen[DSD_SCREEN_H][DSD_SCREEN_W];
 
 // Forgets every loaded sprite and background, the OAM lists and the UI maps (host_configure calls it).
 void host_gfx_reset(void);
+// Frees the room's sprites and backgrounds and forgets the OAM lists (dsd_plat_assets_free's graphics half).
+void host_gfx_free(void);
+
+// ---- Music (a model of maxmod's module player, for tests of rule 8) --------------------------------------------
+
+#define HOST_NO_MUSIC (-1)
+// The module playing now (a soundbank id), or HOST_NO_MUSIC. Modules loop, so one keeps playing until stopped.
+int32_t host_music_playing(void);
+// How many times dsd_plat_music_play started a module since host_configure.
+uint32_t host_music_starts(void);
 // Composes screen `screen` as the DS shows it after the last dsd_plat_frame_end: the backdrop (black), the room
 // background (BG1), the sprites (OAM entry 0 in front) and the UI layer (BG0) on top. A sprite whose GRF is not
 // in the NitroFS directory (a .dsdb root) draws as the outline of its OBJ box in HOST_PLACEHOLDER_RGB.

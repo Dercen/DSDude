@@ -1,0 +1,58 @@
+.dsda 0.1
+.seed 0
+.asset music mus_theme "" 3
+.asset music mus_boss "" 4
+
+.func ctrl_create 0 2
+    .loc "objects/obj_ctrl/create.dss" 1
+    LOADK r0, @mus_theme
+    CALLN r0, 1, audio_play_music
+    .loc "objects/obj_ctrl/create.dss" 2
+    LOADK r0, @mus_theme
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 3
+    LOADK r0, @mus_theme
+    CALLN r0, 1, audio_play_music
+    .loc "objects/obj_ctrl/create.dss" 4
+    LOADK r0, @mus_boss
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 5
+    LOADK r0, @mus_boss
+    CALLN r0, 1, audio_play_music
+    .loc "objects/obj_ctrl/create.dss" 6
+    LOADK r0, @mus_theme
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    LOADK r0, @mus_boss
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 7
+    CALLN r0, 0, audio_stop_music
+    LOADK r0, @mus_boss
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 8
+    LOADK r0, @mus_boss
+    CALLN r0, 1, audio_play_music
+    LOADK r0, @mus_boss
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event create ctrl_create
+.end
+
+.room rm_music 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds mus_theme+mus_boss
+.end
+
+.first rm_music
