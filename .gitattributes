@@ -18,3 +18,5 @@ Makefile* text eol=lf
 *.s3m binary
 *.sav binary
 *.zip binary
+# append-only: keep both sides' appended lines instead of conflicting
+contracts/CHANGELOG.md merge=union

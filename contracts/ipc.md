@@ -1,6 +1,6 @@
 # C5: IPC channel map
 
-Version: 0.3.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
+Version: 0.4.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
 
 The typed channels between the IDE's renderer and its main process. Source: PLAN.md section 5.2 C5. The Phase-0
 channel list and zod stubs were written by WS0; WS6 completed them in 0.2.0. The schemas live in
@@ -15,8 +15,10 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `BuildRequestSchema`, `BuildResultSchema`, `BuildPhaseSchema` | C4 `BuildRequest`, `BuildResult`, `BuildPhase` | Linked to C4 at compile time, key sets included (an optional field on one side only fails `tsc -b`). |
 | `PlayResultSchema` | C4 `PlayResult` | `emulator` is `{kind, pid}` or null instead of the handle. |
 | `SpritePreviewSchema`, `PreviewSpriteOptionsSchema` | C12 `SpritePreview`, `PreviewSpriteOptions` | `indices` is a `Uint8Array`: the only binary payload. |
-| `SettingsSchema` (+ `ControlsSchema`) | `settings.json` under userData | Every key has a default. `controls` defaults to the PLAN 6 WS6 Controls mapping. |
+| `SettingsSchema` (+ `ControlsSchema`) | `settings.json` under userData | Every key has a default. `controls` defaults to the PLAN 6 WS6 Controls mapping. `learnOpened` (0.4.0): the Learn panel has opened once. |
 | `DiagnosticSchema` | C9 | Used in every `diagnostics` field. |
+| `AssetPathSchema` (0.4.0) | - | A project-relative path (`isSafeRelativePath`: `/` separators, no leading `/`, drive, `:`, `.`/`..` segment or backslash) ending in `.png`, `.wav`, `.mp3`, `.xm`, `.mod`, `.it` or `.s3m`. |
+| `LearnPathSchema`, `LearnDocSchema` (0.4.0) | - | `docs/tutorial/...md`, `docs/manual/...md` or `docs/reference/...md`; a document is `{path, title, section}`. |
 
 ## Invoke channels (renderer -> main)
 
@@ -38,6 +40,10 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `settings.getAll` (0.2.0) | `{}` | `{settings}` (defaults filled in) |
 | `toolchain.status` / `toolchain.install` | `{}` | `{installed, blocksdsVersion, diagnostics}` / `{installed, diagnostics}` |
 | `doctor.run` | `{}` | `{checks: [{name, ok, detail}]}` |
+| `project.readFile` (0.4.0) | `{dir, path: AssetPath}` | `{bytes: Uint8Array}` |
+| `project.writeFile` (0.4.0) | `{dir, path: AssetPath, bytes: Uint8Array}` | `{ok: true}` (temp file + rename; creates the folder). JSON and DSS files go through `project.save`. |
+| `learn.list` (0.4.0) | `{}` | `{docs: [{path, title, section}]}`: tutorial, then manual, then reference; `assets/` folders skipped; title = first `# ` heading, else the file name |
+| `learn.read` (0.4.0) | `{path: LearnPath}` | `{path, markdown, images}`: `images` maps each relative image source as written in the markdown to a `data:image/(png\|jpeg\|gif\|webp);base64,` URL; remote images and files outside `docs/` are never included |
 | `dialog.open` (0.2.0) | `{kind: directory\|file, title?, defaultPath?, filters?}` | `{paths}` (empty when cancelled) |
 
 ## Event channels (main -> renderer)
@@ -63,7 +69,11 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 - Errors: an invoke rejects. Contract-layer failures carry a `[code]` prefix: `unknown-channel`, `bad-sender`,
   `bad-request`, `bad-response` or `not-implemented`. `parseIpcError` recovers `{code, message}` from Electron's
   wrapped message; handler errors come through as code `failed`.
-- Payloads are plain JSON, except for `Uint8Array` where a channel says so (`assets.preview`).
+- Payloads are plain JSON, except for `Uint8Array` where a channel says so (`assets.preview`, `project.readFile`,
+  `project.writeFile`).
+- Main resolves `project.*File` paths inside the project folder and `learn.*` paths inside the folder that holds
+  `docs/` (the repo in development, `resources/` when packaged, or `DSDUDE_DOCS_DIR`'s parent), and refuses
+  anything that would leave it.
 - Without Electron (the mock host, browser and node tests), `createLocalBridge(handlers)` gives the same bridge with
   the same validation and structured-clone copies.
 

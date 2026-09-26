@@ -23,3 +23,30 @@ describe("integrate helpers", () => {
     expect(STREAMS.map((s) => s.ws)).toEqual(["WS1", "WS8", "WS4", "WS2", "WS3", "WS5", "WS6", "WS6b", "WS7"]);
   });
 });
+
+describe("watch trigger", async () => {
+  const { due } = await import("./lib/watch.ts");
+  const M = 60_000;
+  const t0 = 1_000_000_000_000;
+  const o = { quietMin: 10, maxWaitMin: 45, gapMin: 30, force: false };
+  const p = [{ ws: "WS4", ref: "origin/ws4-compiler", sha: "b", commits: 2 }];
+  const seen = (since: number, first = since) => ({ WS4: { sha: "b", since, first } });
+
+  it("waits for a quiet period and the gap since the last run", () => {
+    expect(due({ attempted: {}, seen: seen(t0) }, p, t0 + 5 * M, o)).toEqual([]);
+    expect(due({ attempted: {}, seen: seen(t0) }, p, t0 + 10 * M, o)).toEqual(p);
+    expect(due({ lastRun: t0, attempted: {}, seen: seen(t0) }, p, t0 + 20 * M, o)).toEqual([]);
+    expect(due({ lastRun: t0, attempted: {}, seen: seen(t0) }, p, t0 + 30 * M, o)).toEqual(p);
+  });
+
+  it("does not wait forever for a busy stream", () => {
+    const busy = { attempted: {}, seen: seen(t0 + 44 * M, t0) };
+    expect(due(busy, p, t0 + 44 * M, o)).toEqual([]);
+    expect(due(busy, p, t0 + 45 * M, o)).toEqual(p);
+  });
+
+  it("ignores a tip it already attempted, and a request forces a run", () => {
+    expect(due({ attempted: { WS4: "b" }, seen: seen(t0) }, p, t0 + 60 * M, o)).toEqual([]);
+    expect(due({ lastRun: t0, attempted: {}, seen: seen(t0) }, p, t0 + M, { ...o, force: true })).toEqual(p);
+  });
+});

@@ -1,6 +1,7 @@
 // WS0's daily integration (docs/kickoff/ws0.md task 8; PLAN.md 7.3). Run through tools/checkpoint.ps1, which warns
 // about OneDrive and restarts a stale memory sampler first. Every spawned process has a timeout.
-//   node tools/lib/integrate.ts [--dry-run] [--no-push] [--no-screenshot] [--local WS2,...] [--only WS1,WS4]
+//   node tools/lib/integrate.ts [--dry-run] [--no-push] [--no-screenshot] [--per-ref] [--local WS2,...] [--only WS1,WS4]
+// Batch mode (default): merge every clean ref, then one check+test; on red, redo one ref at a time (--per-ref forces that).
 // --dry-run merges on the throwaway `integrate` branch and prints the report, but never moves main, writes files or
 // pushes. Integration never needs GitHub: when the fetch fails, local branches are integrated and cloud streams are
 // reported as not fetched.
@@ -94,6 +95,40 @@ interface Outcome {
   versions?: string;
 }
 
+/** A stream with new non-merge commits on its ref (tools/lib/watch.ts). */
+export interface Pending {
+  ws: string;
+  ref: string;
+  sha: string;
+  commits: number;
+}
+
+/** Shared by watch.ts and integrate.ts in `.dsdude/watch-state.json`. */
+export interface WatchState {
+  /** Epoch ms of the last real (non-dry) integration. */
+  lastRun?: number;
+  /** Stream -> tip sha the last integration merged or refused; the watcher ignores a tip it already tried. */
+  attempted: Record<string, string>;
+  /** Stream -> tip first seen at `since` (epoch ms); `first` = when the stream first had pending work. */
+  seen: Record<string, { sha: string; since: number; first: number }>;
+}
+
+const statePath = () => join(root, ".dsdude/watch-state.json");
+
+export function loadState(): WatchState {
+  try {
+    const s = JSON.parse(readFileSync(statePath(), "utf8")) as Partial<WatchState>;
+    return { lastRun: s.lastRun, attempted: s.attempted ?? {}, seen: s.seen ?? {} };
+  } catch {
+    return { attempted: {}, seen: {} };
+  }
+}
+
+export function saveState(s: WatchState): void {
+  mkdirSync(join(root, ".dsdude"), { recursive: true });
+  writeFileSync(statePath(), `${JSON.stringify(s, null, 2)}\n`);
+}
+
 interface Feedback {
   ws: string;
   check: string;
@@ -177,6 +212,7 @@ function main(argv: string[]): number {
   const dry = argv.includes("--dry-run");
   const noPush = dry || argv.includes("--no-push");
   const noShot = argv.includes("--no-screenshot");
+  const perRef = argv.includes("--per-ref");
   const listArg = (flag: string) => {
     const i = argv.indexOf(flag);
     return i >= 0 ? (argv[i + 1] ?? "").split(",").filter(Boolean) : [];
@@ -280,6 +316,8 @@ function main(argv: string[]): number {
   gitOk(["switch", "-C", "integrate", "main"]);
   let lockfileTouched = false;
   try {
+    // 3. ownership first; only clean refs are merge candidates
+    const candidates: { t: Target; base: Omit<Outcome, "status" | "detail"> }[] = [];
     for (const t of targets) {
       const s = t.stream;
       const versions =
@@ -312,9 +350,8 @@ function main(argv: string[]): number {
             detail: `ownership check could not run (${why}); not merged, no IF entry`,
           });
           say(`${s.ws}: ownership check could not run (${why})`);
-          continue;
         }
-        const list = (v.violations ?? []).map((x) => `${x.commit?.slice(0, 7) ?? ""} ${x.path}: ${x.reason}`);
+        const list = (v?.violations ?? []).map((x) => `${x.commit?.slice(0, 7) ?? ""} ${x.path}: ${x.reason}`);
         outcomes.push({ ...base, status: "refused", detail: `ownership: ${list.slice(0, 5).join("; ")}` });
         feedback.push({
           ws: s.ws,
@@ -326,46 +363,90 @@ function main(argv: string[]): number {
         });
         continue;
       }
+      candidates.push({ t, base });
+    }
+
+    // 4. merge. Batch mode (default): merge every candidate, then one check+test; if that is red, start again from
+    // main and merge one ref at a time with a check+test after each, to find the culprit.
+    const mergeRef = (c: (typeof candidates)[number]): boolean => {
+      const { t, base } = c;
+      const s = t.stream;
       const msg =
         s.where === "cloud" && !movedHome.has(s.ws) ? `Merge ${s.branch} (cloud ${t.label})` : `Merge ${s.branch}`;
       const merge = git(["merge", "--no-ff", t.ref, "-m", msg], 3 * MIN);
-      if (merge.code !== 0) {
-        git(["merge", "--abort"]);
-        outcomes.push({ ...base, status: "refused", detail: `merge conflict: ${firstLines(merge.out, 3)}` });
-        feedback.push({
-          ws: s.ws,
-          check: "merge",
-          command: `git merge --no-ff ${t.ref}`,
-          error: firstLines(merge.out, 3),
-          action: `merge ${s.where === "cloud" ? "origin/main" : "main"} into your branch (after git restore package-lock.json), resolve the conflict, and ${s.where === "cloud" ? "push" : "commit"}`,
-          sha: t.sha,
-        });
-        continue;
+      if (merge.code === 0) {
+        const changed = gitOk(["diff", "--name-only", "HEAD^1", "HEAD"]).split("\n");
+        if (changed.some((f) => f.endsWith("package.json"))) lockfileTouched = true;
+        return true;
       }
-      const changed = gitOk(["diff", "--name-only", "HEAD^1", "HEAD"]).split("\n");
-      if (changed.some((f) => f.endsWith("package.json"))) {
-        const inst = sh("npm install", 10 * MIN);
-        lockfileTouched = true;
-        if (inst.code !== 0) say(`npm install after ${s.ws}: exit ${inst.code} ${firstLines(inst.out, 3)}`);
-      }
-      const ct = checkAndTest();
-      if (!ct.ok) {
+      git(["merge", "--abort"]);
+      outcomes.push({ ...base, status: "refused", detail: `merge conflict: ${firstLines(merge.out, 3)}` });
+      feedback.push({
+        ws: s.ws,
+        check: "merge",
+        command: `git merge --no-ff ${t.ref}`,
+        error: firstLines(merge.out, 3),
+        action: `merge ${s.where === "cloud" ? "origin/main" : "main"} into your branch (after git restore package-lock.json), resolve the conflict, and ${s.where === "cloud" ? "push" : "commit"}`,
+        sha: t.sha,
+      });
+      return false;
+    };
+    const install = () => {
+      if (!lockfileTouched) return;
+      const inst = sh("npm install", 10 * MIN);
+      if (inst.code !== 0) say(`npm install: exit ${inst.code} ${firstLines(inst.out, 3)}`);
+    };
+    let batchGreen: ReturnType<typeof checkAndTest> | null = null;
+    const merged: (typeof candidates)[number][] = [];
+    if (!perRef && candidates.length > 1) {
+      for (const c of candidates) if (mergeRef(c)) merged.push(c);
+      install();
+      const ct = merged.length ? checkAndTest() : null;
+      if (ct?.ok) {
+        batchGreen = ct;
+        for (const c of merged) {
+          outcomes.push({
+            ...c.base,
+            status: "merged",
+            detail: `batch: ${ct.out}`,
+            mergeSha: gitOk(["rev-parse", "HEAD"]),
+          });
+          say(`${c.t.stream.ws}: merged ${c.t.label} (${c.t.commits} commits)`);
+        }
+      } else if (ct) {
+        say(`batch of ${merged.length} merges is red (${ct.step}); merging one at a time`);
         git(["restore", "package-lock.json"]);
-        gitOk(["reset", "--hard", "HEAD~1"]);
-        outcomes.push({ ...base, status: "refused", detail: `${ct.step} red on Windows: ${firstLines(ct.out, 4)}` });
-        feedback.push({
-          ws: s.ws,
-          check: `${ct.step} on Windows after merging`,
-          command: ct.command,
-          error: firstLines(ct.out, 4),
-          action:
-            "reproduce with the same command (Windows paths, CRLF and case are the usual causes), fix, and push again",
-          sha: t.sha,
-        });
-        continue;
+        gitOk(["reset", "--hard", "main"]);
+        lockfileTouched = false;
       }
-      outcomes.push({ ...base, status: "merged", detail: ct.out, mergeSha: gitOk(["rev-parse", "HEAD"]) });
-      say(`${s.ws}: merged ${t.label} (${t.commits} commits)`);
+    }
+    if (!batchGreen) {
+      const todo = perRef || candidates.length <= 1 ? candidates : merged;
+      for (const c of todo) {
+        const { t, base } = c;
+        const s = t.stream;
+        if (!mergeRef(c)) continue;
+        install();
+        const ct = checkAndTest();
+        if (!ct.ok) {
+          git(["restore", "package-lock.json"]);
+          gitOk(["reset", "--hard", "HEAD~1"]);
+          outcomes.push({ ...base, status: "refused", detail: `${ct.step} red on Windows: ${firstLines(ct.out, 4)}` });
+          feedback.push({
+            ws: s.ws,
+            check: `${ct.step} on Windows after merging`,
+            command: ct.command,
+            error: firstLines(ct.out, 4),
+            action:
+              "reproduce with the same command (Windows paths, CRLF and case are the usual causes), fix, and push again",
+            sha: t.sha,
+          });
+          continue;
+        }
+        batchGreen = ct;
+        outcomes.push({ ...base, status: "merged", detail: ct.out, mergeSha: gitOk(["rev-parse", "HEAD"]) });
+        say(`${s.ws}: merged ${t.label} (${t.commits} commits)`);
+      }
     }
 
     // 5. lockfile
@@ -381,8 +462,8 @@ function main(argv: string[]): number {
       }
     }
 
-    // 6. final check + test on the integrated tree
-    const final = checkAndTest();
+    // 6. final check + test on the integrated tree (reused when nothing changed since the last green run)
+    const final = batchGreen && !localChecks.length ? batchGreen : checkAndTest();
     localChecks.push(
       `npm run check && npm test (Windows): ${final.ok ? `green; ${final.out}` : `RED: ${firstLines(final.out, 4)}`}`,
     );
@@ -449,6 +530,10 @@ function main(argv: string[]): number {
     }
     writeFileSync(join(root, `docs/status/checkpoint-${N}.md`), report);
     appendFeedback(N, feedback);
+    const state = loadState();
+    state.lastRun = Date.now();
+    for (const o of outcomes) if (o.target.sha !== "-") state.attempted[o.target.stream.ws] = o.target.sha;
+    saveState(state);
     updateRegistry(outcomes);
     gitOk(["add", "docs/status"]);
     gitOk(["commit", "-m", `docs(status): checkpoint-${N} integration report`]);

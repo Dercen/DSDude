@@ -1,25 +1,35 @@
 /** The IDE shell: toolbar, the dockview workbench, status bar and toast. */
+import "dockview/dist/styles/dockview.css";
 import { DockviewReact, type DockviewReadyEvent, themeDark } from "dockview-react";
 import { useEffect } from "react";
 import { IdeContext, useActions, useIde } from "./ide-context.tsx";
 import { ipc } from "./ipc.ts";
-import { disposeAllModels } from "./monaco/models.ts";
+import { LearnPanel } from "./learn/LearnPanel.tsx";
+import { disposeAllModels, installLearnLinkOpener } from "./monaco/models.ts";
 import { CodePanel } from "./panels/CodePanel.tsx";
+import { EditorHostPanel } from "./panels/EditorHostPanel.tsx";
 import { OutputPanel } from "./panels/OutputPanel.tsx";
 import { ProblemsPanel } from "./panels/ProblemsPanel.tsx";
 import { ProjectTree } from "./panels/ProjectTree.tsx";
+import { loadEditorModules, saveDirtyPanels } from "./panels/registry.ts";
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
 import { createIde } from "./store/ide.ts";
 import { DockWorkbench } from "./workbench.ts";
 
+loadEditorModules();
 const workbench = new DockWorkbench();
-const ide = createIde(ipc, workbench);
+const ide = createIde(ipc, workbench, {
+  savePanels: () => saveDirtyPanels((message) => ide.actions.showToast(message, "error")),
+});
+installLearnLinkOpener((target) => ide.actions.openLearn(target));
 let started = false;
 
 const components = {
   project: ProjectTree,
   welcome: WelcomePanel,
   code: CodePanel,
+  editor: EditorHostPanel,
+  learn: LearnPanel,
   output: OutputPanel,
   problems: ProblemsPanel,
 };
@@ -44,8 +54,16 @@ function Toolbar() {
       <button type="button" data-testid="open" onClick={() => void actions.chooseAndOpenProject()}>
         Open…
       </button>
-      <button type="button" data-testid="save" disabled={!dirty} onClick={() => void actions.save()}>
-        Save
+      <button
+        type="button"
+        data-testid="save"
+        onClick={() => void actions.save()}
+        title={dirty ? "Save changes (Ctrl+S)" : "Save (Ctrl+S)"}
+      >
+        Save{dirty ? " \u25cf" : ""}
+      </button>
+      <button type="button" data-testid="learn-button" onClick={() => actions.openLearn(null)} title="Learn (F1)">
+        Learn
       </button>
       <span className="toolbar-gap" />
       {status === "running" ? (
@@ -128,6 +146,10 @@ export function App() {
       } else if (e.key === "F5") {
         e.preventDefault();
         void ide.actions.play();
+      } else if (e.key === "F1" && !(e.target instanceof Element && e.target.closest(".monaco-editor"))) {
+        // Monaco editors handle F1 themselves (the word under the cursor); elsewhere F1 opens Learn.
+        e.preventDefault();
+        ide.actions.openLearn(null);
       }
     };
     window.addEventListener("keydown", onKey, true);

@@ -11,6 +11,7 @@ import { modelFor } from "../monaco/models.ts";
 import { monaco } from "../monaco/setup.ts";
 import { getDocText, parseDocId } from "../store/documents.ts";
 import { type IdeState, problemsOf } from "../store/ide.ts";
+import { learnTargetForBuiltin } from "./api.ts";
 
 const SEVERITY = {
   error: monaco.MarkerSeverity.Error,
@@ -55,6 +56,12 @@ export function CodePanel({ params }: IDockviewPanelProps<{ docId: string }>) {
       minimap: { enabled: false },
       fontSize: 14,
       readOnly: parseDocId(docId)?.kind === "json",
+    });
+    // F1: the reference entry for the word under the cursor (WS7's monaco-dss may refine it), else Learn.
+    editor.addCommand(monaco.KeyCode.F1, () => {
+      const pos = editor.getPosition();
+      const word = pos ? model.getWordAtPosition(pos)?.word : undefined;
+      actions.openLearn(word ? learnTargetForBuiltin(word) : null);
     });
     let applying = false;
     const sub = model.onDidChangeContent(() => {

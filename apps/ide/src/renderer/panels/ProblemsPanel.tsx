@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { useActions, useIde } from "../ide-context.tsx";
 import { problemsOf } from "../store/ide.ts";
+import { learnTargetForCode } from "./api.ts";
 
 const ICON = { error: "✖", warning: "⚠", info: "ℹ" } as const;
 
@@ -23,27 +24,43 @@ export function ProblemsPanel() {
   return (
     <div className="problems" data-testid="problems">
       {problems.map((d) => (
-        <button
-          type="button"
+        // biome-ignore lint/a11y/useSemanticElements: a row holding a nested code link cannot be a <button>.
+        <div
+          role="button"
+          tabIndex={0}
           key={JSON.stringify(d)}
           className={`problem problem-${d.severity}`}
           data-testid="problem"
           onClick={() => actions.revealDiagnostic(d)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") actions.revealDiagnostic(d);
+          }}
         >
           <span className="problem-icon">{ICON[d.severity]}</span>
           <span className="problem-text">
             {d.message}
             {d.hint ? <span className="problem-hint"> {d.hint}</span> : null}
           </span>
-          {/* Task 4: the code links to the Learn panel (docs/reference/errors.md). */}
-          <span className="problem-code">{d.code}</span>
+          <a
+            href={`#${d.code}`}
+            className="problem-code"
+            title="What this means (Learn)"
+            data-testid="problem-code"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              actions.openLearn(learnTargetForCode(d.code));
+            }}
+          >
+            {d.code}
+          </a>
           {d.file ? (
             <span className="problem-where">
               {d.file}
               {d.line ? `:${d.line}` : ""}
             </span>
           ) : null}
-        </button>
+        </div>
       ))}
     </div>
   );

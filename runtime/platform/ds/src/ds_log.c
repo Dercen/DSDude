@@ -52,6 +52,11 @@ const char *ds_log_emulator_id(void)
     return ds_emulator_id;
 }
 
+const char *ds_log_protocol_name(void)
+{
+    return ds_protocol == DSD_LOG_RAW ? "raw" : "legacy";
+}
+
 static char *ds_buffer(void)
 {
     return ds_protocol == DSD_LOG_RAW ? ds_raw_line : dsd_legacy_text;

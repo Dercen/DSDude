@@ -2,9 +2,10 @@
 
 > **Renumbered by WS0 (2026-09-26):** filed by WS2 as ADR-0003; WS1's key-script ADR held 0003 on main first.
 
-- Status: **proposed** (WS2, 2026-09-26). Needs WS4's co-signature (C2 co-owner, `packages/dsdb`) and WS5's
-  review (C3); WS0 numbers, decides with the user if needed, and merges. If another ADR took number 0003 in the
-  meantime, WS0 renumbers this one.
+- Status: **accepted** (user, 2026-09-26): option A, co-signed by WS4 (which implemented its side; `contracts/dsdb.md`
+  0.3.0) and reviewed by WS5 (C3 unchanged). **With WS4's clarification:** the format minor becomes 2 only in a file
+  that carries the extension table; files without sprite geometry keep minor 1 and stay byte-identical, so the loader
+  accepts both. WS2 and WS4 remove their `ADR-pending ADR-0006` markers.
 - Affected streams: WS2 (loader, instances, collision, draw lists), WS4 (compiler, `packages/dsdb` encode/decode and
   `.dsda`), WS5 (C3 asset pack, only if option B is chosen), WS7 (manual: nothing user-visible changes).
 - Sources: `contracts/events.md` section 6 (collisions use "the sprites' bboxes (`sprite.json` `bbox`, scaled by

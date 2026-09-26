@@ -5,6 +5,8 @@
 #
 #   make -j4                  the C8 artifact: dist/arm9.elf (stripped), dist/arm9-debug.elf
 #   make -j4 DSD_VM_BL=1      the M1 switch: vm.arm.c without -mlong-calls (plain BL to builtins)
+#   make -j4 DSD_SELFTEST=1   the selftest ROM dsdude_selftest.nds (runtime/selftest/, no core; NitroFS from
+#                             fixtures/runtime/selftest/nitrofs, made by runtime/selftest/make_assets.py)
 #   make clean
 #
 # `npm run build:runtime -w runtime` runs this through buildRuntime(), then writes dist/VERSION and prints the
@@ -25,6 +27,18 @@ SOURCEDIRS	:= core/src platform/ds/src
 INCLUDEDIRS	:= core/include gen
 # The built-in 8x8 UI font (runtime/data/*.bin, linked through bin2c). $(wildcard) keeps find quiet without it.
 BINDIRS		:= $(wildcard data)
+
+# The selftest ROM: the platform layer without the runtime's main and boot stub, plus runtime/selftest/source.
+DSD_SELFTEST	?= 0
+ifeq ($(DSD_SELFTEST),1)
+NAME		:= dsdude_selftest
+GAME_TITLE	:= DSDude selftest
+SOURCEDIRS	:= selftest/source
+INCLUDEDIRS	:= gen platform/ds/src selftest/source
+SOURCES_C	:= $(filter-out platform/ds/src/main.c platform/ds/src/ds_boot_stub.c,$(wildcard platform/ds/src/*.c))
+SOURCES_S	:= $(wildcard platform/ds/src/*.s)
+NITROFSDIR	:= ../fixtures/runtime/selftest/nitrofs
+endif
 
 LIBS		:= -lmm9 -lnds9
 # maxmod9.h and -lmm9; the default Makefile appends $(BLOCKSDS)/libs/libnds and -lc itself.
@@ -54,6 +68,7 @@ include $(BLOCKSDS)/sys/default_makefiles/rom_arm9/Makefile
 # The core never includes libnds and keeps -std=c11 (the same as the host build); only the platform layer, which
 # is DS-only, compiles as gnu11 (the later -std wins).
 $(BUILDDIR)/platform/%.o: CFLAGS += -std=gnu11
+$(BUILDDIR)/selftest/%.o: CFLAGS += -std=gnu11
 
 # ---- M1 switch: builtin calls from the dispatch loop by -mlong-calls (default) or plain BL ---------------------
 # The BlocksDS *.arm.c rule compiles ARM code with -marm -mlong-calls. BL from ITCM (0x01000000) reaches main RAM,
@@ -70,7 +85,11 @@ endif
 STRIP		:= $(PREFIX)strip
 DIST		:= dist
 
+ifeq ($(DSD_SELFTEST),1)
+.DEFAULT_GOAL	:= $(ROM)
+else
 .DEFAULT_GOAL	:= runtime
+endif
 .PHONY: runtime
 
 runtime: $(DIST)/arm9.elf $(DIST)/arm9-debug.elf

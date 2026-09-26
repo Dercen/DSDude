@@ -36,6 +36,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.1.0 (2026-09-25, WS0, Phase 0): channel list and zod stubs.
 - 0.2.0 (2026-09-26, WS6, T1): completes the Phase-0 stubs: ProjectSchema (whole C1 Project), SpritePreviewSchema for assets.preview (request gains optional sourcePath/options; sprite now optional, exactly one required), typed SettingsSchema (settings.get/set keys narrowed to its keys, value checked per key), build.progress phase = C4 BuildPhase, PlayResult.emulator {kind,pid}; new channels settings.getAll and dialog.open; dispatchInvoke/validateEvent/createLocalBridge/parseIpcError helpers and the [code] error convention. No channel renamed or removed. Stub narrowings listed for WS0 review.
 - 0.3.0 (2026-09-26, WS6, T1): BuildRequestSchema gains optional `debug` (follows C4 0.3.0); the compile-time C1/C4/C12 links now also compare key sets, so an optional field added on one side only fails `tsc -b`.
+- 0.4.0 (2026-09-26, WS6, T1): new channels project.readFile / project.writeFile (asset files: AssetPathSchema, safe relative paths, png/wav/mp3/xm/mod/it/s3m, Uint8Array bytes; for the C12 editors) and learn.list / learn.read (docs/tutorial|manual|reference markdown, local images as data: URLs; for the Learn panel); settings key learnOpened (default false); isSafeRelativePath, AssetPathSchema, LearnPathSchema, LearnDocSchema exported. All additive.
 
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).
@@ -77,6 +78,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C12 EditorPanel host API + preview API (`apps/ide/src/renderer/panels/api.ts`, `packages/asset-pipeline/src/preview.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): preview types (`PreviewSpriteFn`, `SpritePreview`). Panel API + mock-host owed by WS6 (CP-A).
+- panel API 0.1.0 (2026-09-26, WS6, CP-A delivery): `apps/ide/src/renderer/panels/api.ts` (`@dsdude/ide/panels`): ResourceRef/resourceId/resourceFile; EditorPanel {id, kind, open, save, dispose, onDirty}, EditorPanelFactory {kind, canOpen, create({element, host})}; PanelHost {project: ProjectStore (get/dir/subscribe/update/isDirty/save), files (read/write via C5 project.*File), ipc, undo: UndoStack, toast, openLearn, openResource}; editor modules = default export of `editors/<name>/index.ts(x)`; Learn links `dsdude-learn:/docs/...md#anchor`, headingSlug (GitHub-style), learnTargetForCode (docs/reference/errors.md#<code>), learnTargetForBuiltin (functions.md / variables.md). Helpers (kit.ts): createUndoStack, updateWithUndo (immer patches). `fixtures/ide/mock-host` (= `@dsdude/ide/mock-host`): createMockHost -> mountEditor / mountLearn / mountShell in headless Chromium, in-memory C5 handlers behind createLocalBridge. Freezes at CP-A.
 
 ## C13 Runtime limits (`contracts/runtime-limits.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): the 22 PLAN 5.2 C13 keys and values.

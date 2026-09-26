@@ -13,6 +13,7 @@ param(
   [switch]$DryRun,
   [switch]$NoPush,
   [switch]$NoScreenshot,
+  [switch]$PerRef,
   [string]$Local = '',
   [string]$Only = ''
 )
@@ -92,6 +93,7 @@ $argv = @()
 if ($DryRun) { $argv += '--dry-run' }
 if ($NoPush) { $argv += '--no-push' }
 if ($NoScreenshot) { $argv += '--no-screenshot' }
+if ($PerRef) { $argv += '--per-ref' }
 if ($Local) { $argv += @('--local', $Local) }
 if ($Only) { $argv += @('--only', $Only) }
 Push-Location $repo
