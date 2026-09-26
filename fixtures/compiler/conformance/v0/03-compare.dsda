@@ -64,8 +64,8 @@
     .loc "v0/03-compare.dss" 14
     LOADI r2, 3
     LOADI r3, 2
-    GT r2, r2, r3
-    JMPF r2, L4
+    CMPJ r2, r3, 4
+    JMP L4
     LOADI r1, 10
     JMP L5
   L4:
