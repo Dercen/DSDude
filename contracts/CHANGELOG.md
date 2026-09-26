@@ -49,6 +49,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C11 Platform seam (`runtime/core/include/dsd_platform.h`)
 - owed: WS2, by CP-A.
+- 0.1.0 (2026-09-26, WS2, publication; frozen at CP-A): lifecycle and frame (`dsd_plat_init/frame_begin/frame_end/read_input` with `dsd_input`), files (`dsd_plat_read_file`), C8 output (`dsd_plat_log`, `dsd_plat_log_flush` for the DS pad), `dsd_plat_fatal` (`dsd_fatal`), `dsd_plat_mem_report`, sprites/backgrounds/shadow OAM (`dsd_sprite_info`, `dsd_oam_entry`, `dsd_affine`), UI layer, sound (incl. `dsd_plat_music_active`), room-load primitives (`dsd_plat_screens_blank`, `dsd_plat_assets_free`, `dsd_plat_sfx_load`, `dsd_plat_music_load`), `dsd_plat_millis`, `dsd_plat_rng_seed`, and the `DSD_ITCM_CODE`/`DSD_DTCM_DATA`/`DSD_DTCM_BSS` placement macros (libnds section names under `ARM9`, empty on the host).
 
 ## C12 EditorPanel host API + preview API (`apps/ide/src/renderer/panels/api.ts`, `packages/asset-pipeline/src/preview.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): preview types (`PreviewSpriteFn`, `SpritePreview`). Panel API + mock-host owed by WS6 (CP-A).

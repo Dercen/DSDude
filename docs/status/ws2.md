@@ -30,6 +30,9 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
   - Fixtures: v0-02..05 hand-assembled (`fixtures/bytecode/conformance/`), all v0 goldens match; `fixtures/bytecode/hello.out`; `fixtures/bytecode/runtime/` (strings + 9 error programs with full `.out` goldens). All `.dsda` are canonical (`dsdb-dis` round-trips them) and the `.dsdb` come from `node tools/gen-dsdb.ts`.
   - Tests: suites loader (patched hello.dsdb per R58x case), host (C8 line formatting, key scripts, RNG, C13 drift against `contracts/runtime-limits.json`), programs (every fixture against its golden; missing file R584; boot twice gives identical bytes). 89,645 checks per variant.
 
+- **Task 3 (C11): published 0.1.0, 2026-09-26** (freezes at CP-A, 2026-09-28). `runtime/core/include/dsd_platform.h` plus a C11 CHANGELOG entry. Additions over the draft: `DSD_PLATFORM_VERSION`, `dsd_plat_music_active` (audio_is_playing, rule 8), `dsd_plat_bg_load(screen, NULL)` hides BG1. WS3 has not started yet; its first review may still change the header before CP-A.
+- **ADR-0003 (proposed):** sprite geometry (frame size, origin, bbox from `sprite.json`) has no path to the runtime today. Proposal: the reserved header word becomes an extension-table offset (C2 T1), first extension `SPRG`. Needs WS4's co-signature (and WS5's review); blocks tier v2 collisions/draw placement (~D+14).
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -53,11 +56,11 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 - Builtins not implemented yet raise R582 when called (the loader accepts them).
 
 ## Next
-- Task 3: freeze `dsd_platform.h` (C11 0.1.0) by CP-A (D+3 = 2026-09-28): review with WS3's needs, CHANGELOG entry.
+- CP-A (2026-09-28): C11 freezes; fold in any WS3 review first.
 - Task 4: strings/arrays/heap with the collector, provisional array opcodes (NEWARR/GETIDX/SETIDX/LEN) as WS4 promotes them, v1 goldens (hand-written `fixtures/bytecode/v1-*.dsda` until WS4's programs 6-10 land; ADR if not on main by D+5).
 - Task 5: `fixtures/bytecode/bench.dsda`.
 
 ## Open ADR-pending markers
-- none
+- none in code. Open ADR: ADR-0003 (proposed by WS2).
 
 ## Integration feedback

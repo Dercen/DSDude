@@ -145,6 +145,8 @@ void dsd_plat_music_play(uint32_t module_id) { (void)module_id; }
 
 void dsd_plat_music_stop(void) {}
 
+bool dsd_plat_music_active(void) { return false; }
+
 void dsd_plat_volume(int32_t volume_fx) { (void)volume_fx; }
 
 void dsd_plat_screens_blank(bool blank) { (void)blank; }

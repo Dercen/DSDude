@@ -1,8 +1,8 @@
 // dsd_platform.h: contract C11, the platform seam between the portable core (runtime/core, WS2) and a platform
 // layer: libnds/maxmod on the DS (runtime/platform/ds, WS3) and the headless host runner (runtime/host, WS2).
 //
-// Version: 0.1.0-draft (frozen at CP-A as 0.1.0; changes after that follow contracts/README.md: an added function
-// or field is T1, a changed signature T2). Source: PLAN.md 2.4, 3.2, 3.3 and 5.2 C11.
+// Version: 0.1.0 (published 2026-09-26, frozen at CP-A; after that, changes follow contracts/README.md: an added
+// function or field is T1, a changed signature or meaning T2). Source: PLAN.md 2.4, 3.2, 3.3 and 5.2 C11.
 //
 // Rules:
 //   - Pure C11 on both sides; no libnds or maxmod type crosses the seam, only the fixed-width types below.
@@ -15,6 +15,8 @@
 //     the game (sprite sizes, load results) is derived from the same files the same way on both platforms.
 #ifndef DSD_PLATFORM_H
 #define DSD_PLATFORM_H
+
+#define DSD_PLATFORM_VERSION "0.1.0" // C11 version (contracts/CHANGELOG.md)
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -174,7 +176,8 @@ void dsd_plat_mem_report(dsd_mem_report *out);
 
 // Loads a sprite GRF into `screen`'s OBJ memory. Returns a handle >= 0 and fills *info, or DSD_PLAT_E*.
 int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_info *info);
-// Loads a background GRF as `screen`'s room background (BG1). DSD_PLAT_OK or DSD_PLAT_E*.
+// Loads a background GRF as `screen`'s room background (BG1); grf_path NULL hides BG1 (a room screen without a
+// background). DSD_PLAT_OK or DSD_PLAT_E*.
 int32_t dsd_plat_bg_load(uint32_t screen, const char *grf_path);
 // Scrolls `screen`'s room background to the view position (pixels).
 void dsd_plat_bg_scroll(uint32_t screen, int32_t x, int32_t y);
@@ -201,6 +204,8 @@ void dsd_plat_sfx_stop(uint32_t sound_id);
 // Starts a loaded module (looping). The core has already skipped the call when the module is playing (rule 8).
 void dsd_plat_music_play(uint32_t module_id);
 void dsd_plat_music_stop(void);
+// True while a module is playing (maxmod mmActive). The core remembers which one (audio_is_playing, rule 8).
+bool dsd_plat_music_active(void);
 // Master volume, 0..4096 (Q20.12 0..1).
 void dsd_plat_volume(int32_t volume_fx);
 
