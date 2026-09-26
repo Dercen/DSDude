@@ -31,7 +31,7 @@ Legend: todo / in progress / done (<sha>).
   - `.githooks/pre-commit`, `commit-msg`, `pre-push` (+x): done
   - `tools/adr-pending.ts`, `tools/memsampler.ps1` (started 18:33, running), `tools/checkpoint.ps1` Day-1 part: done
   - `.claude/settings.json` cloud rules + SessionStart hook: done
-  - spike 1 (`tools/phase0/spike1-hooks.ps1`): todo
+  - spike 1 (`tools/phase0/spike1-hooks.ps1`): done, 11/11 PASS (results below)
   - cloud pieces (`tools/cloud/**`, `docs/status/cloud.md`, status stubs for WS2-WS8 and WS6b): done, pushed
   - cloud probe (user runs it): todo
 - Task 4. Small contracts, C4 types, project format, samples: in progress
@@ -47,7 +47,15 @@ Legend: todo / in progress / done (<sha>).
 
 ## Spike results
 
-- Spike 1 (hooks): not run yet.
+- **Spike 1 (hooks), 2026-09-25: 11/11 PASS** with `powershell -NoProfile -File tools\phase0\spike1-hooks.ps1` (throwaway worktree `..\DSDude-spike1` on `spike1-tmp`, scratch bare repo; all removed afterwards, no leftover paths or branches):
+  1. WS1 commits `packages/toolchain/src/spike.ts`: exit 0, trailer `DSDude-WS: WS1`.
+  2. WS1 commits `runtime/core/spike.c`: pre-commit rejects (exit 1, "owned by WS0").
+  3. WS1 commits `samples/hello/Makefile` with CRLF bytes: exit 0, stored `i/lf`.
+  4. WS0 stages `package-lock.json`: `wip` rejected by commit-msg; `chore(deps): regenerate lockfile` passes (guard runs).
+  5. Merges bringing a lockfile change and `runtime/core/*.c`: pass without a conflict and with a resolved conflict; the merge commit gets the trailer.
+  6. pre-push: clean `main` pushes; a `vendor/probe.txt` commit (the one `--no-verify`) is refused, and still refused after `git rm --cached` + commit.
+  7. A second detached worktree checks out the Makefile and all three hooks as `i/lf w/lf`, with no CR bytes.
+  - Permissions: `npm ci --help` is denied by `.claude/settings.json` ("Permission to use PowerShell with command npm ci --help has been denied"); `git status` runs without a prompt. The embedded `bash.exe -lc '... wf-pacman ...'` form is checked in the tag commit, when the pacman deny rules are added.
 - Spike 13 (WS0 part: fresh worktree install, `path.txt`, `tsc -b` failure, `DSDUDE_SKIP_ELECTRON`): not run yet.
 
 ## Cloud probe
