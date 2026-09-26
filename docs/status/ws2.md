@@ -105,7 +105,9 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
   - Step 5 (82488bc): CALLN no longer settles. It hands the builtin the budget as it stands and keeps `seg`, so the next transfer charges the straight run's steps and the count stays exact (every golden and trace unchanged); a nested event's watchdog just sees those steps one run later. **Please re-measure.**
 
 - **Opcodes 0.4.0 (WS4's T1, 02cfb06): ADDII/SUBII/MULII/CMPJII stable and emitted; WS2 co-signs, 2026-09-26.** The encoding is the one WS2 implemented (ABC regs; CMPJII with CMPJ's relation byte and following JMP); merged `origin/ws4-compiler` and every test passes with WS4's recompiled fixtures, which now use them. New fixture `bench-ii` (from `gen_bench.mjs`): **WS3 can time it directly** instead of a byte-patched copy; it is in the case table, so `conformance:ds` runs it on the DS too.
-- **ADR-0008 accepted by the user (main 68ca7da).** WS2's `ADR-pending ADR-0008` markers stay until WS4's `.release` / dsdb.md flags T1 is on `origin/ws4-compiler`; then WS2 merges it, drops the markers and assembles the release wrap fixture with `.release`.
+- **ADR-0008 done on WS2's side.** Accepted by the user (main 68ca7da); WS4's dsdb 0.6.0 T1 (9517781: header release flag, `.release` in `.dsda`, release folding) is merged. WS2 dropped its `ADR-pending ADR-0008` markers (dsdb.h, loader.c, game.c, test_programs.c), and the release build of `wrap` is now an assembled fixture (`runtime/wrap-release.dsda` with `.release`), in the case table (so WS3's `conformance:ds` runs it too); only the unknown-flag refusal still patches a byte. The C10 `--release` flag remains WS1's.
+
+- **C13 0.2.0 (T1), 2026-09-26: scanlineObjCycles 1200 -> 2048**, WS3's proposal from 3DS hardware (2,178 OBJ line cycles drew, 2,208 dropped; ~6% margin). No code hard-codes the value: `packages/asset-pipeline/src/limits.ts` and `apps/ide/src/renderer/meters.ts` read the JSON, and `dsd_limits.h` does not carry this key, so WS5 and WS6 pick it up with no change (their tests do not pin 1200). **WS0:** `contracts/README.md`'s C13 row and PLAN.md's C13 list still say 0.1.0 / 1200.
 
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
@@ -161,8 +163,7 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 - Conformance programs for rule 8 and the seed rule (WS4's paths): runtime fixtures and expected values are ready (see above).
 
 ## Open ADR-pending markers
-- ADR-0008 (WS2, proposed: debug/release header flag): `runtime/core/include/dsdb.h` (DSDB_FLAG_RELEASE), `runtime/core/src/loader.c` (flags check), `runtime/core/src/game.c` (vm->debug from the flag).
-- ADRs WS2 is party to, all closed: ADR-0004 (resolved by C11 0.2.0/0.3.0), ADR-0005 (co-signed; opcodes promoted), ADR-0006 (accepted).
+- none in WS2's code. ADRs WS2 is party to, all closed: ADR-0004 (resolved by C11 0.2.0/0.3.0), ADR-0005 (co-signed; opcodes promoted), ADR-0006 (accepted), ADR-0008 (accepted; runtime and dsdb 0.6.0 in place; C10 `--release` is WS1's).
 
 ## Integration feedback
 - IF-1 2026-09-26 checkpoint-2 @2b51ae1: ownership failed: `node tools/check-ownership.ts --range main..origin/ws2-runtime-core --stream WS2` ->  ?: . Action: revert or move those changes (they belong to another stream), then push again.

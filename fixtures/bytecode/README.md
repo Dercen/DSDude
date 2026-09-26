@@ -51,9 +51,9 @@ the regenerated `.dsdb` together.
   with its timer harness; on the Linux host (x86-64, 2.8 GHz) 100,000 frames take ~0.36 s (~320 M steps/s).
 - `runtime/wrap` (`.dsda`, `.dsdb`, `.out`, `wrap-release.out`): int32 and Q20.12 overflow (`2147483647 + 1`,
   `65536 * 65536`, `500000.5 + 100000`, `-2147483648 - 1`). As written (header flags 0, a debug build) the first
-  line stops with R520 (`wrap.out`); the tests also run a copy with header flags bit 0 set (a release build,
-  ADR-0008), which prints the wrapped values `-2147483648`, `0`, `-448575.5`, `2147483647` (`wrap-release.out`),
-  and a copy with an unknown flag bit, which the loader refuses with R581.
+  line stops with R520 (`wrap.out`). `runtime/wrap-release.dsda` is the same program with `.release` (header flags
+  bit 0, ADR-0008; dsdb.md 0.6.0) and prints the wrapped values `-2147483648`, `0`, `-448575.5`, `2147483647`
+  (`wrap-release.out`). The tests also run a copy with an unknown flag bit, which the loader refuses with R581.
 - `runtime/music` (rule 8): a room with two modules (`mus_theme` id 3, `mus_boss` id 4). Play theme, play theme again
   (a no-op), play boss, stop, play boss again; `audio_is_playing` logs `true false false true false true`, and
   the host's module-player model (`host_music_starts`) counts 3 starts, ending on module 4.

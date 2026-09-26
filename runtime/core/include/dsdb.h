@@ -22,7 +22,7 @@ _Static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "DSDB records are read
 #define DSDB_NONE 0xFFFFFFFFu      // "none" in index fields (e.g. the first room of a program-form DSDB)
 #define DSDB_MAX_REGS 64u          // registers per function frame (C13 registersPerFrame)
 #define DSDB_MAIN_NAME "__main"    // FUNC 0 of a program-form DSDB
-// Header flags (offset 22). ADR-pending ADR-0008: bit 0 = release build (overflow wraps instead of raising R52x);
+// Header flags (offset 22; ADR-0008, dsdb.md 0.6.0): bit 0 = release build (overflow wraps instead of raising R52x);
 // the other bits are reserved and must be 0 (the loader refuses a file that sets one, as made by a newer DSDude).
 #define DSDB_FLAG_RELEASE 0x0001u
 #define DSDB_FLAGS_KNOWN DSDB_FLAG_RELEASE
