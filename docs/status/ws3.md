@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `6f5e77e`, checkpoint-14). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `6057408`, checkpoint-15). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -131,6 +131,10 @@ Legend: todo / in progress / done (<sha>).
     cycles/op** (equal within 1 %: melonDS does not model the data cache); py-desmume **47.71 vs 57.62** (the loop
     17 % cheaper there). What the D-cache is worth on hardware needs spike 15 (a flashcart run). `npm run bench`
     now reports it every run (`LOOP` lines).
+  - **Re-run after WS2's f22071e (watchdog settled at control transfers) + cd2e295, main 6057408:** melonDS VM
+    **33.20 cycles/op = 33,744 ops/frame: still FAIL** (gate 44,000); loop 32.95; per-frame overhead 16,552; BL
+    33.30. Per-opcode (before -> now): LOADI 18.1 -> 15.0, MOV 21.0 -> 18.0, ADD 34.9 -> 31.9, MUL 35.9 -> 32.9,
+    SETSLOT 34.9 -> 31.9, GETSLOT 38.9 -> 35.9, CMPJ+JMP 34.2 -> 33.2, **CALLN 64.8 -> 69.7 (slower)**. ITCM 10,344 B.
   - **Memory probe** (new, in the bench): 32-bit loads through the same loop cost melonDS **3.56 cycles from main
     RAM vs 1.80 from DTCM**, so the bytecode fetch adds < 2 cycles/op there; the rest of LOADI's ~18 is
     instructions and the `mov pc` refill. DeSmuME charges 7.7 for both (it models neither).
