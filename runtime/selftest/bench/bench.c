@@ -36,6 +36,47 @@
 #define CALLS "long"
 #endif
 
+// Memory probe: ARM9 cycles per 32-bit load from main RAM vs DTCM, through the same unrolled loop, so the
+// difference is data-access cost only. It shows how an emulator charges the VM's bytecode fetches (main RAM).
+#define PROBE_WORDS 1024u
+#define PROBE_PASSES 64u
+static uint32_t probe_main[PROBE_WORDS]; // .bss: main RAM
+
+__attribute__((noinline)) static uint32_t probe_sum(const volatile uint32_t *p, uint32_t words)
+{
+    uint32_t s = 0;
+    for (uint32_t i = 0; i < words; i += 8)
+        s += p[i] + p[i + 1] + p[i + 2] + p[i + 3] + p[i + 4] + p[i + 5] + p[i + 6] + p[i + 7];
+    return s;
+}
+
+// Cycles x 100 per load over PROBE_PASSES passes of `words` words.
+static uint32_t probe(const volatile uint32_t *p, uint32_t words)
+{
+    uint32_t sink = 0;
+    cpuStartTiming(0);
+    for (uint32_t k = 0; k < PROBE_PASSES; k++)
+        sink += probe_sum(p, words);
+    uint32_t ticks = cpuEndTiming();
+    (void)sink;
+    return (uint32_t)((uint64_t)ticks * 2u * 100u / ((uint64_t)words * PROBE_PASSES));
+}
+
+static void memory_probe(void)
+{
+    uint32_t dtcm[256]; // the C stack is in DTCM
+    for (uint32_t i = 0; i < 256; i++)
+        dtcm[i] = i;
+    for (uint32_t i = 0; i < PROBE_WORDS; i++)
+        probe_main[i] = i;
+    // The same number of loads from each (main RAM: 1,024 words = 4 KB, the D-cache's size on hardware).
+    uint32_t main_x100 = probe((const volatile uint32_t *)probe_main, PROBE_WORDS);
+    uint32_t dtcm_x100 = probe((const volatile uint32_t *)dtcm, 256);
+    ds_log_linef("DSD|LOG|bench: memprobe cycles_per_load main=%lu.%02lu dtcm=%lu.%02lu",
+                 (unsigned long)(main_x100 / 100u), (unsigned long)(main_x100 % 100u),
+                 (unsigned long)(dtcm_x100 / 100u), (unsigned long)(dtcm_x100 % 100u));
+}
+
 int main(int argc, char **argv)
 {
     (void)argc;
@@ -81,6 +122,7 @@ int main(int argc, char **argv)
                  (unsigned long)(cpo_x100 % 100u), (unsigned long)per_frame, (unsigned long)gate,
                  per_frame >= gate ? "PASS" : "FAIL");
     ds_log_linef("DSD|LOG|bench: cstack=%lu/%lu B", (unsigned long)ds_cstack_used(), (unsigned long)ds_cstack_total());
+    memory_probe();
     ds_log_pad();
 
     while (st == DSD_GAME_RUNNING)

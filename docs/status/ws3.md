@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `7322cec`, checkpoint-13). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `6f5e77e`, checkpoint-14). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -103,6 +103,15 @@ Legend: todo / in progress / done (<sha>).
     Kept `-mlong-calls` (the BlocksDS default). ITCM 11,056 B of 24 KB.
   - **Per-opcode, melonDS (`--mix`, 1,200 of one op minus the baseline):** LOADI 21.1, MOV 24.0, CMPJ+JMP 37.2,
     SETSLOT 37.9, ADD 37.9, MUL 38.9, GETSLOT 41.9, CALLN 84.7 cycles/op. Every op pays ~20 cycles of dispatch.
+  - **Re-run after WS2's 02fb804 (dispatch table in DTCM, base in a register) + 06f668d (cheaper CALLN), main
+    6f5e77e:** melonDS VM **35.06 cycles/op = 31,957 ops/frame: still FAIL** (gate 44,000; was 39.84 / 28,122);
+    whole frame 49.40 / 22,677; BL 35.16 (no difference). py-desmume 57.46 / 19,497. Per-opcode, melonDS: LOADI
+    18.1, MOV 21.0, CMPJ+JMP 34.2, SETSLOT 34.9, ADD 34.9, MUL 35.9, GETSLOT 38.9, CALLN 64.8. DTCM now 4,332 of
+    4,608 B (the table). Dispatch is 7 instructions (`cmp`/`beq` watchdog, `ldr ins` main RAM, `sub`, `and`,
+    `ldr [fp, op, lsl #2]` DTCM, `mov pc`).
+  - **Memory probe** (new, in the bench): 32-bit loads through the same loop cost melonDS **3.56 cycles from main
+    RAM vs 1.80 from DTCM**, so the bytecode fetch adds < 2 cycles/op there; the rest of LOADI's ~18 is
+    instructions and the `mov pc` refill. DeSmuME charges 7.7 for both (it models neither).
   - **Finding for WS2 (the VM is theirs; not changed here):** the dispatch sequence in `run` (ITCM, ARM) is
     `cmp/sub/beq` (watchdog), `ldr ins,[ip],#4` (bytecode, main RAM), `ldr rT,=labels` (literal pool),
     `ldr rT,[rT,op,lsl #2]` and `mov pc,rT`. `labels` is `static const` in `.rodata`, i.e. **main RAM**

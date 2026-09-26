@@ -91,6 +91,8 @@ async function main(): Promise<number> {
     const line = log.find((l) => l.startsWith("DSD|LOG|bench: calls="));
     if (line) console.log(`${label}: ${line.slice("DSD|LOG|bench: ".length)}`);
     else console.log(`${label}: no bench line; log: ${JSON.stringify(log.slice(0, 6))}`);
+    const probe = log.find((l) => l.startsWith("DSD|LOG|bench: memprobe"));
+    if (probe && label.endsWith("-full")) console.log(`${label}: ${probe.slice("DSD|LOG|bench: ".length)}`);
     return line ? parseBenchLine(line) : null;
   }
 
