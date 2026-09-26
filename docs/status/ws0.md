@@ -167,6 +167,16 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   option; C10 `--release` waits for WS1/WS8. Twilight Menu++ offers no 67 MHz in DSi mode, so the hardware M1 figure
   waits for WS3's NitroFS-independent bench ROM run in DS mode.
 
+## M1 VM gate (2026-09-26)
+
+- **melonDS gate met on the II mix** (WS3, checkpoint-26, dist after WS2 step 12): 25.11 cycles/op = **44,605
+  ops/frame** (gate 44,000). Tag-checked mix 29.00 / 38,631. Path: 35.06 (step 4) -> 33.20 -> 31.76 / 28.27 (II ops,
+  slot cache, CALLN) -> 29.94 / 26.06 (step 11, direct threading, C13 0.3.0 predecodeBytes 256 KB) -> 29.00 / 25.11
+  (step 12, quick CALLN 42.9). ITCM 15,376 B of 24 KB; DTCM 4,332/4,608 B.
+- The II figure counts because WS4 emits ADDII/SUBII/MULII/CMPJII (opcodes 0.4.0) wherever the checker proves ints.
+  Hardware calibration (set 2 in DS mode, melonDS reference 31.77 / 28.27) is still pending; set 3 (29.00 / 25.11)
+  is built but unreleased. The formal M1 call is at CP-C (2026-10-09).
+
 ## CP-A prep (2026-09-28)
 
 - WS6 e2e: `npm run test:e2e -w apps/ide` (builds with electron-vite, 1 worker, 14 tests, ~1.5 min; screenshots in
