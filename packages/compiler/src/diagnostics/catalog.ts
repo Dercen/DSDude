@@ -221,6 +221,7 @@ export const COMPILER_CATALOG = {
     "There is no {kind} called {name}.",
     "{suggestion}Check the name in the {list} list.",
   ),
+  E207: err("E207", "Not on the DS yet", "{message}", "The manual page {manual} shows what to use instead."),
   E208: err(
     "E208",
     "Function made twice",
@@ -398,6 +399,7 @@ export const COMPILER_CATALOG = {
     "The sprite {sprite} is not used anywhere.",
     "Use it in an object or in code, or delete it.",
   ),
+  W060: warn("W060", "GameMaker name", "{name} is a GameMaker name, so DSDude reads it as {target}.", "{note}"),
 } as const satisfies Record<string, CatalogEntry>;
 
 /** Every code this catalog defines. */

@@ -13,8 +13,13 @@ import { makeProject } from "./testing.ts";
 /** An empty provisional manifest (C4): the compiler falls back to sprite.json frame counts. */
 const MANIFEST: AssetManifest = { provisional: true, sprites: {}, backgrounds: {}, sounds: {} };
 
-/** Samples that must compile with zero diagnostics to byte-identical goldens (PLAN.md 6 WS4 definition of done). */
-const SAMPLES = ["minimal", "flappy"];
+/**
+ * Samples that must compile with zero diagnostics to byte-identical goldens (PLAN.md 6 WS4 definition of done):
+ * every folder under samples/ with a project.json, so a new sample is covered as soon as it lands.
+ */
+const SAMPLES = readdirSync(join(REPO_ROOT, "samples"))
+  .filter((n) => existsSync(join(REPO_ROOT, "samples", n, "project.json")))
+  .sort();
 
 /** Warm compile budget for Flappy (PLAN.md 6 WS4: "Flappy compiles in < 100 ms warm"). */
 const FLAPPY_WARM_MS = 100;

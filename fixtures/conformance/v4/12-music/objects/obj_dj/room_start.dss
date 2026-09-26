@@ -1,0 +1,12 @@
+// Rule 8: audio_play_music(m) is a no-op while m is already playing; audio_stop_music() first restarts it.
+audio_play_music(mus_tune);                         // starts the module
+show_debug_message(audio_is_playing(mus_tune));     // true
+audio_play_music(mus_tune);                         // already playing: a no-op, the tune does not restart
+show_debug_message(audio_is_playing(mus_tune));     // true
+audio_stop_music();
+show_debug_message(audio_is_playing(mus_tune));     // false
+audio_stop_music();                                 // stopping when nothing plays is fine
+show_debug_message(audio_is_playing(mus_tune));     // false
+audio_play_music(mus_tune);                         // after a stop, it starts again from the beginning
+show_debug_message(audio_is_playing(mus_tune));     // true
+game_end();

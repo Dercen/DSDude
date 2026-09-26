@@ -1,0 +1,45 @@
+// v1/11: the RNG seed rule (language.md section 7, "Three small rules").
+// This program is compiled with header seed 20260926 (fixtures/compiler: PROGRAM_SEEDS in program.test.ts). A
+// non-zero header seed wins over the platform's seed (dsdude-host --seed N), so every run and every build prints the
+// same numbers; randomize() is a compatible no-op, so the sequence just continues after it.
+// Intended output, one DSD|LOG line each:
+//   true / true / true / true / true / true / true, then five numbers fixed by the seed (WS2's expected log gives
+//   their values; they must not change with --seed).
+var ok = true;
+repeat (100) {
+    var n = irandom(10);                        // 0..10, both ends included, always an int
+    if (n < 0 || n > 10 || floor(n) != n) ok = false;
+}
+show_debug_message(ok);
+ok = true;
+repeat (100) {
+    var r = random(2);                          // [0, 2) in steps of 1/4096
+    if (r < 0 || r >= 2 || floor(r * 4096) != r * 4096) ok = false;
+}
+show_debug_message(ok);
+ok = true;
+repeat (100) {
+    var k = irandom_range(-3, 3);               // -3..3 inclusive
+    if (k < -3 || k > 3) ok = false;
+}
+show_debug_message(ok);
+ok = true;
+repeat (100) {
+    var f = random_range(5, 6);                 // [5, 6)
+    if (f < 5 || f >= 6) ok = false;
+}
+show_debug_message(ok);
+ok = true;
+repeat (100) {
+    var c = choose(2, 4, 8);                    // one of its arguments
+    if (c != 2 && c != 4 && c != 8) ok = false;
+}
+show_debug_message(ok);
+// Every value turns up: 200 draws of irandom(3) hit 0, 1, 2 and 3.
+var seen = [false, false, false, false];
+repeat (200) seen[irandom(3)] = true;
+show_debug_message(seen[0] && seen[1] && seen[2] && seen[3]);
+randomize();                                    // a no-op: the header seed stays in charge
+show_debug_message(true);
+// Five numbers the seed fixes (the same on every run, whatever --seed says).
+repeat (5) show_debug_message(irandom(1000000));

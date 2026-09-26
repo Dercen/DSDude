@@ -323,5 +323,44 @@
       "line": 1,
       "col": 5
     }
+  },
+  {
+    "mistake": "a GameMaker function the DS lacks",
+    "file": "objects/obj_player/draw.dss",
+    "code": "draw_set_alpha(0.5);\n",
+    "diagnostic": {
+      "code": "E207",
+      "severity": "error",
+      "message": "draw_set_alpha isn't available on the DS in DSDude 0.1. Try visible = false, or a second sprite.",
+      "hint": "The manual page docs/manual/differences-from-gamemaker.md#draw-set-alpha shows what to use instead.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "a GameMaker data structure",
+    "file": "objects/obj_player/create.dss",
+    "code": "list = ds_list_create();\n",
+    "diagnostic": {
+      "code": "E207",
+      "severity": "error",
+      "message": "ds_list functions are isn't available on the DS in DSDude 0.1. Use an array: arr = [], array_push, array_length.",
+      "hint": "The manual page docs/manual/differences-from-gamemaker.md#ds-list shows what to use instead.",
+      "line": 1,
+      "col": 8
+    }
+  },
+  {
+    "mistake": "a GameMaker keyboard check",
+    "file": "objects/obj_player/step.dss",
+    "code": "if (keyboard_check(btn_left)) x -= 2;\n",
+    "diagnostic": {
+      "code": "W060",
+      "severity": "warning",
+      "message": "keyboard_check is a GameMaker name, so DSDude reads it as button_check.",
+      "hint": "The DS has no keyboard: use button_check with a btn_ button.",
+      "line": 1,
+      "col": 5
+    }
   }
 ]

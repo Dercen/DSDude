@@ -1,0 +1,226 @@
+.dsda 0.1
+.seed 20260926
+
+.func __main 0 12
+    .loc "v1/11-random.dss" 8
+    LOADB r0, true
+    .loc "v1/11-random.dss" 9
+    LOADI r7, 100
+    CALLN r7, 1, floor
+    LOADI r8, 0
+  L0:
+    CMPJ r7, r8, 4
+    JMP L3
+    .loc "v1/11-random.dss" 10
+    LOADI r9, 10
+    CALLN r9, 1, irandom
+    MOV r1, r9
+    .loc "v1/11-random.dss" 11
+    LOADI r9, 0
+    CMPJ r1, r9, 5
+    JMP L1
+    LOADI r9, 10
+    CMPJ r1, r9, 3
+    JMP L1
+    MOV r9, r1
+    CALLN r9, 1, floor
+    CMPJ r9, r1, 1
+    JMP L2
+  L1:
+    LOADB r0, false
+  L2:
+    SUBI r7, r7, 1
+    JMP L0
+  L3:
+    .loc "v1/11-random.dss" 13
+    MOV r7, r0
+    CALLN r7, 1, show_debug_message
+    .loc "v1/11-random.dss" 14
+    LOADB r0, true
+    .loc "v1/11-random.dss" 15
+    LOADI r7, 100
+    CALLN r7, 1, floor
+    LOADI r8, 0
+  L4:
+    CMPJ r7, r8, 4
+    JMP L7
+    .loc "v1/11-random.dss" 16
+    LOADI r9, 2
+    CALLN r9, 1, random
+    MOV r2, r9
+    .loc "v1/11-random.dss" 17
+    LOADI r9, 0
+    CMPJ r2, r9, 5
+    JMP L5
+    LOADI r9, 2
+    CMPJ r2, r9, 2
+    JMP L5
+    LOADI r10, 4096
+    MUL r9, r2, r10
+    CALLN r9, 1, floor
+    LOADI r11, 4096
+    MUL r10, r2, r11
+    CMPJ r9, r10, 1
+    JMP L6
+  L5:
+    LOADB r0, false
+  L6:
+    SUBI r7, r7, 1
+    JMP L4
+  L7:
+    .loc "v1/11-random.dss" 19
+    MOV r7, r0
+    CALLN r7, 1, show_debug_message
+    .loc "v1/11-random.dss" 20
+    LOADB r0, true
+    .loc "v1/11-random.dss" 21
+    LOADI r7, 100
+    CALLN r7, 1, floor
+    LOADI r8, 0
+  L8:
+    CMPJ r7, r8, 4
+    JMP L11
+    .loc "v1/11-random.dss" 22
+    LOADI r9, -3
+    LOADI r10, 3
+    CALLN r9, 2, irandom_range
+    MOV r3, r9
+    .loc "v1/11-random.dss" 23
+    LOADI r9, -3
+    CMPJ r3, r9, 5
+    JMP L9
+    LOADI r9, 3
+    CMPJ r3, r9, 4
+    JMP L10
+  L9:
+    LOADB r0, false
+  L10:
+    SUBI r7, r7, 1
+    JMP L8
+  L11:
+    .loc "v1/11-random.dss" 25
+    MOV r7, r0
+    CALLN r7, 1, show_debug_message
+    .loc "v1/11-random.dss" 26
+    LOADB r0, true
+    .loc "v1/11-random.dss" 27
+    LOADI r7, 100
+    CALLN r7, 1, floor
+    LOADI r8, 0
+  L12:
+    CMPJ r7, r8, 4
+    JMP L15
+    .loc "v1/11-random.dss" 28
+    LOADI r9, 5
+    LOADI r10, 6
+    CALLN r9, 2, random_range
+    MOV r4, r9
+    .loc "v1/11-random.dss" 29
+    LOADI r9, 5
+    CMPJ r4, r9, 5
+    JMP L13
+    LOADI r9, 6
+    CMPJ r4, r9, 5
+    JMP L14
+  L13:
+    LOADB r0, false
+  L14:
+    SUBI r7, r7, 1
+    JMP L12
+  L15:
+    .loc "v1/11-random.dss" 31
+    MOV r7, r0
+    CALLN r7, 1, show_debug_message
+    .loc "v1/11-random.dss" 32
+    LOADB r0, true
+    .loc "v1/11-random.dss" 33
+    LOADI r7, 100
+    CALLN r7, 1, floor
+    LOADI r8, 0
+  L16:
+    CMPJ r7, r8, 4
+    JMP L18
+    .loc "v1/11-random.dss" 34
+    LOADI r9, 2
+    LOADI r10, 4
+    LOADI r11, 8
+    CALLN r9, 3, choose
+    MOV r5, r9
+    .loc "v1/11-random.dss" 35
+    LOADI r9, 2
+    CMPJ r5, r9, 1
+    JMP L17
+    LOADI r9, 4
+    CMPJ r5, r9, 1
+    JMP L17
+    LOADI r9, 8
+    CMPJ r5, r9, 1
+    JMP L17
+    LOADB r0, false
+  L17:
+    SUBI r7, r7, 1
+    JMP L16
+  L18:
+    .loc "v1/11-random.dss" 37
+    MOV r7, r0
+    CALLN r7, 1, show_debug_message
+    .loc "v1/11-random.dss" 39
+    LOADB r7, false
+    LOADB r8, false
+    LOADB r9, false
+    LOADB r10, false
+    NEWARR r7, 4
+    MOV r6, r7
+    .loc "v1/11-random.dss" 40
+    LOADI r7, 200
+    CALLN r7, 1, floor
+    LOADI r8, 0
+  L19:
+    CMPJ r7, r8, 4
+    JMP L20
+    LOADI r9, 3
+    CALLN r9, 1, irandom
+    LOADB r10, true
+    SETIDX r6, r9, r10
+    SUBI r7, r7, 1
+    JMP L19
+  L20:
+    .loc "v1/11-random.dss" 41
+    LOADI r9, 0
+    GETIDX r8, r6, r9
+    JMPF r8, L21
+    LOADI r9, 1
+    GETIDX r8, r6, r9
+    JMPF r8, L21
+    LOADI r9, 2
+    GETIDX r8, r6, r9
+    JMPF r8, L21
+    LOADI r9, 3
+    GETIDX r8, r6, r9
+    JMPF r8, L21
+    LOADB r7, true
+    JMP L22
+  L21:
+    LOADB r7, false
+  L22:
+    CALLN r7, 1, show_debug_message
+    .loc "v1/11-random.dss" 42
+    CALLN r7, 0, randomize
+    .loc "v1/11-random.dss" 43
+    LOADB r7, true
+    CALLN r7, 1, show_debug_message
+    .loc "v1/11-random.dss" 45
+    LOADI r7, 5
+    CALLN r7, 1, floor
+    LOADI r8, 0
+  L23:
+    CMPJ r7, r8, 4
+    JMP L24
+    LOADK r9, 1000000
+    CALLN r9, 1, irandom
+    CALLN r9, 1, show_debug_message
+    SUBI r7, r7, 1
+    JMP L23
+  L24:
+    RET r0, 0
+.end

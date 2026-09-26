@@ -39,6 +39,7 @@ import { FIXED_ONE } from "../syntax/lexer.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./builtins.ts";
 import type { CodegenEnv, FunctionOverride, ObjectInfo, UserFunction } from "./env.ts";
 import { type Folded, fold } from "./fold.ts";
+import { resolveGameMakerNames } from "./gamemaker.ts";
 import { accepts, category, describeParam, describeType, fromBuiltinType, ordinal, type ValueType } from "./types.ts";
 
 /** Registers in one frame (contracts/runtime-limits.json `registersPerFrame`, dsdb.md section 6). */
@@ -126,7 +127,13 @@ type Target = { kind: "self" } | { kind: "other" } | { kind: "reg"; reg: number 
 
 /** Compiles one function. Diagnostics go to env.reporter; the result is valid even after errors. */
 export function compileFunction(env: CodegenEnv, source: FunctionSource): Func {
-  return new FunctionCompiler(env, source).compile();
+  // GameMaker aliases and unsupported names are settled first (codegen/gamemaker.ts), on a copy of the body.
+  const body = resolveGameMakerNames(source.params, source.body, {
+    isUserFunction: (name) => env.lookupFunction(name) !== null,
+    isInstanceVariable: (name) => env.isInstanceVariableName(name),
+    report: (code, args, at) => void env.reporter.report(code, args, at.start, at.end),
+  });
+  return new FunctionCompiler(env, { ...source, body }).compile();
 }
 
 class FunctionCompiler {

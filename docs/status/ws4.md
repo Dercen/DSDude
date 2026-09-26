@@ -161,10 +161,46 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     temporaries and writes its destination last. Only v0/04's golden moved (`IDIV r3, r3, r5`); host tests green
     (115,906 checks).
 
+- **GameMaker names (builtins.json 0.3.0, WS0 relay main a4276e7), 2026-09-26:** `codegen/gamemaker.ts` rewrites
+  each function body (a copy; the language service's tree is untouched) before code generation.
+  - Aliases (ids 159-169) compile as their target with the `argMap` arguments only, plus **W060** ("{name} is a
+    GameMaker name, so DSDude reads it as {target}.", hint = the entry's note): `keyboard_check(vk_left)` compiles
+    byte-for-byte like `button_check(btn_left)`, `instance_create_layer(x, y, layer, obj)` like
+    `instance_create(x, y, obj)`.
+  - Unsupported names (ids 170-202) are **E207** (message = the entry's message, hint = the manual link) and become
+    an error placeholder, so no E201/E202 follows. Exact names match reads, writes (the assignment is dropped) and
+    `obj.name`; prefix families (`ds_list_*`) match only calls, so a variable such as `file_name` stays legal.
+  - The project's own names win: locals and parameters, user functions, and (for aliases) instance variables the
+    project assigns.
+  - C7: hover and signature help show an alias as its target, with the note as its doc.
+  - Tests: `src/gamemaker.test.ts`, three new beginner mistakes (E207 x2, W060; `fixtures/compiler/mistakes.json`),
+    a host hover test; CHANGELOG C9 line for E207/W060. No golden moved.
+  - **For WS0:** the prefix entries' messages in builtins.json read "ds_list functions are isn't available ..."
+    (ids 189-202: "are isn't"); they surface verbatim in E207, so they need rewording (a T0 doc change on your file).
+  - Default parameter values go through the same rewrite when the function is declared (`function f(k = vk_left)`:
+    one W060 in the declaring file; an unsupported name there is E207 without a following E307).
+
+- **Conformance programs 11-12 (the last two open rules), 2026-09-26:**
+  - `fixtures/conformance/v1/11-random.dss` (the RNG seed rule), compiled with header seed 20260926. On
+    `dsdude-host` it prints `true` x7 then `187911 259387 735161 824918 980883`, identical for `--seed` 1, 7 and 99;
+    the same program with header seed 0 follows `--seed` instead (checked both ways).
+  - `fixtures/conformance/v4/12-music/` (rule 8): one invisible `obj_dj` whose Room Start plays, re-plays, stops
+    (twice) and plays `mus_tune` (a copy of `fixtures/assets/tune.xm`), logging `audio_is_playing` after each step.
+    Intended output `true true false false true`, then `DSD|EXIT|0`.
+  - Goldens: `fixtures/compiler/conformance/v1/11-random.*`, `v4/12-music.*`.
+  - **For WS2:** please write `fixtures/conformance/expected/v1/11-random.log` and `v4/12-music.log` and add both to
+    the `programs` suite. On the host, 12-music prints `false` five times today: `runtime/host/platform.c`'s
+    `dsd_plat_music_active()` is a stub returning false. The rule only shows if the host models music: active after
+    `dsd_plat_music_play` until `dsd_plat_music_stop`, ideally counting starts, so a test can see exactly two
+    (the second `audio_play_music` must not restart the tune; README.md in the folder says so).
+
+- **For WS0:** `contracts/README.md` still lists C7 as "owed"; `packages/lang/src/host.ts` has been C7 0.1.0 since
+  task 4 (its CHANGELOG line is under C7). `packages/compiler/CLAUDE.md`'s contract table is updated to the current
+  versions.
+
 ## Next
 
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).
-- Blocked on WS0: `alias`/`unsupported` builtins.json entries (E207 for unsupported GameMaker names).
 
 ## Goldens (tier status)
 

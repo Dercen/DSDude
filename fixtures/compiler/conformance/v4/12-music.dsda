@@ -1,0 +1,57 @@
+.dsda 0.1
+.seed 0
+.asset music mus_tune "" 0
+
+.func obj_dj__room_start 0 1
+    .loc "objects/obj_dj/room_start.dss" 2
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_play_music
+    .loc "objects/obj_dj/room_start.dss" 3
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_dj/room_start.dss" 4
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_play_music
+    .loc "objects/obj_dj/room_start.dss" 5
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_dj/room_start.dss" 6
+    CALLN r0, 0, audio_stop_music
+    .loc "objects/obj_dj/room_start.dss" 7
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_dj/room_start.dss" 8
+    CALLN r0, 0, audio_stop_music
+    .loc "objects/obj_dj/room_start.dss" 9
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_dj/room_start.dss" 10
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_play_music
+    .loc "objects/obj_dj/room_start.dss" 11
+    LOADK r0, @mus_tune
+    CALLN r0, 1, audio_is_playing
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_dj/room_start.dss" 12
+    CALLN r0, 0, game_end
+    RET r0, 0
+.end
+
+.object obj_dj sprite=- parent=- visible=0 screen=top depth=0
+    .event room_start obj_dj__room_start
+.end
+
+.room rm_music 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_dj 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds mus_tune
+.end
+
+.first rm_music

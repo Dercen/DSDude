@@ -120,6 +120,16 @@ describe("C7 LanguageServiceHost over samples/flappy", () => {
     expect(host.hover("nothing_here")).toBeNull();
   });
 
+  it("hovers GameMaker aliases as the DSDude builtin they compile to, with the alias note", () => {
+    const host = flappyHost();
+    expect(host.hover("vk_left")).toMatchObject({ kind: "constant", name: "vk_left" });
+    expect(host.hover("vk_left")?.detail).toMatch(/^GameMaker name for btn_left = \d+$/);
+    expect(host.hover("keyboard_check")).toMatchObject({
+      kind: "builtinFunction",
+      doc: "The DS has no keyboard: use button_check with a btn_ button.",
+    });
+  });
+
   it("outlines functions and folds blocks", () => {
     const host = flappyHost();
     expect(host.documentSymbols(FUNCTIONS).map((s) => [s.name, s.kind])).toEqual([["die", "objectFunction"]]);

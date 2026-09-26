@@ -6,6 +6,7 @@ import type { Reporter } from "../diagnostics/report.ts";
 import type { Expr, FunctionDecl } from "../syntax/ast.ts";
 import { builtinConstants, builtinFunctions } from "./builtins.ts";
 import type { UserFunction } from "./env.ts";
+import { resolveGameMakerValue } from "./gamemaker.ts";
 
 /**
  * Is `e` computable without the callee's frame (the caller fills defaults, contracts/dsdb.md section 6)?
@@ -51,8 +52,14 @@ export function declareFunction(
 ): UserFunction {
   const defaults = fn.params.map((p) => {
     if (p.init === null) return null;
-    if (isContextFree(p.init, isAsset)) return p.init;
-    reporter.report("E307", { param: p.name }, p.init.start, p.init.end);
+    // A GameMaker alias in a default (`k = vk_left`) becomes its DSDude constant here, as in function bodies.
+    const init = resolveGameMakerValue(p.init, {
+      isUserFunction: () => false,
+      isInstanceVariable: () => false,
+      report: (code, args, at) => void reporter.report(code, args, at.start, at.end),
+    });
+    if (isContextFree(init, isAsset)) return init;
+    if (init.kind !== "error") reporter.report("E307", { param: p.name }, p.init.start, p.init.end);
     return null;
   });
   return { funcName, params: fn.params.length, defaults };

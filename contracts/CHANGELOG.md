@@ -82,6 +82,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - R5xx catalog (2026-09-26, WS2, T0): R551 "Not a list" ([] or a length on a value that is not a list).
 - R5xx catalog (2026-09-26, WS2, T0): R502 instance not found, R503 no instance of that object, R504 too many extra variables, R505 read-only variable, R561 too many instances, R570/R571 picture/sound could not be loaded, R572 asset not loaded in this room.
 - 0.1.0 T0 (2026-09-26, WS5): asset catalog `packages/asset-pipeline/src/diagnostics/catalog.ts` started: E401-E422 (E407, E418, E419 warnings), listed in contracts/assetpack.md section 10.
+- 0.1.0 T0 (2026-09-26, WS4): compiler catalog adds E207 (an unsupported GameMaker name: builtins.json `unsupported` message, manual link in the hint) and W060 (a GameMaker alias compiled as its DSDude target: builtins.json `alias` note as the hint).
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
