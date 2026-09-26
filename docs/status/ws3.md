@@ -170,7 +170,11 @@ Legend: todo / in progress / done (<sha>).
     BlocksDS release as libmm9. ROM side (all three emulators): `mmInitDefault`=ok, `mmLoad`=0, `mmLoadEffect`=0
     and 0, a bad id =1, `mmEffect`=handle 1, after 60 frames `mmActive()`=1 at row 11. WS5's XM fixture is not on
     main yet; `make_assets.py` writes its own minimal XM.
-  - Spike 12 (by CP-C), 14 (M1): todo; need WS2's harness and VM.
+  - **Spike 12 (numeric harness, DS side): PASS** (2026-09-26). WS2's `fixtures/bytecode/runtime/numeric-hashes.dsdb`
+    (trig, atan2, sqrt, div, mul, lengthdir, string, random hashes; seed 20260926) around `runtime/dist/arm9.elf`
+    prints exactly `numeric-hashes.out` (the host's lines at -O2, trap and -O0) on **melonDS 1.1 and DeSmuME
+    0.9.13 windows** and in py-desmume (`conformance:ds`): the ARM9 build's numbers match the host's bit for bit.
+  - Spike 14 (M1): DS side done (see "M1 benchmark"); the gate itself is WS2's to close.
 
 ## Reports to other streams (for WS0 to route)
 
