@@ -26,6 +26,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C3 Asset pack (`contracts/assetpack.md`)
 - owed: WS5 writes 0.1.0 on its first day (CP-A).
 - 0.1.0 (2026-09-26, WS5, day 1): assetpack.md written: build-folder layout, names, sprite conversion (transparency, RGB555, 16/256 mode, median-cut reduction, palette order, OBJ-size padding, vertical stitch, grit lines, frame/VRAM stride), backgrounds (text-BG padding, tile count), sounds (WAV rewrite, module pass-through, mmutil line, ids from soundbank.h, RAM bytes), icon, assets.manifest.json schema (a superset of C4's provisional AssetManifest), cache key, per-room budgets and E401-E422.
+- 0.1.0 T0 (2026-09-26, WS5): section 5 states the resampler (box filter, then linear interpolation), the WAV chunk order (fmt, data, smpl, as wavefile writes it) and the RAM estimate; no manifest field changes.
 
 ## C4 Toolchain API (`packages/toolchain/src/api.ts`, `contracts/toolchain-api.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): api.ts types (BuildService, BuildEvent, ToolPaths, EmulatorHandle/Manager, provisional AssetManifest and RoomAssetSet, CompileFn, PackAssetsFn, CheckRoomBudgetsFn, CliCommand) and MockBuildService. toolchain-api.md owed by WS1 (CP-A).
@@ -68,6 +69,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - R5xx catalog 0.1.0 (2026-09-26, WS2, T0): `runtime/core/diagnostics/catalog.json` created with R500-R590 (sub-ranges R50x variables, R51x runaway scripts, R52x number range, R53x division and roots, R54x wrong kinds of value, R55x lists, R56x memory, R58x the game file, R59x script checks).
 - R5xx catalog (2026-09-26, WS2, T0): R551 "Not a list" ([] or a length on a value that is not a list).
 - R5xx catalog (2026-09-26, WS2, T0): R502 instance not found, R503 no instance of that object, R504 too many extra variables, R505 read-only variable, R561 too many instances, R570/R571 picture/sound could not be loaded, R572 asset not loaded in this room.
+- 0.1.0 T0 (2026-09-26, WS5): asset catalog `packages/asset-pipeline/src/diagnostics/catalog.ts` started: E401-E422 (E407, E418, E419 warnings), listed in contracts/assetpack.md section 10.
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
@@ -86,6 +88,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C12 EditorPanel host API + preview API (`apps/ide/src/renderer/panels/api.ts`, `packages/asset-pipeline/src/preview.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): preview types (`PreviewSpriteFn`, `SpritePreview`). Panel API + mock-host owed by WS6 (CP-A).
 - panel API 0.1.0 (2026-09-26, WS6, CP-A delivery): `apps/ide/src/renderer/panels/api.ts` (`@dsdude/ide/panels`): ResourceRef/resourceId/resourceFile; EditorPanel {id, kind, open, save, dispose, onDirty}, EditorPanelFactory {kind, canOpen, create({element, host})}; PanelHost {project: ProjectStore (get/dir/subscribe/update/isDirty/save), files (read/write via C5 project.*File), ipc, undo: UndoStack, toast, openLearn, openResource}; editor modules = default export of `editors/<name>/index.ts(x)`; Learn links `dsdude-learn:/docs/...md#anchor`, headingSlug (GitHub-style), learnTargetForCode (docs/reference/errors.md#<code>), learnTargetForBuiltin (functions.md / variables.md). Helpers (kit.ts): createUndoStack, updateWithUndo (immer patches). `fixtures/ide/mock-host` (= `@dsdude/ide/mock-host`): createMockHost -> mountEditor / mountLearn / mountShell in headless Chromium, in-memory C5 handlers behind createLocalBridge. Freezes at CP-A.
+- 0.1.0 T0 (2026-09-26, WS5): `previewSprite` implemented (preview-sprite.ts; the frames are every whole frame across the PNG, padded to the OBJ size). Beside the unchanged C12 types, `previewSpriteDetails` adds original vs converted RGBA, source colour count, E401/E407 diagnostics and optional dithering; `spriteDefaults` gives the C1 import defaults.
 
 ## C13 Runtime limits (`contracts/runtime-limits.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): the 22 PLAN 5.2 C13 keys and values.
