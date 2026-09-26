@@ -4,13 +4,13 @@
  * Floyd-Steinberg or Bayer dithering, and the palette order. Integer maths only, so results are identical on every
  * platform. Pure TypeScript.
  */
+import type { PreviewDither } from "../preview.ts";
 import type { Problem } from "../problems.ts";
 import type { RgbaImage } from "./png.ts";
 import {
   ALPHA_OPAQUE_MIN,
   CHANNEL5_MAX,
   dsB,
-  dsDistance2,
   dsG,
   dsR,
   MAGENTA_DS,
@@ -33,7 +33,7 @@ export const MAX_OPAQUE_256 = 255;
 const RGBA_BYTES = 4;
 
 /** Dithering used when colours are merged. Only the preview offers it in 0.1 (C3 step 5: packs use "none"). */
-export type Dither = "none" | "floyd-steinberg" | "bayer";
+export type Dither = PreviewDither;
 
 /** How a C1 `transparent` setting picks transparent pixels (C3 section 3 step 2). */
 export type TransparentSetting = "alpha" | `#${string}`;
@@ -91,18 +91,21 @@ interface Box {
   counts: number[];
   /** Total pixels in the box. */
   population: number;
+  /** The widest channel (index into AXES) and its range, computed once when the box is made. */
+  axis: number;
+  range: number;
 }
 
 /** Channel readers, in the tie-break order for the split axis: green, red, blue (green matters most to the eye). */
 const AXES: readonly ((ds: number) => number)[] = [dsG, dsR, dsB];
 
-/** The widest channel range of a box and the axis it lies on (ties follow AXES order). */
-function widestAxis(box: Box): { axis: number; range: number } {
+/** The widest channel range of a set of colours and the axis it lies on (ties follow AXES order). */
+function widestAxis(colors: readonly number[]): { axis: number; range: number } {
   let best = { axis: 0, range: -1 };
   AXES.forEach((read, axis) => {
     let lo = CHANNEL5_MAX;
     let hi = 0;
-    for (const c of box.colors) {
+    for (const c of colors) {
       const v = read(c);
       if (v < lo) lo = v;
       if (v > hi) hi = v;
@@ -110,6 +113,11 @@ function widestAxis(box: Box): { axis: number; range: number } {
     if (hi - lo > best.range) best = { axis, range: hi - lo };
   });
   return best;
+}
+
+/** Makes a box from colours and their counts, with its population and widest axis. */
+function makeBox(colors: number[], counts: number[]): Box {
+  return { colors, counts, population: counts.reduce((s, c) => s + c, 0), ...widestAxis(colors) };
 }
 
 /**
@@ -133,11 +141,11 @@ function splitBox(box: Box, axis: number): [Box, Box] {
     cut = k + 1;
     if (running >= half) break;
   }
-  const make = (idx: number[]): Box => {
-    const colors = idx.map((i) => box.colors[i] as number);
-    const counts = idx.map((i) => box.counts[i] as number);
-    return { colors, counts, population: counts.reduce((s, c) => s + c, 0) };
-  };
+  const make = (idx: number[]): Box =>
+    makeBox(
+      idx.map((i) => box.colors[i] as number),
+      idx.map((i) => box.counts[i] as number),
+    );
   return [make(order.slice(0, cut)), make(order.slice(cut))];
 }
 
@@ -162,27 +170,26 @@ function boxMean(box: Box): number {
  * largest population x widest range (ties: the earliest box), so big, spread-out groups of pixels get colours first.
  */
 function medianCut(hist: Uint32Array, maxColors: number): number[] {
-  const first: Box = { colors: [], counts: [], population: 0 };
+  const colors: number[] = [];
+  const counts: number[] = [];
   hist.forEach((n, ds) => {
     if (n > 0) {
-      first.colors.push(ds);
-      first.counts.push(n);
-      first.population += n;
+      colors.push(ds);
+      counts.push(n);
     }
   });
-  const boxes: Box[] = [first];
+  const boxes: Box[] = [makeBox(colors, counts)];
   while (boxes.length < maxColors) {
     let pick = -1;
     let pickScore = 0;
     let pickAxis = 0;
     boxes.forEach((box, i) => {
       if (box.colors.length < 2) return;
-      const { axis, range } = widestAxis(box);
-      const score = box.population * range;
+      const score = box.population * box.range;
       if (score > pickScore) {
         pick = i;
         pickScore = score;
-        pickAxis = axis;
+        pickAxis = box.axis;
       }
     });
     if (pick < 0) break;
@@ -190,6 +197,84 @@ function medianCut(hist: Uint32Array, maxColors: number): number[] {
     boxes.splice(pick, 1, a, b);
   }
   return boxes.map(boxMean);
+}
+
+/**
+ * Lloyd (k-means) passes after median cut: every source colour joins its nearest palette colour (ties: the lower
+ * index), and each palette colour moves to the population-weighted mean of its members (rounded per channel). A
+ * colour nobody joins stays put. Stops early when nothing moves. This brings the average error to or below that of
+ * image-q's Wu quantizer (the test cross-check in quantize-crosscheck.test.ts).
+ */
+export const REFINE_PASSES = 4;
+function refinePalette(hist: Uint32Array, start: readonly number[]): number[] {
+  // Source colours as flat channel arrays with their pixel counts (the hot loop below reads only typed arrays).
+  let count = 0;
+  for (const n of hist) if (n > 0) count++;
+  const sr = new Int32Array(count);
+  const sg = new Int32Array(count);
+  const sb = new Int32Array(count);
+  const sn = new Float64Array(count);
+  let at = 0;
+  hist.forEach((n, ds) => {
+    if (n === 0) return;
+    sr[at] = dsR(ds);
+    sg[at] = dsG(ds);
+    sb[at] = dsB(ds);
+    sn[at] = n;
+    at++;
+  });
+  const k = start.length;
+  const pr = Int32Array.from(start, dsR);
+  const pg = Int32Array.from(start, dsG);
+  const pb = Int32Array.from(start, dsB);
+  // Weighted channel sums and populations per palette colour; float64 holds them exactly (< 2^53).
+  const tr = new Float64Array(k);
+  const tg = new Float64Array(k);
+  const tb = new Float64Array(k);
+  const tn = new Float64Array(k);
+  for (let pass = 0; pass < REFINE_PASSES; pass++) {
+    tr.fill(0);
+    tg.fill(0);
+    tb.fill(0);
+    tn.fill(0);
+    for (let i = 0; i < count; i++) {
+      const r = sr[i] as number;
+      const g = sg[i] as number;
+      const b = sb[i] as number;
+      let best = 0;
+      let bestD = Number.POSITIVE_INFINITY;
+      for (let j = 0; j < k; j++) {
+        const dr = r - (pr[j] as number);
+        const dg = g - (pg[j] as number);
+        const db = b - (pb[j] as number);
+        const d = dr * dr + dg * dg + db * db;
+        if (d < bestD) {
+          bestD = d;
+          best = j;
+        }
+      }
+      const n = sn[i] as number;
+      tr[best] = (tr[best] as number) + r * n;
+      tg[best] = (tg[best] as number) + g * n;
+      tb[best] = (tb[best] as number) + b * n;
+      tn[best] = (tn[best] as number) + n;
+    }
+    let moved = false;
+    for (let j = 0; j < k; j++) {
+      const n = tn[j] as number;
+      if (n === 0) continue; // nobody joined: the colour stays put
+      const half = Math.floor(n / 2);
+      const r = Math.floor(((tr[j] as number) + half) / n);
+      const g = Math.floor(((tg[j] as number) + half) / n);
+      const b = Math.floor(((tb[j] as number) + half) / n);
+      if (r !== pr[j] || g !== pg[j] || b !== pb[j]) moved = true;
+      pr[j] = r;
+      pg[j] = g;
+      pb[j] = b;
+    }
+    if (!moved) break;
+  }
+  return Array.from({ length: k }, (_, j) => packDs(pr[j] as number, pg[j] as number, pb[j] as number));
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -214,7 +299,7 @@ export function buildPalette(hist: Uint32Array, maxOpaque: number): OpaquePalett
   const reduced = sourceColors > maxOpaque;
   let colors: number[];
   if (reduced) {
-    colors = medianCut(hist, maxOpaque).map((c) => (c === MAGENTA_DS ? MAGENTA_NUDGED_DS : c));
+    colors = refinePalette(hist, medianCut(hist, maxOpaque)).map((c) => (c === MAGENTA_DS ? MAGENTA_NUDGED_DS : c));
   } else {
     colors = [];
     hist.forEach((n, ds) => {
@@ -230,27 +315,31 @@ export function buildPalette(hist: Uint32Array, maxOpaque: number): OpaquePalett
 
 /** Returns a nearest-colour lookup over an opaque palette, memoised per DS value. Indices start at 1. */
 function nearestLookup(colors: readonly number[]): (ds: number) => number {
-  const exact = new Map<number, number>();
-  colors.forEach((c, i) => {
-    exact.set(c, i + 1);
-  });
+  const pr = Int32Array.from(colors, dsR);
+  const pg = Int32Array.from(colors, dsG);
+  const pb = Int32Array.from(colors, dsB);
   const memo = new Int16Array(RGB555_COLORS).fill(-1);
   return (ds: number): number => {
     const cached = memo[ds] as number;
     if (cached >= 0) return cached;
-    let best = exact.get(ds) ?? -1;
-    if (best < 0) {
-      let bestD = Number.POSITIVE_INFINITY;
-      colors.forEach((c, i) => {
-        const d = dsDistance2(ds, c);
-        if (d < bestD) {
-          bestD = d;
-          best = i + 1;
-        }
-      });
+    // The first nearest colour wins, so an exact match (distance 0) always maps to itself.
+    const r = dsR(ds);
+    const g = dsG(ds);
+    const b = dsB(ds);
+    let best = 0;
+    let bestD = Number.POSITIVE_INFINITY;
+    for (let j = 0; j < pr.length && bestD > 0; j++) {
+      const dr = r - (pr[j] as number);
+      const dg = g - (pg[j] as number);
+      const db = b - (pb[j] as number);
+      const d = dr * dr + dg * dg + db * db;
+      if (d < bestD) {
+        bestD = d;
+        best = j;
+      }
     }
-    memo[ds] = best;
-    return best;
+    memo[ds] = best + 1;
+    return best + 1;
   };
 }
 

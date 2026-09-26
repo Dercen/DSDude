@@ -79,6 +79,39 @@ describe("convertEffect", () => {
     expect(matchGolden("sounds/blip.wav", value.wav).equal).toBe(true);
   });
 
+  it("decodes the MP3 fixture (44.1 kHz mono tone) to a 22050 Hz mono effect", async () => {
+    const { value, problems } = await convertEffect(readRepoFile("fixtures/assets/tone-44k.mp3"), ".mp3");
+    expect(problems).toEqual([]);
+    if (value === null) throw new Error("MP3 did not decode");
+    expect(value.sampleRate).toBe(MAX_SAMPLE_RATE);
+    expect(value.loop).toBeNull();
+    // 0.25 s of audio, plus the encoder's start delay and end padding (at most two 1152-sample frames at 44.1 kHz).
+    const SOURCE_SECONDS = 0.25;
+    const PADDING_SAMPLES = 1152;
+    const minimum = Math.floor(SOURCE_SECONDS * MAX_SAMPLE_RATE);
+    expect(value.samples.length).toBeGreaterThanOrEqual(minimum);
+    expect(value.samples.length).toBeLessThanOrEqual(minimum + PADDING_SAMPLES);
+    // The 440 Hz triangle (peak 12000) survives: loud enough, and about 440 periods per second. Periods are counted
+    // with a hysteresis band, so the near-silent noise in the encoder's padding does not count.
+    const BAND = 1000;
+    let sumSquares = 0;
+    let periods = 0;
+    let armed = false;
+    for (const v of value.samples) {
+      sumSquares += v * v;
+      if (v < -BAND) armed = true;
+      else if (armed && v > BAND) {
+        periods++;
+        armed = false;
+      }
+    }
+    const TRIANGLE_RMS = 12000 / Math.sqrt(3);
+    expect(Math.sqrt(sumSquares / value.samples.length)).toBeGreaterThan(TRIANGLE_RMS / 2);
+    const TONE_HZ = 440;
+    const PERIOD_TOLERANCE = 0.1;
+    expect(Math.abs(periods - TONE_HZ * SOURCE_SECONDS)).toBeLessThan(TONE_HZ * SOURCE_SECONDS * PERIOD_TOLERANCE);
+  });
+
   it("reports unreadable audio as E409", async () => {
     const { value, problems } = await convertEffect(new TextEncoder().encode("not audio"), ".wav");
     expect(value).toBeNull();

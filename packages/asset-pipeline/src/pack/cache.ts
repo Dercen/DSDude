@@ -12,7 +12,7 @@ import { ASSETPACK_CONTRACT_VERSION } from "../manifest.ts";
  * The pipeline's own version, part of every key: bump it whenever a conversion changes its output bytes, so old
  * cache entries are never reused for new rules.
  */
-export const PIPELINE_VERSION = "0.1.0";
+export const PIPELINE_VERSION = "0.1.1";
 /** Name of the metadata file in each entry. */
 const META_JSON = "meta.json";
 /** Bytes of the length prefix written before each key part (so "ab"+"c" and "a"+"bc" differ). */

@@ -18,5 +18,8 @@
     "@dsdude/toolchain": "0.1.0",
     "fflate": "0.8.3",
     "pngjs": "7.0.0"
+  },
+  "devDependencies": {
+    "image-q": "4.0.0"
   }
 }

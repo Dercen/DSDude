@@ -125,6 +125,22 @@ describe("packAssets with fake grit and mmutil", () => {
     expect(manifest.sounds.mus_a).toMatchObject({ id: 0, kind: "music", define: "MOD_MUS_A", estimated: false });
   });
 
+  it("packs an MP3 effect as a WAV for mmutil", async () => {
+    const dir = copySample("samples/minimal");
+    addSound(dir, "snd_tone", "effect", "tone.mp3", readRepoFile("fixtures/assets/tone-44k.mp3"));
+    const tools = fakeTools(tempDir());
+    const { manifest, diagnostics } = await packAssets(await load(dir), tools.paths, tempDir(), { runTool: tools.run });
+    expect(diagnostics).toEqual([]);
+    expect(manifest.sounds.snd_tone).toMatchObject({
+      id: 0,
+      kind: "effect",
+      define: "SFX_SND_TONE",
+      sampleRate: 22050,
+    });
+    const mm = tools.calls.find((c) => c.tool === "mmutil");
+    expect(mm?.args.slice(0, 1).map((a) => path.basename(a))).toEqual(["snd_tone.wav"]);
+  });
+
   it("reports tool failures: grit exit 1 is E603 + E422, a silent mmutil is E421", async () => {
     const project = await load(copySample("samples/flappy"));
     const gritFails = fakeTools(tempDir(), { fail: "grit" });

@@ -28,8 +28,19 @@ export type {
   SpriteEntry,
 } from "./manifest.ts";
 export { ASSETPACK_CONTRACT_VERSION, serializeManifest } from "./manifest.ts";
-export type { PreviewFrame, PreviewSpriteFn, PreviewSpriteOptions, SpritePreview } from "./preview.ts";
+export type {
+  DecodePngFn,
+  PreviewDetailsOptions,
+  PreviewDither,
+  PreviewFrame,
+  PreviewImage,
+  PreviewSpriteDetailsFn,
+  PreviewSpriteFn,
+  PreviewSpriteOptions,
+  SpriteDefaultsFn,
+  SpritePreview,
+  SpritePreviewDetails,
+} from "./preview.ts";
 export { PREVIEW_CONTRACT_VERSION } from "./preview.ts";
-export type { PreviewDetailsOptions, SpritePreviewDetails } from "./preview-sprite.ts";
 export { previewSprite, previewSpriteDetails, renderIndices } from "./preview-sprite.ts";
 export type { Problem } from "./problems.ts";
