@@ -5,8 +5,8 @@ Cloud push target: `ws5-assets`
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
-- start.sh (2026-09-26, after checkpoint-3): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind origin/main
-  by 37 (then merged); latest checkpoint: docs/status/checkpoint-3.md; open IF entries: 0. Lockfile guard passed.
+- start.sh (2026-09-26, after checkpoint-5): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind origin/main
+  by 34 (then merged); latest checkpoint: docs/status/checkpoint-5.md; open IF entries: 1 (IF-2). Lockfile guard passed.
 
 ## Progress
 - [x] Task 1 (day 1): `contracts/assetpack.md` C3 0.1.0 written, CHANGELOG line appended.
@@ -34,6 +34,10 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   provisional manifest too), E4xx catalog E401-E422 with the DoD messages word for word.
 - [x] Task 6 (rest): `docs/manual/assets/README.md`: what happens to sprites, backgrounds, sounds and the icon, the
   per-room limits and every E4xx code (a reference for WS7's "Sprites and palettes" and "Sounds" chapters).
+- IF-2 fixed in a583791: the E412 test no longer creates `sprites/spr_tiny` and `sprites/spr_Tiny` on disk (one folder
+  on NTFS); it adds the case-clashing sprite and sound to the loaded `Project` in memory, so E412 is covered on every
+  filesystem. The product code was unchanged. Other tests checked for the same trap: goldens and fixtures are
+  binary in `.gitattributes`, and paths are built with `path.join`.
 - [ ] Next: WS0's Windows run of the real-tool test; then refine the MSL/MAS reading if its figures disagree.
 
 ## Blockers
