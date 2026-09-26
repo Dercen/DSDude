@@ -1,0 +1,7 @@
+DSD|LOG|ball 0 from ctrl
+DSD|LOG|ball 1 from ctrl
+DSD|LOG|ball 3 from ctrl
+DSD|LOG|ctrl sees 0
+DSD|LOG|ctrl sees 1
+DSD|LOG|hit 1
+DSD|LOG|alarm
