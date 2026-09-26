@@ -84,6 +84,14 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   features: slots, `with`, alarms, collisions, draw). Flappy compiles in ~6 ms warm (budget 100 ms).
 - Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.
 
+## ADR number collision (for WS0)
+
+- Two ADRs are numbered 0003: WS1's `docs/adr/0003-key-script-format.md` (on main) and WS4's
+  `docs/adr/0003-provisional-opcode-operands.md` (on `ws4-compiler`, written the same day). Only WS0 renumbers ADRs,
+  so WS4 left both files as they are. Please renumber the opcode one (0004 suggested); WS4 then updates its
+  `ADR-pending` markers and appends a CHANGELOG line. Until then "ADR-0003" in `packages/compiler`,
+  `packages/dsdb`, `contracts/opcodes.json` and `contracts/dsdb.md` means the opcode-operands ADR.
+
 ## Open ADR-pending markers
 
 - `ADR-pending ADR-0003` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): until WS2
