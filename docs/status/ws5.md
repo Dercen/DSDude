@@ -58,6 +58,13 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   `scripts/make-mp3-fixture.cjs`, reproducible byte for byte, CC0) decodes through `@audio/decode-mp3` to a
   22050 Hz mono effect with the 440 Hz tone intact, and packs as `snd_tone.wav` for mmutil. (The decoder returns two
   identical channels for mono MP3s; the mono mix handles it.)
+- [x] `image-q` cross-check (kickoff task 2) and C3 0.2.0 (T1): colour reduction adds up to 4 Lloyd passes after
+  median cut. Mean squared RGB555 error vs image-q's Wu quantizer, before -> after: gradient 16 colours 22.70 -> 17.59
+  (image-q 19.13), 256: 1.35 -> 1.30 (1.51); plasma 16: 46.07 -> 42.48 (43.49), 256: 5.91 -> 5.50 (5.47). The test
+  holds ours within 2 % of image-q and exact when no reduction is needed. Worst-case speed (256x192 background,
+  18.7k colours, 256-colour mode) went from 586 ms to 151 ms after caching each median-cut box's widest axis and a
+  typed-array nearest search. Only the two gradient goldens changed. `PIPELINE_VERSION` 0.1.1, so every cached
+  asset converts once again. `image-q` 4.0.0 is a devDependency of packages/asset-pipeline only.
 - [ ] Remaining DoD item (WS0-owned): the py-desmume golden in `fixtures/assets/golden/` for a ROM built from the
   sample assets. Otherwise WS5 is at its definition of done; later work is fixes from IF entries and contract T1s.
 
@@ -84,6 +91,10 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   `@dsdude/toolchain` would let `src/pack/tools.ts` drop its small copy of them.
 - Browser consumers (editor-core, the IDE renderer, WS6b) import `@dsdude/asset-pipeline/browser` (WS0 decision,
   checkpoint-3 relay); the root also exports the Node-only `packAssets` and `cliCommands`.
+- WS0: the lockfile needs `image-q` 4.0.0 (a new devDependency of packages/asset-pipeline, MIT; it brings its own
+  `@types/node` 16.9.1, nested). Please also add `*.mp3 binary` to `.gitattributes` (git already detects
+  `fixtures/assets/tone-44k.mp3` as binary, so nothing is broken today).
+- C3 is 0.2.0 (T1): colour reduction changed; no manifest field changed except `version`. WS6's reader needs nothing.
 - Dependency: `fflate` 0.8.3 added to `packages/asset-pipeline/package.json` (already in the lockfile via
   `@vitest/ui`; pure-JS zlib so the preview and PNG code need no `node:zlib`). WS0: regenerate the lockfile.
 - samples/flappy `spr_bird/sprite.json` bbox says left 2, but the wing reaches column 1 (the C1 opaque-bounds default

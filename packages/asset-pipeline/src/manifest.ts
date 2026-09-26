@@ -6,7 +6,7 @@ import type { AssetManifest } from "@dsdude/toolchain";
 import type { AssetLimits } from "./limits.ts";
 
 /** This contract's version (contracts/assetpack.md line 3). */
-export const ASSETPACK_CONTRACT_VERSION = "0.1.0";
+export const ASSETPACK_CONTRACT_VERSION = "0.2.0";
 
 export interface SpriteEntry {
   id: number;

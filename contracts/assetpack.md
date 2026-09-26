@@ -1,6 +1,6 @@
 # C3: Asset pack layout and manifest
 
-Version: 0.1.0 · Owner: WS5 · Changes: see "How to change me" below and the tiers in contracts/README.md
+Version: 0.2.0 · Owner: WS5 · Changes: see "How to change me" below and the tiers in contracts/README.md
 
 What `packAssets()` (`@dsdude/asset-pipeline`, C4 `PackAssetsFn`) writes into a project's build folder, how every
 file is made, the limits it enforces and the `assets.manifest.json` schema that the compiler (WS4), BuildService
@@ -55,8 +55,10 @@ Input: `sprites/<n>/sheet.png` (a horizontal strip of `frames` frames, each `fra
 4. **Colour mode.** `"16"` builds 4bpp with up to 15 opaque colours, `"256"` 8bpp with up to 255. `"auto"` picks 16
    when the sheet has <= 15 distinct opaque RGB555 colours, else 256.
 5. **Colour reduction.** When the sheet has more opaque colours than the mode allows, the 32x32x32 RGB555
-   histogram is reduced by median cut to 15 or 255 colours, and every opaque pixel is mapped to its nearest palette
-   colour (squared RGB555 distance; ties go to the lower index). There is no dithering in 0.1 (C1 has no field for
+   histogram is reduced by median cut to 15 or 255 colours, refined by up to 4 Lloyd (k-means) passes (each source
+   colour joins its nearest palette colour, ties to the lower index; each palette colour moves to the rounded,
+   population-weighted mean of its members; a colour nobody joins stays; stop when nothing moves), and every opaque
+   pixel is mapped to its nearest palette colour (squared RGB555 distance; ties go to the lower index). There is no dithering in 0.1 (C1 has no field for
    it; the preview API may offer it). Reduction is always the **warning** E407, never an error, and the diagnostic
    says how many colours were merged; the import dialog shows the preview (C12).
 6. **Palette.** Index 0 is magenta (`#ff00ff`, the colour grit's `-gTFF00FF` makes transparent). Indices 1.. are
@@ -156,7 +158,7 @@ BuildService rewrites it with `checkRoomBudgets`' result (C4), which adds `rooms
 ```jsonc
 {
   "contract": "C3",
-  "version": "0.1.0",                      // this contract's version
+  "version": "0.2.0",                      // this contract's version
   "provisional": true,                     // kept while C4's AssetManifest type declares it (see How to change me)
   "tools": { "grit": "1.24.0", "mmutil": "1.24.0" },   // versions used; null when the tool did not run
   "sprites": {

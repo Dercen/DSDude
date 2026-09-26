@@ -13,7 +13,7 @@ State and next steps: `docs/status/ws5.md`.
 ## Contracts
 | Contract | Files | Version | Role |
 |---|---|---|---|
-| C3 asset pack | `contracts/assetpack.md` | 0.1.0 | owner (T1 after day 1; T2 co-signed by WS2, WS3, WS4, WS6) |
+| C3 asset pack | `contracts/assetpack.md` | 0.2.0 | owner (T1 after day 1; T2 co-signed by WS2, WS3, WS4, WS6) |
 | C4 toolchain API | `packages/toolchain/src/api.ts` | 0.5.0 | implementer: `packAssets`, `checkRoomBudgets`, `cliCommands` |
 | C12 preview API | `packages/asset-pipeline/src/preview.ts` | 0.2.0 | owner (freezes at CP-B, 2026-10-02; types `previewSprite`, `previewSpriteDetails`, `spriteDefaults`, `decodePng`; WS6's ipc-contract checks `SpritePreview` field by field) |
 | C1 project format | `contracts/project-format.md`, `packages/project-format` | 0.1.0 | consumer |
@@ -43,4 +43,7 @@ the tests on Windows, where `src/pack/real-tools.test.ts` uses the real grit/mmu
 - Erasable TypeScript only (no enums, namespaces, parameter properties); `tsc -b` checks it.
 - Tests: `vitest run --pool=threads --maxWorkers=2`, never watch mode; a timeout on every spawned process.
 - Determinism: integer maths after decoding, no `Math.random`, goldens compared as bytes.
+- Any change to what a conversion outputs bumps `PIPELINE_VERSION` in `src/pack/cache.ts` (old cache entries must
+  not be reused) and is a C3 T1 with a CHANGELOG line (WS6 reads the manifest).
+- `image-q` is a devDependency for `src/image/quantize-crosscheck.test.ts` only; the pipeline never imports it.
 - Never commit `package-lock.json`; `npm install`, never `npm ci`.
