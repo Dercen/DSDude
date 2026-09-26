@@ -32,7 +32,8 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   RGBA, E401/E407, dither) + `spriteDefaults` (C1 import defaults).
 - [x] Task 6 (part): cache, `checkRoomBudgets` (C4; hand-written room sets in tests; works on the compileOnly
   provisional manifest too), E4xx catalog E401-E422 with the DoD messages word for word.
-- [ ] Task 6 (rest): `docs/manual/assets/`.
+- [x] Task 6 (rest): `docs/manual/assets/README.md`: what happens to sprites, backgrounds, sounds and the icon, the
+  per-room limits and every E4xx code (a reference for WS7's "Sprites and palettes" and "Sounds" chapters).
 - [ ] Next: WS0's Windows run of the real-tool test; then refine the MSL/MAS reading if its figures disagree.
 
 ## Blockers
