@@ -84,6 +84,15 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   features: slots, `with`, alarms, collisions, draw). Flappy compiles in ~6 ms warm (budget 100 ms).
 - Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.
 
+## push.sh and the daily merge (for WS0)
+
+- 2026-09-26: after `git merge origin/main` (which brings WS0's `b23a325 chore(deps): regenerate lockfile`),
+  `bash tools/cloud/push.sh` refuses with "b23a325 changes package-lock.json: revert it": it checks every non-merge
+  commit in `origin/ws4-compiler..HEAD`, which now includes main's own commits. WS4 dropped the (unpushed) merge and
+  pushed without it; `ws4-compiler` stays based on `phase0` + checkpoint-1's merge until push.sh excludes
+  `origin/main` from the range (e.g. `git rev-list --no-merges HEAD ^origin/$T ^origin/main`). Merging main by hand
+  showed no conflicts and all WS4 tests green.
+
 ## ADR number collision (for WS0)
 
 - Two ADRs are numbered 0003: WS1's `docs/adr/0003-key-script-format.md` (on main) and WS4's
