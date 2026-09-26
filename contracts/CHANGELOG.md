@@ -49,6 +49,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C8 Log protocol (`contracts/log-protocol.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): READY/LOG/ERR/MEM/STAT/PAD/EXIT lines, one protocol from 0x04FFFA00, >= 5 KB flush pad.
 - 0.2.0 (2026-09-26, WS2, T1): "Host runner" section: dsdude-host command line (a `.dsdb` path as the root), LF-only stdout, exit codes 0/1/2, empty ERR fields in program form and load errors, the `--input` key-script format, the `--trace` JSONL schema (one integer-only object per frame, fixed key order), and `--png-dir` (from tier v4).
+- 0.2.0 T0 (2026-09-26, WS2): a trace line is written when the frame has ended (after a pending room change); DSD|STAT comes every 60th frame; DSD|MEM comes after Room Start and its `inst` counts instance blocks in use.
 
 ## C8 Runtime artifact (`contracts/runtime-artifact.md`)
 - owed: WS3, with its first runtime/dist build.
@@ -60,6 +61,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.1.0 T0 (2026-09-26, WS4): compiler catalog adds E201-E206, E208 (names, assets, helpers), E301-E314 (arguments, types, events), E491-E494 (limits), W031, W040-W043, W050-W052 (lints).
 - R5xx catalog 0.1.0 (2026-09-26, WS2, T0): `runtime/core/diagnostics/catalog.json` created with R500-R590 (sub-ranges R50x variables, R51x runaway scripts, R52x number range, R53x division and roots, R54x wrong kinds of value, R55x lists, R56x memory, R58x the game file, R59x script checks).
 - R5xx catalog (2026-09-26, WS2, T0): R551 "Not a list" ([] or a length on a value that is not a list).
+- R5xx catalog (2026-09-26, WS2, T0): R502 instance not found, R503 no instance of that object, R504 too many extra variables, R505 read-only variable, R561 too many instances, R570/R571 picture/sound could not be loaded, R572 asset not loaded in this room.
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.
@@ -71,6 +73,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C11 Platform seam (`runtime/core/include/dsd_platform.h`)
 - owed: WS2, by CP-A.
 - 0.1.0 (2026-09-26, WS2, publication; frozen at CP-A): lifecycle and frame (`dsd_plat_init/frame_begin/frame_end/read_input` with `dsd_input`), files (`dsd_plat_read_file`), C8 output (`dsd_plat_log`, `dsd_plat_log_flush` for the DS pad), `dsd_plat_fatal` (`dsd_fatal`), `dsd_plat_mem_report`, sprites/backgrounds/shadow OAM (`dsd_sprite_info`, `dsd_oam_entry`, `dsd_affine`), UI layer, sound (incl. `dsd_plat_music_active`), room-load primitives (`dsd_plat_screens_blank`, `dsd_plat_assets_free`, `dsd_plat_sfx_load`, `dsd_plat_music_load`), `dsd_plat_millis`, `dsd_plat_rng_seed`, and the `DSD_ITCM_CODE`/`DSD_DTCM_DATA`/`DSD_DTCM_BSS` placement macros (libnds section names under `ARM9`, empty on the host).
+- 0.2.0 (2026-09-26, WS2, T1; answers WS3's ADR-0004): `int dsd_core_main(void)`, the core's entry point that runs the whole game and re-initialises all core state (the DS `main()` only calls it; the host runner keeps `dsd_game_boot`/`dsd_game_frame` for per-frame traces); `dsd_plat_init` results defined: `DSD_PLAT_ENOENT` = NitroFS not mounted (R584 "file system"), `DSD_PLAT_ELOAD` = soundbank not loaded (R571).
 
 ## C12 EditorPanel host API + preview API (`apps/ide/src/renderer/panels/api.ts`, `packages/asset-pipeline/src/preview.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): preview types (`PreviewSpriteFn`, `SpritePreview`). Panel API + mock-host owed by WS6 (CP-A).

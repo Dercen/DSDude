@@ -15,6 +15,7 @@
 
 // Worklist of arrays whose elements still need marking (each slot is pushed at most once per collection).
 static uint32_t g_mark_stack[DSD_RT_HEAP_SLOTS];
+static uint32_t g_mark_sp;
 
 static uint32_t round4(uint32_t n) { return (n + WORD_MASK) & ~WORD_MASK; }
 
@@ -50,30 +51,31 @@ void dsd_heap_unpin(DsdHeap *h) { h->temp_count--; }
 
 // ---- Collection -------------------------------------------------------------------------------------------------
 
-// Marks the object v refers to (if any); arrays go on the worklist so their elements get marked too.
-static void mark_value(DsdHeap *h, DsdValue v, uint32_t *sp) {
+void dsd_heap_mark(DsdHeap *h, DsdValue v) {
     uint32_t s = dsd_heap_slot_of(v);
     if (s == DSD_HEAP_NONE || s >= h->slot_high || h->slot_kind[s] == DSD_HEAP_KIND_FREE || h->mark[s]) return;
     h->mark[s] = 1;
-    if (h->slot_kind[s] == DSD_HEAP_KIND_ARR) g_mark_stack[(*sp)++] = s;
+    // Arrays go on the worklist so their elements get marked too.
+    if (h->slot_kind[s] == DSD_HEAP_KIND_ARR) g_mark_stack[g_mark_sp++] = s;
 }
 
-// Marks everything reachable from the roots.
+// Marks everything reachable from the roots: registers, globals, pinned values and the engine's (mark_extra).
 static void mark_roots(DsdVm *vm) {
     DsdHeap *h = &vm->heap;
-    uint32_t sp = 0;
-    for (uint32_t r = 0; r < vm->top; r++) mark_value(h, vm->regs[r], &sp);
+    g_mark_sp = 0;
+    for (uint32_t r = 0; r < vm->top; r++) dsd_heap_mark(h, vm->regs[r]);
     for (uint32_t g = 0; g < vm->prog->glob_count; g++) {
-        if (vm->global_set[g >> 3] & (1u << (g & 7u))) mark_value(h, vm->globals[g], &sp);
+        if (vm->global_set[g >> 3] & (1u << (g & 7u))) dsd_heap_mark(h, vm->globals[g]);
     }
-    for (uint32_t t = 0; t < h->temp_count; t++) mark_value(h, h->temp_roots[t], &sp);
-    while (sp > 0) {
-        uint32_t s = g_mark_stack[--sp];
+    for (uint32_t t = 0; t < h->temp_count; t++) dsd_heap_mark(h, h->temp_roots[t]);
+    if (vm->mark_extra != 0) vm->mark_extra(vm);
+    while (g_mark_sp > 0) {
+        uint32_t s = g_mark_stack[--g_mark_sp];
         const uint8_t *p = dsd_heap_payload_c(h, s);
         uint32_t len;
         memcpy(&len, p, sizeof len);
         const DsdValue *cells = (const DsdValue *)(p + ARRAY_HEADER_BYTES);
-        for (uint32_t i = 0; i < len; i++) mark_value(h, cells[i], &sp);
+        for (uint32_t i = 0; i < len; i++) dsd_heap_mark(h, cells[i]);
     }
 }
 

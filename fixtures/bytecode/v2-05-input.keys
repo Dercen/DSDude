@@ -1,0 +1,7 @@
+# v2-05: a held on frames 2-3; b and the stylus at (10,20) on frame 6; the stylus alone on frame 7
+0 -
+2 a
+4 -
+6 b+T10,20
+7 T10,20
+8 -

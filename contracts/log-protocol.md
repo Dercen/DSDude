@@ -16,8 +16,8 @@ Every line starts with `DSD|`, has `|`-separated fields and ends with `\n`. Pars
 | `DSD\|READY\|<version>\|<abihash>` | once, after boot and the DSDB loaded | runtime semver; the runtime's ABI hash as 8 lowercase hex digits (C2) |
 | `DSD\|LOG\|<text>` | `show_debug_message` and runtime notes | free text (rules below) |
 | `DSD\|ERR\|<code>\|<object>\|<event>\|<file>\|<line>\|<message>` | a runtime error (the game stops) | R5xx code (C9); object and event names; project-relative DSS file; 1-based line (0 if unknown); message in the C9 voice |
-| `DSD\|MEM\|inst=14/512,arena=40/512,heapfree=1310,snd=120/768,objvram_top=48/128,objvram_bot=12/128,pal16_top=1/16,pal256_top=3/16,pal16_bot=0/16,pal256_bot=1/16,cstack=2/11` | at room start | `key=used/total` pairs; KB unless a count |
-| `DSD\|STAT\|fps=60,inst=14,spr_top=9,spr_bot=2,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1820` | once per second | `oam_drop`: instances beyond 128 visible per screen; `aff_drop`: rotated or scaled instances beyond 32 per screen that drew unrotated; `sfx_drop`: effects that found no free channel; `ops`: VM ops in the last frame |
+| `DSD\|MEM\|inst=14/512,arena=40/512,heapfree=1310,snd=120/768,objvram_top=48/128,objvram_bot=12/128,pal16_top=1/16,pal256_top=3/16,pal16_bot=0/16,pal256_bot=1/16,cstack=2/11` | at room start (after Room Start) | `key=used/total` pairs; KB unless a count; `inst` counts instance blocks in use |
+| `DSD\|STAT\|fps=60,inst=14,spr_top=9,spr_bot=2,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1820` | once per second: every 60th frame | `oam_drop`: instances beyond 128 visible per screen; `aff_drop`: rotated or scaled instances beyond 32 per screen that drew unrotated; `sfx_drop`: effects that found no free channel; `ops`: VM ops in the last frame |
 | `DSD\|PAD\|...` | after READY, ERR and STAT | flush pad (below); parsers drop it |
 | `DSD\|EXIT\|<code>` | the game ends (`game_end()`, the end of a program-form `__main`) | integer exit code, 0 = normal |
 
@@ -96,8 +96,8 @@ names its line number. WS1's `dsdude screenshot --keys` reads the same format.
 
 ### Traces (`--trace`)
 
-JSON Lines, written with LF endings: **one object per frame**, emitted after the frame's Draw events, with the keys
-in exactly this order and **integers only** (no floats, no strings), so traces compare byte for byte:
+JSON Lines, written with LF endings: **one object per frame**, emitted when the frame has ended (after its Draw
+events and, when one was pending, the room change), with the keys in exactly this order and **integers only** (no floats, no strings), so traces compare byte for byte:
 
 ```
 {"frame":0,"keys":1,"touch":0,"tx":0,"ty":0,"room":0,"rng":270369,"ops":532,"inst":[[100001,0,65536,40960,0,3,0,1,0]]}

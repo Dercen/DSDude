@@ -1,0 +1,92 @@
+.dsda 0.1
+.seed 0
+
+.func ctrl_pressed_a 0 1
+    .loc "objects/obj_ctrl/button_pressed_a.dss" 1
+    LOADK r0, "pressed a"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_held_a 0 1
+    .loc "objects/obj_ctrl/button_held_a.dss" 1
+    LOADK r0, "held a"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_released_a 0 1
+    .loc "objects/obj_ctrl/button_released_a.dss" 1
+    LOADK r0, "released a"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_pressed_b 0 1
+    .loc "objects/obj_ctrl/button_pressed_b.dss" 1
+    LOADK r0, "pressed b"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_tup 0 1
+    .loc "objects/obj_ctrl/global_touch_released.dss" 1
+    LOADK r0, "touch up"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_theld 0 1
+    .loc "objects/obj_ctrl/global_touch_held.dss" 1
+    LOADK r0, "touch held"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_tdown 0 2
+    .loc "objects/obj_ctrl/global_touch_pressed.dss" 1
+    LOADK r0, "touch down "
+    GETBI r1, touch_x
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    LOADK r1, ","
+    CONCAT r0, r0, r1
+    GETBI r1, touch_y
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_step 0 1
+    .loc "objects/obj_ctrl/step.dss" 1
+    LOADI r0, 1
+    CALLN r0, 1, button_check
+    JMPF r0, L0
+    LOADK r0, "b down (step)"
+    CALLN r0, 1, show_debug_message
+  L0:
+    RET r0, 0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=bottom depth=0
+    .event step ctrl_step
+    .event button_pressed_a ctrl_pressed_a
+    .event button_pressed_b ctrl_pressed_b
+    .event button_released_a ctrl_released_a
+    .event button_held_a ctrl_held_a
+    .event global_touch_pressed ctrl_tdown
+    .event global_touch_released ctrl_tup
+    .event global_touch_held ctrl_theld
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 bottom -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a

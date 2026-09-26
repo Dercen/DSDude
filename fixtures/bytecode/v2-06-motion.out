@@ -1,0 +1,9 @@
+DSD|READY|0.1.0|0dd9987a
+DSD|LOG|2
+DSD|LOG|0
+DSD|LOG|0
+DSD|LOG|-3
+DSD|MEM|inst=1/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0
+DSD|LOG|100,97.5 v=-2.5 dir=90
+DSD|LOG|100,95.5 v=-2 dir=90
+DSD|LOG|100,94 v=-1.5 dir=90

@@ -1,0 +1,121 @@
+.dsda 0.1
+.seed 0
+.symbol extra
+
+.func ctrl_room_start 0 6
+    .loc "objects/obj_ctrl/room_start.dss" 1
+    LOADK r0, @obj_base
+    WITHBEGIN r0, L1
+  L0:
+    .loc "objects/obj_ctrl/room_start.dss" 2
+    GETBI r1, id
+    CALLN r1, 1, show_debug_message
+    WITHNEXT r0, L0
+    WITHEND r0
+  L1:
+    .loc "objects/obj_ctrl/room_start.dss" 4
+    LOADK r1, @obj_base
+    CALLN r1, 1, instance_number
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 5
+    LOADK r1, @obj_kid
+    CALLN r1, 1, instance_number
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 6
+    LOADK r0, @obj_base
+    WITHBEGIN r0, L4
+  L2:
+    .loc "objects/obj_ctrl/room_start.dss" 7
+    GETBI r1, id
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 8
+    GETBI r1, id
+    LOADK r2, 100002
+    EQ r1, r1, r2
+    JMPF r1, L3
+    LOADK r1, 100003
+    CALLN r1, 1, instance_destroy
+  L3:
+    WITHNEXT r0, L2
+    WITHEND r0
+  L4:
+    .loc "objects/obj_ctrl/room_start.dss" 10
+    LOADK r0, @obj_other
+    WITHBEGIN r0, L6
+  L5:
+    .loc "objects/obj_ctrl/room_start.dss" 11
+    LOADI r2, -2
+    GETBIO r1, r2, id
+    CALLN r1, 1, show_debug_message
+    WITHNEXT r0, L5
+    WITHEND r0
+  L6:
+    .loc "objects/obj_ctrl/room_start.dss" 13
+    LOADI r1, 5
+    LOADK r2, @obj_base
+    SETDYN r1, r2, hp
+    .loc "objects/obj_ctrl/room_start.dss" 14
+    LOADK r2, @obj_kid
+    GETDYN r1, r2, hp
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 15
+    LOADI r1, 7
+    LOADK r2, @obj_other
+    SETDYN r1, r2, extra
+    .loc "objects/obj_ctrl/room_start.dss" 16
+    GETDYN r1, r2, extra
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 17
+    LOADK r2, @obj_base
+    CALLN r2, 1, instance_number
+    CALLN r2, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 18
+    LOADK r0, @obj_other
+    WITHBEGIN r0, L10
+  L7:
+    .loc "objects/obj_ctrl/room_start.dss" 19
+    LOADK r3, @obj_base
+    WITHBEGIN r3, L9
+  L8:
+    .loc "objects/obj_ctrl/room_start.dss" 20
+    LOADI r5, -2
+    GETBIO r4, r5, id
+    CALLN r4, 1, show_debug_message
+    WITHNEXT r3, L8
+    WITHEND r3
+  L9:
+    WITHNEXT r0, L7
+    WITHEND r0
+  L10:
+    RET r0, 0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event room_start ctrl_room_start
+.end
+
+.object obj_base sprite=- parent=- visible=0 screen=top depth=0
+    .slot hp 0
+.end
+
+.object obj_kid sprite=- parent=obj_base visible=0 screen=top depth=0
+    .slot hp 0
+.end
+
+.object obj_other sprite=- parent=- visible=0 screen=top depth=0
+.end
+
+.room rm_one 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .instance obj_base 0 0 top -
+    .instance obj_base 0 0 top -
+    .instance obj_kid 0 0 top -
+    .instance obj_other 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_one

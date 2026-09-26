@@ -19,6 +19,34 @@
       "hint": "Set global.{name} before reading it, for example in the first room's Create event."
     },
     {
+      "code": "R502",
+      "severity": "error",
+      "title": "Instance not found",
+      "message": "There is no instance {id} (it was destroyed, or never existed)",
+      "hint": "Check instance_exists(id) before using an instance you stored."
+    },
+    {
+      "code": "R503",
+      "severity": "error",
+      "title": "No instance of that object",
+      "message": "There is no {object} in the room to read {name} from",
+      "hint": "Check instance_number({object}) > 0 first."
+    },
+    {
+      "code": "R504",
+      "severity": "error",
+      "title": "Too many extra variables",
+      "message": "{object} got more than 8 variables from outside its own code",
+      "hint": "Give the variable a value in the object's Create event, so it gets its own slot."
+    },
+    {
+      "code": "R505",
+      "severity": "error",
+      "title": "Read-only variable",
+      "message": "{name} can't be changed",
+      "hint": null
+    },
+    {
       "code": "R510",
       "severity": "error",
       "title": "Script never finished",
@@ -101,6 +129,34 @@
       "title": "Out of memory for text and lists",
       "message": "The game ran out of memory for text and lists",
       "hint": "Keep fewer long texts and big lists around at once."
+    },
+    {
+      "code": "R561",
+      "severity": "error",
+      "title": "Too many instances",
+      "message": "There are too many instances at once (the most is 512)",
+      "hint": "Destroy instances that left the screen, for example in their Outside Room event."
+    },
+    {
+      "code": "R570",
+      "severity": "error",
+      "title": "Picture could not be loaded",
+      "message": "{asset} could not be loaded",
+      "hint": "Build the game again; if it keeps happening, the room uses more sprite memory than the DS has."
+    },
+    {
+      "code": "R571",
+      "severity": "error",
+      "title": "Sound could not be loaded",
+      "message": "{asset} could not be loaded",
+      "hint": "Build the game again; if it keeps happening, the room's sounds need more memory than the DS has."
+    },
+    {
+      "code": "R572",
+      "severity": "error",
+      "title": "Asset not loaded in this room",
+      "message": "{asset} is not loaded in {room}",
+      "hint": "Use it in a room that places an object using it, or reference it from an object placed in {room}."
     },
     {
       "code": "R580",

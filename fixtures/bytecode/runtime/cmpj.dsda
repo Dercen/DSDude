@@ -1,0 +1,42 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 4
+    .loc "rt/cmpj.dss" 1
+    LOADI r0, 0
+    LOADI r1, 0
+    LOADI r2, 5
+  L0:
+    .loc "rt/cmpj.dss" 2
+    CMPJ r0, r2, 2
+    JMP L1
+    ADD r1, r1, r0
+    ADDI r0, r0, 1
+    JMP L0
+  L1:
+    .loc "rt/cmpj.dss" 3
+    CALLN r1, 1, show_debug_message
+    .loc "rt/cmpj.dss" 4
+    LOADK r0, "a"
+    LOADK r2, "a"
+    CMPJ r0, r2, 0
+    JMP L2
+    LOADK r3, "strings equal"
+    CALLN r3, 1, show_debug_message
+  L2:
+    .loc "rt/cmpj.dss" 5
+    LOADK r0, 1.5
+    LOADI r2, 1
+    CMPJ r0, r2, 4
+    JMP L3
+    LOADK r3, "1.5 > 1"
+    CALLN r3, 1, show_debug_message
+  L3:
+    .loc "rt/cmpj.dss" 6
+    CMPJ r2, r0, 5
+    JMP L4
+    LOADK r3, "never"
+    CALLN r3, 1, show_debug_message
+  L4:
+    RET r0, 0
+.end
