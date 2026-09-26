@@ -1,0 +1,20 @@
+* text=auto eol=lf
+*.sh text eol=lf
+.githooks/* text eol=lf
+Makefile* text eol=lf
+*.mk text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.dsdb binary
+*.grf binary
+*.bin binary
+*.nds binary
+*.elf binary
+*.png binary
+*.wav binary
+*.xm binary
+*.mod binary
+*.it binary
+*.s3m binary
+*.sav binary
+*.zip binary

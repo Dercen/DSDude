@@ -1,14 +1,32 @@
-vendor/*
-!vendor/README.md
-/mwccarm/
-/dsd-windows-x86_64.exe
-.claude/settings.local.json
+# Dependencies and build products
 node_modules/
-.dsdude/
+dist-types/
+*.tsbuildinfo
+coverage/
+test-results/
+playwright-report/
+__pycache__/
 /dist/
 /build/
+/samples/*/build/
+/samples/*/*.nds
+/samples/*/*.elf
+/runtime/build/
+/runtime/build-host/
+/apps/ide/out/
+/apps/ide/dist/
 *.nds
 *.elf
 !/fixtures/**/*.nds
 !/fixtures/**/*.elf
 !/runtime/dist/*.elf
+
+# Per-worktree state
+.dsdude/
+.claude/settings.local.json
+
+# Proprietary and local-only binaries: never in git or on GitHub (PLAN 2.2, 2.11)
+vendor/*
+!vendor/README.md
+/mwccarm/
+/dsd-windows-x86_64.exe
