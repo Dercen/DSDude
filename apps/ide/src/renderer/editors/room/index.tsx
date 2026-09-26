@@ -506,7 +506,10 @@ function RoomEditor({ host, name }: { host: PanelHost; name: string }) {
     canvas.addEventListener("pointerup", onUp);
     canvas.addEventListener("wheel", onWheel, { passive: false });
     canvas.addEventListener("dblclick", onDbl);
+    // Input is live from here (tests wait for it).
+    canvas.dataset.ready = "true";
     return () => {
+      delete canvas.dataset.ready;
       canvas.removeEventListener("pointerdown", onDown);
       canvas.removeEventListener("pointermove", onMove);
       canvas.removeEventListener("pointerup", onUp);

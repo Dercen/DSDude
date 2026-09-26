@@ -1,7 +1,9 @@
 // The room editor (PixiJS 8) in the mock host: placing, wall painting, erasing, undo, the 129-sprite meter, and the
-// 60 fps check on a 1024x512 room with 200 instances at 4x zoom (it reports here; the Electron test enforces it).
+// 60 fps check on a 1024x512 room with 200 instances at 4x zoom (it reports here; the Electron test enforces it),
+// and rm_game rebuilt with the mouse (the saved room.json round-trips; fixtures/editors keeps one).
+import { type Project, RoomJsonSchema, toJsonText } from "@dsdude/project-format";
 import { afterEach, describe, expect, it } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { createMockHost, type MockHost } from "../../mock-host/index.ts";
 import roomEditor from "./index.tsx";
 
@@ -44,8 +46,8 @@ async function mountGame(h: MockHost) {
     });
   });
   const m = await h.mountEditor(roomEditor, { kind: "room", name: "rm_game" });
-  const canvas = () => m.element.querySelector("[data-testid=room-canvas]") as HTMLCanvasElement | null;
-  await until(() => !!canvas(), "the Pixi canvas");
+  const canvas = () => m.element.querySelector("[data-testid=room-canvas][data-ready]") as HTMLCanvasElement | null;
+  await until(() => !!canvas(), "the Pixi canvas, taking input");
   return { m, canvas: canvas as () => HTMLCanvasElement };
 }
 
@@ -111,6 +113,60 @@ describe("room editor", () => {
     await until(() => meter().textContent === "Top: 129/128 sprites", "meter at 129");
     expect(meter().className).toContain("meter-over");
     expect(m.element.querySelector("[data-testid=room-canvas]")).not.toBeNull();
+  });
+
+  it("builds rm_game from scratch with the mouse: the saved room.json round-trips, and a fixture is kept", async () => {
+    host = await createMockHost();
+    const h = host;
+    const m = await h.mountEditor(roomEditor, { kind: "room", name: "rm_game" });
+    const canvas = () => m.element.querySelector("[data-testid=room-canvas]") as HTMLCanvasElement;
+    await until(() => !!m.element.querySelector("[data-testid=room-canvas][data-ready]"), "the Pixi canvas");
+    const q = (id: string) => m.element.querySelector(`[data-testid='${id}']`) as HTMLElement;
+    const tick = () => new Promise((r) => setTimeout(r, 50));
+
+    // Rubber-band the whole top screen and delete everything.
+    pointer(canvas(), "pointerdown", at(canvas(), 250, 188, 2));
+    pointer(canvas(), "pointermove", at(canvas(), 1, 1, 2));
+    pointer(canvas(), "pointerup", at(canvas(), 1, 1, 2));
+    await tick();
+    q("room-editor:rm_game").dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
+    await until(() => room(h)?.instances.length === 0, "room emptied");
+
+    // Place the controller, the HUD and the bird as the sample has them (grid 16, snap on).
+    q("room-tool:place").click();
+    const select = q("room-object") as HTMLSelectElement;
+    const place = async (object: string, x: number, y: number) => {
+      select.value = object;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      await tick();
+      pointer(canvas(), "pointerdown", at(canvas(), x, y, 2));
+      pointer(canvas(), "pointerup", at(canvas(), x, y, 2));
+      await tick();
+    };
+    await place("obj_bird", 70, 100);
+    await place("obj_ctrl", 3, 3);
+    await place("obj_hud", 5, 2);
+    expect(await h.ide.actions.save()).toBe(true);
+    const text = (p: Project | undefined) => {
+      const r = p?.rooms.find((x) => x.name === "rm_game");
+      if (!r) throw new Error("rm_game missing");
+      const { name: _, ...json } = r;
+      return toJsonText(RoomJsonSchema.parse(json));
+    };
+    // Paths are relative to apps/ide (the Vitest root).
+    const root = "../../";
+    const sample = await commands.readFile(`${root}samples/flappy/rooms/rm_game/room.json`);
+    expect(text(h.saved.at(-1))).toBe(sample.replace(/\r/g, ""));
+
+    // Plus a pipe, saved as the fixture WS0 builds end to end (written when missing, compared otherwise).
+    await place("obj_pipe", 200, 140);
+    expect(await h.ide.actions.save()).toBe(true);
+    const saved = text(h.saved.at(-1));
+    expect(JSON.parse(saved).instances.at(-1)).toEqual({ object: "obj_pipe", x: 192, y: 128 });
+    const fixture = `${root}fixtures/editors/flappy-rm_game/room.json`;
+    const existing = await commands.readFile(fixture).catch(() => null);
+    if (existing === null) await commands.writeFile(fixture, saved);
+    else expect(saved).toBe(existing.replace(/\r/g, ""));
   });
 
   it("renders a 1024x512 room with 200 instances at 4x zoom while panning (fps report)", async () => {

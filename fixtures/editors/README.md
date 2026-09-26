@@ -4,4 +4,9 @@ Inputs and outputs of the visual editors' tests (`packages/editor-core`, `apps/i
 
 - The sprite core's input is the Phase-0 sprite `fixtures/assets/sprite16x16x3.png` (16x16, 3 frames). It loads
   through the C12 preview, is edited, saved as a DS indexed PNG and read back with the same pixels and colours.
-- Editor-saved rooms that WS0 builds end to end at integration are listed here as they are added.
+- Editor-saved rooms that WS0 builds end to end at integration:
+  - `flappy-rm_game/room.json`: `samples/flappy`'s `rm_game` rebuilt from an empty room with the mouse in the room
+    editor (bird, controller, HUD; saved byte-identical to the sample), plus one `obj_pipe` at (192, 128). The room
+    browser test writes it when missing and compares it otherwise. To build it, copy `samples/flappy`, replace
+    `rooms/rm_game/room.json` with this file and run `dsdude build <copy>`; `dsdude screenshot --frames 20` shows the
+    bird, the score and the pipe on the top screen.
