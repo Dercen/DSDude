@@ -19,7 +19,8 @@ import {
   withDsdbSeed,
   wonderfulLayout,
 } from "@dsdude/toolchain";
-import { compareLogs, parseProgramCases } from "./conformance.ts";
+import { readAbiHash } from "./artifact.ts";
+import { compareLogs, objBox, parseProgramCases, placeholderGrf, readyAbi, spriteAssets } from "./conformance.ts";
 
 const runtimeDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.dirname(runtimeDir);
@@ -38,6 +39,7 @@ async function main(): Promise<number> {
     return 2;
   }
   const elf = path.join(runtimeDir, "dist", "arm9.elf");
+  const abi = readAbiHash(readFileSync(path.join(runtimeDir, "gen", "builtins_table.h"), "utf8"));
   const cases = parseProgramCases(readFileSync(path.join(runtimeDir, "tests", "test_programs.c"), "utf8"));
   const work = path.join(dsdudeHome(), "conformance-ds");
   let failed = 0;
@@ -64,6 +66,14 @@ async function main(): Promise<number> {
     const dsdb = readFileSync(path.join(repoRoot, c.dsdb));
     const seeded = new DataView(dsdb.buffer, dsdb.byteOffset).getUint32(12, true) === 0;
     writeFileSync(path.join(dir, "nitrofs", "game.dsdb"), seeded ? withDsdbSeed(dsdb, HOST_SEED) : dsdb);
+    // Placeholder GRFs for the sprites the fixture declares (conformance.ts).
+    const dsda = path.join(repoRoot, c.dsdb.replace(/\.dsdb$/, ".dsda"));
+    for (const s of existsSync(dsda) ? spriteAssets(readFileSync(dsda, "utf8")) : []) {
+      const box = objBox(s.width, s.height);
+      if (!box) continue;
+      mkdirSync(path.dirname(path.join(dir, "nitrofs", s.path)), { recursive: true });
+      writeFileSync(path.join(dir, "nitrofs", s.path), placeholderGrf(box[0], box[1], s.frames));
+    }
     const rom = path.join(dir, "game.nds");
     try {
       await packRom(
@@ -90,7 +100,11 @@ async function main(): Promise<number> {
     }
     writeFileSync(path.join(dir, "ds.log"), `${shot.log.join("\n")}\n`);
     copyFileSync(path.join(repoRoot, c.expected), path.join(dir, "host.out"));
-    const diff = compareLogs(shot.log, readFileSync(path.join(repoRoot, c.expected), "utf8").split("\n"), c);
+    const got = readyAbi(shot.log);
+    const diff =
+      got !== null && got !== abi
+        ? `DSD|READY reports ABI ${got}, runtime/gen has ${abi}: rebuild runtime/dist`
+        : compareLogs(shot.log, readFileSync(path.join(repoRoot, c.expected), "utf8").split("\n"), c);
     if (diff === null) {
       passed++;
       console.log(`PASS ${label}`);

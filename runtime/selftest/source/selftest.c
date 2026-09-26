@@ -126,7 +126,7 @@ static bool load_sprite(int screen, const char *path, int w, int h, int first_pa
         slog("grf: %s screen=%d err=%d", path, screen, err);
         return false;
     }
-    bool ok = ds_obj_upload(screen, &g, w, h, out);
+    bool ok = ds_obj_upload(screen, &g, w, h, 0, out);
     if (ok && g.pal != NULL)
     {
         static uint16_t pal[256];

@@ -22,6 +22,7 @@
 #define LOG_PREFIX "DSD|LOG|"
 #define RUN_SEED 1u // every run passes a seed (CLAUDE.md: always --seed N)
 #define DRAW_FRAMES 60 // tier v4 runs: one DSD|STAT period
+#define CONFORMANCE_FRAMES 100 // upper bound for the room-game conformance programs (they exit sooner)
 #define STRESS_FRAMES 180 // v4-03-stress: three DSD|STAT periods
 #define DSDB_ABI_OFFSET 8 // the ABI hash in a DSDB header (contracts/dsdb.md, header word 2)
 #define DSDB_ABI_BYTES 4
@@ -128,7 +129,18 @@ static const ProgramCase CASES[] = {
      DSD_GAME_EXITED, 0, NULL},
     {"fixtures/compiler/conformance/v0/05-functions.dsdb", "fixtures/conformance/expected/v0/05-functions.log",
      true, DSD_GAME_EXITED, 0, NULL},
-    // Tier v1 (strings and arrays), hand-assembled by WS2 until WS4's programs 6-10 land.
+    // WS4's programs 6-10 (tiers v1-v4). The room games end themselves (DSD|EXIT) well within CONFORMANCE_FRAMES.
+    {"fixtures/compiler/conformance/v1/06-strings.dsdb", "fixtures/conformance/expected/v1/06-strings.log", true,
+     DSD_GAME_EXITED, 0, NULL},
+    {"fixtures/compiler/conformance/v1/07-arrays.dsdb", "fixtures/conformance/expected/v1/07-arrays.log", true,
+     DSD_GAME_EXITED, 0, NULL},
+    {"fixtures/compiler/conformance/v2/08-instances.dsdb", "fixtures/conformance/expected/v2/08-instances.log",
+     true, DSD_GAME_EXITED, CONFORMANCE_FRAMES, NULL},
+    {"fixtures/compiler/conformance/v3/09-with.dsdb", "fixtures/conformance/expected/v3/09-with.log", true,
+     DSD_GAME_EXITED, CONFORMANCE_FRAMES, NULL},
+    {"fixtures/compiler/conformance/v4/10-rooms.dsdb", "fixtures/conformance/expected/v4/10-rooms.log", true,
+     DSD_GAME_EXITED, CONFORMANCE_FRAMES, NULL},
+    // Tier v1 (strings and arrays), hand-assembled by WS2 before WS4's programs 6-10 landed; kept as runtime goldens.
     {"fixtures/bytecode/v1-01-strings.dsdb", "fixtures/bytecode/v1-01-strings.out", false, DSD_GAME_EXITED, 0, NULL},
     {"fixtures/bytecode/v1-02-arrays.dsdb", "fixtures/bytecode/v1-02-arrays.out", false, DSD_GAME_EXITED, 0, NULL},
     {"fixtures/bytecode/v1-03-collector.dsdb", "fixtures/bytecode/v1-03-collector.out", false, DSD_GAME_EXITED, 0, NULL},

@@ -7,6 +7,7 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 ## Environment
 - start.sh (2026-09-26): `node v24.16.0, npm 11.13.0; push target: none yet; behind origin/main by 0; latest checkpoint: docs/status/checkpoint-0.md; open IF entries: 0`
 - Merged `origin/main` at checkpoint-4 (296821c, 2026-09-26): no open IF entries (IF-1 closed as a WS0 false alarm).
+- start.sh (2026-09-26, after checkpoint-7): `node v24.16.0, npm 11.13.0; push target: ws2-runtime-core; behind origin/main by 28; latest checkpoint: docs/status/checkpoint-7.md; open IF entries: 0`. Merged main (builtins 0.2.0: c_* colours, ABI 0xf1d376bb): all goldens green through the hash masking; WS4's regenerated `flappy.dsdb` gives the identical 600-frame trace (0xe7824fe1), so only the dsdb line of `fixtures/runtime-core/flappy-trace.fnv` changed (0x2ffb9ead). WS0 merged 70084c9 at checkpoint-6 (green on MSYS2 gcc); WS3 runs 34/34 of WS2's programs on the DS against the host `.out` files and adopts C11 0.3.0, closing ADR-0004's last gap (answer above, under "ADR-0004 answer").
 - Linux gcc check: done in the cloud (gcc 13.3.0 Ubuntu, GNU Make 4.3).
 - Test: `make -f runtime/Makefile.host test` builds and runs `runtime/build-host/dsdude-tests` twice (`-O2`, and the UBSan trap variant `-fsanitize=undefined -fsanitize-trap=undefined`).
 
@@ -68,6 +69,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 - **Collision grid broadphase, 2026-09-26.** `runtime/core/src/collision.c` + `include/collision.h`: a 16x16-bucket spatial hash per screen over 64-pixel cells, filled by counting sort from the stage snapshot with cached boxes (8,192 entries; beyond that every instance is a candidate). The Collisions stage takes each instance's candidates in creation order and rebuilds the grid only when an event changed a box input (`dsd_geom_epoch`, bumped by `dsd_bivar_set` for x/y/sprite_index/image_xscale/image_yscale/screen, `move_wrap` and the motion stage). Fixture `v4-03-stress` (320 instances, ~14k collision events in 180 frames, with moves and destroys): output and trace byte-identical to the previous direct checks, ~1.8x faster on the host (3,000 frames: 1.6 s vs 2.9 s). `test_broadphase` checks that every overlapping same-screen pair is a candidate, also in the overflow fallback. `place_meeting` and friends still check directly (one instance per call).
 
+- **Conformance programs 6-10 (WS4), 2026-09-26: expected logs written.** `fixtures/conformance/expected/v1/06-strings.log`, `v1/07-arrays.log`, `v2/08-instances.log`, `v3/09-with.log`, `v4/10-rooms.log`. WS4's compiled DSDBs (`fixtures/compiler/conformance/v1..v4`) run on the VM and print exactly the intended output stated in each program's comments or README (two independent derivations agree line for line), each ending with `DSD|EXIT|0` (the room games within 3 frames). They are in the `programs` suite (log-only, like v0). Not covered yet (as WS4 notes): rule 8 (music) and the RNG seed rule.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -115,7 +118,6 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 ## Next
 - CP-A (2026-09-28): C11 (now 0.2.0) freezes; fold in anything WS3 still needs from ADR-0004 first.
 - The rest of tier v4: room changes with backgrounds and views, pinned with PNG hashes.
-- WS4's conformance programs 6-10 (v1): run them and write `fixtures/conformance/expected/v1/*.log` when they land; ADR draft if they are not on `main` by D+5 (2026-09-30).
 - With WS4: promote the provisional opcodes the VM now implements (CALL, ADDI/SUBI/MULI, CMPJ, slots, GETDYN/SETDYN, GETBI*, WITH*, arrays, TOINT/TOFIXED) to stable in one T1, once WS4 has co-signed the CMPJ proposal and WS2's notes on ADR-0005.
 
 ## Open ADR-pending markers

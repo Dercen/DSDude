@@ -2,14 +2,13 @@
 .seed 0
 .asset sprite spr_player "gfx/spr_player.grf" 1 origin=8,8 size=16,16 bbox=1,1,14,14
 
-.func obj_player__step 0 4
+.func obj_player__step 0 3
     .loc "objects/obj_player/step.dss" 2
     LOADI r0, 10
     CALLN r0, 1, button_check
     JMPF r0, L0
     GETBI r0, x
-    LOADI r1, 2
-    SUB r0, r0, r1
+    SUBI r0, r0, 2
     SETBI r0, x
   L0:
     .loc "objects/obj_player/step.dss" 3
@@ -17,8 +16,7 @@
     CALLN r0, 1, button_check
     JMPF r0, L1
     GETBI r0, x
-    LOADI r1, 2
-    ADD r0, r0, r1
+    ADDI r0, r0, 2
     SETBI r0, x
   L1:
     .loc "objects/obj_player/step.dss" 4
@@ -26,8 +24,7 @@
     CALLN r0, 1, button_check
     JMPF r0, L2
     GETBI r0, y
-    LOADI r1, 2
-    SUB r0, r0, r1
+    SUBI r0, r0, 2
     SETBI r0, y
   L2:
     .loc "objects/obj_player/step.dss" 5
@@ -35,24 +32,21 @@
     CALLN r0, 1, button_check
     JMPF r0, L3
     GETBI r0, y
-    LOADI r1, 2
-    ADD r0, r0, r1
+    ADDI r0, r0, 2
     SETBI r0, y
   L3:
     .loc "objects/obj_player/step.dss" 6
     GETBI r0, x
     LOADI r1, 8
     GETBI r2, room_width
-    LOADI r3, 8
-    SUB r2, r2, r3
+    SUBI r2, r2, 8
     CALLN r0, 3, clamp
     SETBI r0, x
     .loc "objects/obj_player/step.dss" 7
     GETBI r0, y
     LOADI r1, 8
     GETBI r2, room_height
-    LOADI r3, 8
-    SUB r2, r2, r3
+    SUBI r2, r2, 8
     CALLN r0, 3, clamp
     SETBI r0, y
     RET r0, 0

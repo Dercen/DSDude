@@ -214,28 +214,10 @@ void dsd_plat_mem_report(dsd_mem_report *out)
 
 // ---- Graphics ---------------------------------------------------------------------------------------------------
 
-// The frame height of a sheet `w` wide and `total` tall. ADR-pending ADR-0004: C11 0.2.0 does not pass the frame
-// count (ASET aux), so it is inferred: square frames when that fits, else the tallest OBJ height of this width
-// that divides the sheet. Wrong for a sheet of several non-square frames whose height is also a valid OBJ height.
-static int frame_height(int w, int total)
-{
-    static const int heights[4][4] = {{8, 16, 32, 0}, {8, 16, 32, 0}, {8, 16, 32, 64}, {32, 64, 0, 0}};
-    int row = w == 8 ? 0 : w == 16 ? 1 : w == 32 ? 2 : w == 64 ? 3 : -1;
-    if (row < 0 || total <= 0)
-        return 0;
-    if (total % w == 0)
-        for (int k = 0; k < 4; k++)
-            if (heights[row][k] == w)
-                return w;
-    for (int k = 3; k >= 0; k--)
-        if (heights[row][k] > 0 && total % heights[row][k] == 0)
-            return heights[row][k];
-    return 0;
-}
-
+// C11 0.3.0: the core gives the OBJ box (info->width x info->height) and the frame count; the platform fills bpp.
 int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_info *info)
 {
-    memset(info, 0, sizeof(*info));
+    info->bpp = 0;
     if (screen >= DS_SCREENS || g_sprite_count >= DS_MAX_SPRITES)
         return DSD_PLAT_ENOMEM;
     ds_grf g;
@@ -245,16 +227,18 @@ int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_i
     if (err != GRF_NO_ERROR)
         return DSD_PLAT_ELOAD;
 
-    int w = (int)g.hdr.gfxWidth, h = frame_height(w, (int)g.hdr.gfxHeight);
+    int w = info->width, h = info->height, frames = info->frames;
     int bpp = g.hdr.gfxAttr;
     uint32_t *pals = bpp == 8 ? &g_pal256[screen] : &g_pal16[screen];
     int32_t rc = DSD_PLAT_OK;
     ds_plat_sprite *sp = &g_sprites[g_sprite_count];
-    if (h == 0 || (bpp != 4 && bpp != 8))
+    // The GRF must match what the core expects: its width is the box width and it has frames * height rows.
+    if ((bpp != 4 && bpp != 8) || frames < 1 || (int)g.hdr.gfxWidth != w || (int)g.hdr.gfxHeight < frames * h ||
+        !ds_obj_is_size(w, h))
         rc = DSD_PLAT_ELOAD;
     else if (*pals >= DS_OBJ_PALETTES)
         rc = DSD_PLAT_ENOMEM;
-    else if (!ds_obj_upload((int)screen, &g, w, h, &sp->spr))
+    else if (!ds_obj_upload((int)screen, &g, w, h, frames, &sp->spr))
         rc = DSD_PLAT_ENOMEM;
     if (rc == DSD_PLAT_OK)
     {
@@ -264,9 +248,6 @@ int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_i
         if (g.pal != NULL)
             ds_obj_palette((int)screen, bpp, sp->palette, g.pal, (int)(g.pal_size / 2));
         (*pals)++;
-        info->width = (uint16_t)w;
-        info->height = (uint16_t)h;
-        info->frames = sp->spr.frames;
         info->bpp = (uint16_t)bpp;
         rc = (int32_t)g_sprite_count++;
     }

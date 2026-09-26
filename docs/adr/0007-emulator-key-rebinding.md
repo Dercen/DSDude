@@ -1,7 +1,8 @@
 # ADR-0007: Emulator key rebinding goes through C4 (`LaunchOptions.keys`)
 
-- Status: **proposed** by WS6 (2026-09-26). Needs WS1 (C4 owner; WS8 after `start-ws8`). Tier: T1 for C4 (one
-  optional field). No other contract changes.
+- Status: **accepted** (user, 2026-09-26); proposed by WS6. WS1 implements it (C4 T1: optional `LaunchOptions.keys`,
+  exported `SUPPORTED_KEYS`, one new E6xx with fallback to the default key); WS6 then removes its `ADR-pending ADR-0007`
+  marker and enables the rebinding page. No other contract changes.
 - Affected streams: WS1/WS8 (`packages/toolchain`: EmulatorManager, the melonDS/DeSmuME config writers), WS6 (the
   IDE's Settings page, the Controls card, the first Output line of every launch).
 - Sources: PLAN.md 6 WS6 "Controls card" ("A Settings page lets the user rebind. It writes both `melonDS.toml` and
