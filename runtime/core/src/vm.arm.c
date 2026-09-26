@@ -535,6 +535,32 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
         next = *ip;                                                                                                    \
         seg = ip;                                                                                                      \
     } while (0)
+// A relative jump by d instructions from the next one. Forward (d >= 0) the skipped instructions never run, so
+// moving `seg` by the same d keeps `ip - seg` exact with no settling (and no loop can run forward only); backward
+// jumps, the only way to loop, settle and check the budget.
+#define JUMP_BY(d)                                                                                                     \
+    do {                                                                                                               \
+        int32_t d_ = (d);                                                                                              \
+        if (d_ >= 0) {                                                                                                 \
+            ip += d_;                                                                                                  \
+            seg += d_;                                                                                                 \
+            next = *ip;                                                                                                \
+        } else {                                                                                                       \
+            TRANSFER(ip + d_);                                                                                         \
+        }                                                                                                              \
+    } while (0)
+// The end of CMPJ/CMPJII: when the relation holds, skip the JMP that follows (it never runs); otherwise run that JMP
+// here, from the prefetched word, instead of dispatching to it: it counts as a step, then jumps.
+#define CMPJ_END(holds)                                                                                                \
+    do {                                                                                                               \
+        if (holds) {                                                                                                   \
+            JUMP_BY(1);                                                                                                \
+        } else {                                                                                                       \
+            uint32_t jmp_ = next;                                                                                      \
+            ip++;                                                                                                      \
+            JUMP_BY(DSD_SBX(jmp_));                                                                                    \
+        }                                                                                                              \
+    } while (0)
 // Record the running instruction's code index for errors and builtins (ip already points past it).
 #define SYNC_PC() (vm->pc = (uint32_t)(ip - 1 - code))
 #define RA R[DSD_A(ins)]
@@ -653,15 +679,15 @@ op_NOT:
     DISPATCH();
 
 op_JMP:
-    TRANSFER(ip + DSD_SBX(ins));
+    JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 
 op_JMPT:
-    if (dsd_truthy(RA)) TRANSFER(ip + DSD_SBX(ins));
+    if (dsd_truthy(RA)) JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 
 op_JMPF:
-    if (!dsd_truthy(RA)) TRANSFER(ip + DSD_SBX(ins));
+    if (!dsd_truthy(RA)) JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 
 op_CALLN: {
@@ -830,7 +856,7 @@ op_CMPJ: {
         SYNC_PC();
         if (!relation_holds(vm, DSD_C(ins), a, b, &holds)) goto failed;
     }
-    if (holds) TRANSFER(ip + 1); // skip the JMP (the verifier guarantees one follows), which never runs
+    CMPJ_END(holds); // the verifier guarantees a JMP follows
     DISPATCH();
 }
 
@@ -890,7 +916,7 @@ op_CMPJII: {
         holds = x >= y;
         break;
     }
-    if (holds) TRANSFER(ip + 1); // skip the JMP, which never runs
+    CMPJ_END(holds);
     DISPATCH();
 }
 
@@ -982,12 +1008,12 @@ op_WITHBEGIN: {
     SYNC_PC();
     if (!dsd_with_begin(RA, &RA, &empty)) goto failed;
     self_slots = SELF_SLOTS(vm); // the loop's first instance (or the outer self when the loop is empty)
-    if (empty) TRANSFER(ip + DSD_SBX(ins));
+    if (empty) JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 }
 
 op_WITHNEXT:
-    if (dsd_with_next(RA)) TRANSFER(ip + DSD_SBX(ins));
+    if (dsd_with_next(RA)) JUMP_BY(DSD_SBX(ins));
     self_slots = SELF_SLOTS(vm); // the next instance, or the outer self again after the last one
     DISPATCH();
 
@@ -1017,6 +1043,8 @@ failed:
 #undef SELF_SLOTS
 #undef SETTLE
 #undef TRANSFER
+#undef JUMP_BY
+#undef CMPJ_END
 #undef SYNC_PC
 #undef RA
 #undef RB
