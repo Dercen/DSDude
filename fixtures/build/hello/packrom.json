@@ -1,0 +1,15 @@
+{
+  "rom": "game.nds",
+  "title": "hello",
+  "sizeBytes": 145408,
+  "sha256": "73f8bb7ef994259b1cf7f145eb99557cc589dcc9c02ca28396fc4638baa97b6e",
+  "nitrofsFiles": 1,
+  "header": {
+    "fntOffset": 132096,
+    "fntSize": 19,
+    "fatOffset": 132608,
+    "fatSize": 8,
+    "magicOffset": 132616,
+    "magicOk": true
+  }
+}

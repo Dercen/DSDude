@@ -1,0 +1,158 @@
+# C4: Toolchain driver API and BuildService
+
+Version: 0.2.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+
+The types live in `packages/toolchain/src/api.ts` (exported from `@dsdude/toolchain`); this file states the rules
+the implementation follows. `BuildService` is confirmed at CP-A. Sources: PLAN.md sections 2.6, 3.2 and 6 WS1;
+`docs/research/verification.md` claims 1, 2, 3, 6, 7 and 10; spikes 2-9 in `docs/status/ws1.md`.
+
+## Importing
+
+- Importing `@dsdude/toolchain` has no side effects and works on Linux: nothing is spawned or read at import time.
+- `@dsdude/toolchain` never imports `@dsdude/compiler` or `@dsdude/asset-pipeline`. `BuildService` receives
+  `CompileFn`, `PackAssetsFn` and `CheckRoomBudgetsFn` (`BuildServiceDeps`) from its composition root
+  (`packages/cli`, the IDE build worker).
+- `MockBuildService` (Phase 0) stays for consumers that want no tools at all.
+
+## Tools and `detectToolchain()`
+
+- `detectToolchain()` never throws. Off Windows it returns `installed: false`, empty `paths` and one E605.
+- On Windows it looks under `C:\msys64` (`DSDUDE_MSYS2` overrides) for `usr\bin\bash.exe` and, under
+  `opt\wonderful\thirdparty\blocksds\core\`, for `tools\{ndstool,grit,mmutil}\*.exe`,
+  `sys\arm7\main_core\arm7_maxmod.elf` and `sys\icon.bmp`, plus
+  `opt\wonderful\toolchain\gcc-arm-none-eabi\bin\arm-none-eabi-gcc.exe`.
+  - `installed` is true only when all of them exist; each missing one is an E601 (E600 when BlocksDS is absent).
+  - `blocksdsVersion` comes from `core\version.txt` (`v1.24.0-dirty` gives `"1.24.0"`).
+- It also reports, without affecting `installed`: `melonds` and `desmume` under `<DSDUDE_HOME>\emulators\`, and
+  `python`, the first `python.exe` on PATH. A PATH entry counts when `lstat` finds it: the Microsoft Store
+  `python.exe` is an App Execution Alias that `existsSync` reports missing.
+- `ToolPaths` gained `arm7Elf`, `icon` and `gcc` in 0.2.0.
+
+## Processes
+
+Every process gets a timeout, and when it fires the whole tree is killed (tree-kill; `make` spawns gcc).
+
+| Process | Spawn | Env | Timeout |
+|---|---|---|---|
+| ndstool, grit, mmutil | `windowsHide: true`, stdio pipe | PATH prefixed with `C:\msys64\opt\wonderful\bin` (the PATH key is matched case-insensitively) | 60 s |
+| make | `bash.exe -lc 'make -jN'` in the Makefile folder, `windowsHide: true` | tool env plus `MSYSTEM=UCRT64`, `MSYS2_PATH_TYPE=inherit`, `CHERE_INVOKING=1`, `BLOCKSDS=/opt/wonderful/thirdparty/blocksds/core`, `BLOCKSDSEXT=/opt/wonderful/thirdparty/blocksds/external`, `WONDERFUL_TOOLCHAIN=/opt/wonderful` | 10 min |
+| python (`tools/screenshot.py`) | `windowsHide: true` | `SDL_VIDEODRIVER=dummy`, `SDL_AUDIODRIVER=dummy` | 60 s + 50 ms per frame |
+| melonDS, DeSmuME | stdio pipe, **no** `windowsHide` (it hides a GUI emulator's window: spike 2) | caller's env | none; stopped by `stop()` |
+
+- `-l` is required for bash. `CHERE_INVOKING=1` keeps the working directory when SHLVL is unset, as under
+  Electron (spike 3). `BLOCKSDS` stays a POSIX path, which MSYS2 converts for gcc.
+- `jobs` is `--jobs`, else `DSDUDE_MAKE_JOBS`, else 8.
+- Exit code 0xC0000135 from a tool is E602 (a DLL is missing); a timeout is E604; any other non-zero exit is E603
+  with the last lines of output.
+
+## `packRom()` and `verifyRom()`
+
+- The ndstool line is
+  `ndstool -c <outNds> -9 <arm9Elf> -7 <arm7_maxmod.elf> -b <icon> "Title;Subtitle;Author" [-g <gamecode>] -d <nitrofsDir>`.
+  - `-7` is always explicit, so ndstool never depends on `$BLOCKSDS`.
+  - The icon is `iconPng`, else `core\sys\icon.bmp`.
+  - `;` inside a banner part becomes `,`, and empty parts are dropped. `-g` is passed only when the game code is not `####`.
+- Before running, it checks that the ELF, the NitroFS folder and the icon exist (E607) and that every path is under
+  250 characters (E606). The output is deleted first.
+- After running, the ROM must exist and not be empty, or the failure is E610 and the partial file is deleted.
+- **Header check** (`checkRom`, also `verifyRom`). The ROM is read directly, because `ndstool -i` does not report the
+  magic. FNT offset/size are at 0x40/0x44 and FAT offset/size at 0x48/0x4C. Each rule, in order:
+
+  | Check | Failure |
+  |---|---|
+  | The file is at least 0x200 bytes | E614 |
+  | FAT offset >= 0x8000 and FNT offset >= 0x8000 | E611 |
+  | FAT size > 0 | E612 (an empty `-d` folder packs this way) |
+  | The 8 bytes `NitroFS!` at FAT offset + FAT size | E613 |
+
+  A ROM that fails is deleted.
+- `packRom()` throws `ToolchainError` (its `diagnostics` hold the E6xx) because `PackRomResult` has no diagnostics
+  field.
+- `RomInfo.nitrofsFiles` is FAT size / 8. `RomInfo.header` (0.2.0) holds the checked fields.
+- Packing is deterministic: the same ELF, folder, title and icon give the same bytes. A stripped ELF gives the same
+  ROM as the unstripped one, because ndstool copies only the loadable segments.
+
+## `buildRuntime()`
+
+`runMake({dir, elf, jobs, paths})` runs make in any BlocksDS `rom_arm9` folder and returns `arm9Elf` = `dir/elf`
+when make exits 0 and the file exists, else E640 (E604 on timeout). `buildRuntime()` is `runMake` on `runtime/`
+with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its ELF is `build/hello.elf`).
+
+## `EmulatorManager`
+
+- Emulators live in `<DSDUDE_HOME>\emulators\melonDS-1.1\melonDS.exe` and
+  `<DSDUDE_HOME>\emulators\desmume-0.9.13\DeSmuME_0.9.13_x64.exe`. Their configs sit beside the exes, so each
+  worktree keeps its own.
+- `ensureInstalled("desmume")` copies the exe from `%USERPROFILE%\Downloads\desmume-0.9.13-win64\` when it is
+  missing. Otherwise a missing emulator is E620 (the melonDS download and SHA-256 check come in the next version).
+- `launch(rom, {kind})`, in order:
+  1. Stop this manager's previous emulator and wait for it to exit.
+  2. Reconcile `running.json`.
+  3. For melonDS, patch `melonDS.toml` in place: the Controls key map (Qt codes A=88, B=90, X=83, Y=65, L=81,
+     R=87, Start=16777220, Select=16777248, Up=16777235, Down=16777237, Left=16777234, Right=16777236),
+     `IntegerScaling=true`, `ShowOSD=false`, `[3D] Renderer=0`, `[Screen] UseGL=false` and
+     `[Instance0.Gdb] Enabled=false` (true only for Debug; ports 3333/3334). Every other key is kept (window
+     geometry, recent ROMs), and melonDS keeps these when it rewrites the file on exit.
+  4. Spawn `exe <absolute rom>` with cwd = the emulator folder, and record
+     `{pid, kind, rom, startedAt}` in `<DSDUDE_HOME>\emulators\running.json`.
+- `onLine` receives every stdout/stderr line (decoded as latin1, `\r\n` accepted, `DSD|PAD|` lines dropped).
+  A new listener first receives the lines printed so far (up to 5000).
+- `stop()` sends `taskkill /PID`, waits up to 2 s for the exit (which flushes the emulator's stdout), then sends
+  `taskkill /F /T /PID`. It resolves once the process has exited.
+- `reconcile()` kills the PID in `running.json` with `/F /T` only while that PID's image is still the recorded
+  emulator's exe, because Windows reuses PIDs. The record is removed when its process exits.
+
+## `BuildService` (`LocalBuildService`)
+
+- Output goes to `<DSDUDE_HOME>\build\<project-hash>\`, never into the project.
+  - `<project-hash>` is the first 16 hex digits of the SHA-256 of the lower-cased absolute project path.
+  - `DSDUDE_HOME` defaults to `%LOCALAPPDATA%\DSDude`.
+  - The folder holds `nitrofs\` (the NitroFS root), `game.nds` and `packrom.json`
+    (`{rom, title, sizeBytes, sha256, nitrofsFiles, header}`).
+- Phases, in order: `load`, `assets`, `runtime`, `pack` (plus `compile` and `budgets` for DSDude projects), then
+  `done`, `failed` or `cancelled`. `play` adds `launch` and then `running`, whose events carry each emulator line
+  in `log`.
+- **Plain BlocksDS folders** (no `project.json`, e.g. `samples/hello`) build only with `skipCompile` and
+  `skipAssets`; otherwise the result is E608.
+  - `<dir>\nitrofs\` is copied to the build folder's `nitrofs\`.
+  - The folder name is the title, the subtitle and author are `DSDude`, and the icon is `core\sys\icon.bmp`.
+- **The runtime ELF** is `runtime`, else `runtime\dist\arm9.elf`, which `buildRuntime()` makes when it is missing.
+  A missing `runtime` file is E607.
+- **DSDude projects** (`project.json`): with `skipCompile` and `skipAssets`, the existing build folder's `nitrofs\`
+  is reused (E609 if it does not exist). Compile and assets are wired when WS4 and WS5 land (by CP-B); until then
+  a project build without both skip flags reports E605.
+- `cancel()` aborts the running request: running processes are tree-killed, and the result is `ok: false` with a
+  `cancelled` event.
+- `launchRom(ndsPath, kind)` (not in the interface) launches an already built ROM for `dsdude play --no-build`.
+
+## E6xx catalog
+
+`packages/toolchain/src/diagnostics/catalog.ts`:
+
+| Codes | Meaning |
+|---|---|
+| E600, E601 | BlocksDS or one tool missing |
+| E602, E603, E604 | a tool is missing a DLL, failed, or timed out |
+| E605 | needs Windows (or not wired yet) |
+| E606 | path of 250 characters or more |
+| E607 | missing input file |
+| E608 | not a DSDude project (needs both skip flags) |
+| E609 | not built yet |
+| E610-E614 | pack and header failures |
+| E620-E622 | emulator missing, would not start, bad download |
+| E630, E631 | Python/py-desmume missing, screenshot failed |
+| E640 | runtime `make` failed |
+
+Every E6xx is an error with `source: "toolchain"`, and the CLI exits 2 on any of them (C10).
+
+## How to change me
+
+- T0 (wording, examples): WS1 commits with a `contracts/CHANGELOG.md` line.
+- T1 (a new optional field, a new function type, a new phase): minor version bump + CHANGELOG entry in one commit;
+  WS0 reviews within 24 hours.
+- T2 (anything that breaks an implementer or a consumer): an ADR co-signed by WS4, WS5, WS6 and WS8.
+
+## Changes
+
+- 0.2.0 (WS1, 2026-09-25, T1): `ToolPaths.arm7Elf`, `icon` and `gcc`; `RomHeaderInfo` and `RomInfo.header`; the
+  `BuildResult.ndsPath` comment names `game.nds` (PLAN.md 3.2). No field was removed or retyped.
