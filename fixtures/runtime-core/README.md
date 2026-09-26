@@ -7,7 +7,8 @@ Inputs and fingerprints for WS2's host runs of whole games (docs/kickoff/ws2.md,
   (format: contracts/log-protocol.md "Key scripts"). The flap frames come from a lookahead search over `dsdude-host`
   runs of WS4's compiled `fixtures/compiler/samples/flappy.dsdb`, so the bird passes pipes and scores (three lives,
   one point each): the run covers scoring, pipe deaths, Outside Room and `room_restart`.
-- `flappy-trace.fnv`: FNV-1a 32 fingerprints of that `flappy.dsdb` and of the 600-frame trace it gives with the key
+- `flappy-trace.fnv`: FNV-1a 32 fingerprints of that `flappy.dsdb` (with its header's ABI hash field zeroed, so a
+  T1 append to `contracts/builtins.json` does not retire it) and of the 600-frame trace it gives with the key
   script and `--seed 1`. The host tests (`runtime/tests/test_programs.c`) require two identical runs and, while the
   dsdb fingerprint matches, the trace fingerprint too, so the Linux and MinGW builds must agree byte for byte (the
   DoD's cross-compiler identity check). When WS4 regenerates `flappy.dsdb`, the test prints a note with the new

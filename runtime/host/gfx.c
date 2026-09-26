@@ -60,7 +60,7 @@
 #define RGB555_MASK 0x7FFFu        // bit 15 of a palette entry is unused
 #define RGB555(r, g, b) ((uint16_t)((r) | ((g) << 5) | ((b) << 10)))
 
-// The 16 UI colours, in the PLAN.md 5.2 order of the GML c_* names, as runtime/platform/ds/src/ds_ui.c sets them:
+// The 16 UI colours as C11 numbers them (dsd_platform.h, PLAN.md 5.2 order; runtime/platform/ds/src/ds_ui.c agrees):
 // white black red green blue yellow orange purple gray ltgray dkgray aqua fuchsia lime maroon navy.
 static const uint16_t UI_RGB[UI_COLOURS] = {
     RGB555(31, 31, 31), RGB555(0, 0, 0),    RGB555(31, 0, 0),   RGB555(0, 16, 0),
@@ -246,7 +246,7 @@ int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_i
         if (ok) sp->pixels = malloc((size_t)frame_px * sp->frames + 1);
         if (sp->pixels == NULL) {
             free(file);
-            return DSD_PLAT_EIO;
+            return ok ? DSD_PLAT_ENOMEM : DSD_PLAT_ELOAD; // C11: a GRF that does not match `info` is ELOAD
         }
         for (uint32_t y = 0; y < (uint32_t)sp->frames * sp->box_h; y++) {
             for (uint32_t x = 0; x < sp->box_w; x++) sp->pixels[y * sp->box_w + x] = tiled_pixel(&g, x, y);
@@ -278,7 +278,7 @@ int32_t dsd_plat_bg_load(uint32_t screen, const char *grf_path) {
     }
     if (!sides_ok || g.map_size < entries * 2) {
         free(file);
-        return DSD_PLAT_EIO; // not an 8bpp text BG (the DS build refuses it too)
+        return DSD_PLAT_ELOAD; // not an 8bpp text BG (the DS build refuses it too)
     }
     bg->width = g.width;
     bg->height = g.height;

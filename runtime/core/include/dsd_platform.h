@@ -191,7 +191,8 @@ void dsd_plat_mem_report(dsd_mem_report *out);
 // ---- Graphics ---------------------------------------------------------------------------------------------------
 
 // Loads a sprite GRF into `screen`'s OBJ memory, `info` giving its box and frames (above). Returns a handle >= 0 and
-// sets info->bpp, or DSD_PLAT_E*.
+// sets info->bpp, or DSD_PLAT_E*: DSD_PLAT_ELOAD when the GRF does not match `info` (its gfxWidth is not the box
+// width, or it has fewer than frames * height rows), DSD_PLAT_ENOMEM when OBJ memory is full.
 int32_t dsd_plat_sprite_load(uint32_t screen, const char *grf_path, dsd_sprite_info *info);
 // Loads a background GRF as `screen`'s room background (BG1); grf_path NULL hides BG1 (a room screen without a
 // background). DSD_PLAT_OK or DSD_PLAT_E*.
@@ -204,6 +205,11 @@ void dsd_plat_oam_submit(uint32_t screen, const dsd_oam_entry *list, uint32_t n,
                          uint32_t naffine);
 
 // ---- UI layer (BG0, 8-pixel cells) ------------------------------------------------------------------------------
+// Colours 0-15 (others wrap to colour & 15) are the 16 UI colours in the PLAN.md 5.2 order of GameMaker's c_*
+// constants, with GameMaker's RGB values as RGB555 (r, g, b): 0 c_white (31,31,31), 1 c_black (0,0,0), 2 c_red
+// (31,0,0), 3 c_green (0,16,0), 4 c_blue (0,0,31), 5 c_yellow (31,31,0), 6 c_orange (31,20,8), 7 c_purple
+// (16,0,16), 8 c_gray (16,16,16), 9 c_ltgray (24,24,24), 10 c_dkgray (8,8,8), 11 c_aqua (0,31,31), 12 c_fuchsia
+// (31,0,31), 13 c_lime (0,31,0), 14 c_maroon (16,0,0), 15 c_navy (0,0,16). draw_set_color's value is the number.
 
 // Writes `len` ASCII bytes at cell (cx, cy); cells off the map are skipped; non-printable bytes draw as '?'.
 void dsd_plat_ui_text(uint32_t screen, int32_t cx, int32_t cy, const char *str, uint32_t len, uint32_t colour);

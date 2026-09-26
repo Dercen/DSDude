@@ -23,6 +23,8 @@
 #define RUN_SEED 1u // every run passes a seed (CLAUDE.md: always --seed N)
 #define DRAW_FRAMES 60 // tier v4 runs: one DSD|STAT period
 #define STRESS_FRAMES 180 // v4-03-stress: three DSD|STAT periods
+#define DSDB_ABI_OFFSET 8 // the ABI hash in a DSDB header (contracts/dsdb.md, header word 2)
+#define DSDB_ABI_BYTES 4
 #define FNV_OFFSET 0x811C9DC5u // FNV-1a 32 offset basis
 #define FNV_PRIME 0x01000193u  // FNV-1a 32 prime
 
@@ -183,6 +185,8 @@ static void test_cases(void) {
         if (!dsd_test_check_i64(st, c->state, __FILE__, __LINE__, c->dsdb)) continue;
         dsd_test_check_i64(host_fatal_seen(), c->state == DSD_GAME_FAILED, __FILE__, __LINE__, c->dsdb);
         if (!read_expected(c->expected)) continue;
+        dsd_test_mask_abi(g_capture);
+        dsd_test_mask_abi(g_expected);
         if (c->log_only) {
             keep_lines(g_capture, LOG_PREFIX, g_filtered, sizeof g_filtered);
             dsd_test_check_str(g_filtered, g_expected, __FILE__, __LINE__, c->dsdb);
@@ -204,7 +208,9 @@ static void test_core_main(void) {
     g_capture_len = 0;
     host_configure(&cfg);
     CHECK_EQ(dsd_core_main(), 0);
-    CHECK_STR(g_capture, "DSD|READY|0.1.0|0dd9987a\nDSD|LOG|hello\nDSD|EXIT|0\n");
+    static char hello[CAPTURE_MAX];
+    snprintf(hello, sizeof hello, "%sDSD|LOG|hello\nDSD|EXIT|0\n", dsd_test_ready_line());
+    CHECK_STR(g_capture, hello);
     // No file system (the host's dsd_plat_init fails without a root): R584, and dsd_core_main returns 1.
     HostConfig none = {NULL, RUN_SEED, NULL, capture, NULL};
     g_capture_len = 0;
@@ -277,8 +283,11 @@ static void test_flappy_deterministic(void) {
     char want[EXPECT_MAX];
     int32_t nw = dsd_test_read_file("fixtures/runtime-core/flappy-trace.fnv", want, EXPECT_MAX - 1);
     int32_t nd = dsd_test_read_file(dsdb, dsdb_bytes, EXPECT_MAX);
-    if (!CHECK(nw > 0 && nd > 0)) return;
+    if (!CHECK(nw > 0 && nd > DSDB_ABI_OFFSET + DSDB_ABI_BYTES)) return;
     want[nw] = '\0';
+    // The ABI hash field is zeroed first: an append to builtins.json changes it in every DSDB without changing
+    // what Flappy does, so the trace check keeps running.
+    memset(dsdb_bytes + DSDB_ABI_OFFSET, 0, DSDB_ABI_BYTES);
     char got[EXPECT_MAX];
     snprintf(got, sizeof got, "dsdb 0x%08x\ntrace 0x%08x %d\n", (unsigned)fnv1a(dsdb_bytes, nd), (unsigned)fnv1a(a, na),
              (int)na);

@@ -9,6 +9,8 @@
 #include "host.h"
 #include "test.h"
 
+#define CAP_EXIT_READY 96 // "DSD|EXIT|0\n" plus a READY line
+
 #define CAPTURE_MAX 8192
 #define LIMITS_JSON "contracts/runtime-limits.json"
 #define LIMITS_MAX 8192
@@ -68,7 +70,9 @@ static void test_log_lines(void) {
     capture_reset();
     dsd_log_exit(0);
     dsd_log_ready();
-    CHECK_STR(g_cap, "DSD|EXIT|0\nDSD|READY|0.1.0|0dd9987a\n");
+    char want[CAP_EXIT_READY];
+    snprintf(want, sizeof want, "DSD|EXIT|0\n%s", dsd_test_ready_line());
+    CHECK_STR(g_cap, want);
 }
 
 // Checks one parsed input: held mask and touch.
