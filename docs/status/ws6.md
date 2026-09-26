@@ -275,3 +275,4 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - Unsaved-changes prompt on close.
 
 ## Integration feedback
+- IF-1 2026-09-26 checkpoint-18 @fc470ae: IDE browser tests on Windows failed: `npm run test:browser -w apps/ide` -> Error: Failed to run the test C:/Users/zache/OneDrive/Desktop/Projects/DSDude/apps/ide/src/renderer/editors/room/room.browser.test.tsx.. Action: reproduce locally and fix.
