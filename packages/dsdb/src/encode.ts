@@ -121,6 +121,7 @@ export function encode(m: DsdbModule, env: BuiltinsEnv): Uint8Array {
 
   // Globals, symbols and constants referenced by code.
   const globalNames = new Set(m.globals);
+  const symbolNames = new Set(m.symbols);
   const consts: Const[] = [];
   for (const f of m.functions)
     for (const ins of f.code) {
@@ -128,11 +129,12 @@ export function encode(m: DsdbModule, env: BuiltinsEnv): Uint8Array {
       if (spec.length !== ins.args.length) fail(`${f.name}: ${ins.op} takes ${spec.length} operands`);
       spec.forEach(([, kind], i) => {
         if (kind === "global") globalNames.add(ins.args[i] as string);
+        if (kind === "sym") symbolNames.add(ins.args[i] as string);
         if (kind === "k") consts.push(ins.args[i] as Const);
       });
     }
   const globals = sortedUnique(globalNames);
-  const symbols = sortedUnique([...m.symbols, ...m.objects.flatMap((o) => o.slots.map((s) => s.symbol))]);
+  const symbols = sortedUnique([...symbolNames, ...m.objects.flatMap((o) => o.slots.map((s) => s.symbol))]);
 
   const strings = sortedUnique([
     ...m.functions.map((f) => f.name),
@@ -185,7 +187,9 @@ export function encode(m: DsdbModule, env: BuiltinsEnv): Uint8Array {
     range(f.params, 0, f.regs, `${f.name}: params`);
     const start = words.length;
     f.code.forEach((ins, pc) => {
-      words.push(encodeInstr(ins, pc, f, { env, konsIndex, cellKey: (c) => cellKey(cell(c)), globIndex, funcIndex }));
+      words.push(
+        encodeInstr(ins, pc, f, { env, konsIndex, cellKey: (c) => cellKey(cell(c)), globIndex, funcIndex, symIndex }),
+      );
     });
     for (const l of f.locs) dbg.push([start + l.index, str(l.file), l.line]);
     funcs.push({ name: str(f.name), start, len: f.code.length, params: f.params, regs: f.regs });
@@ -365,6 +369,7 @@ interface EncodeCtx {
   cellKey: (c: Const) => string;
   globIndex: Map<string, number>;
   funcIndex: Map<string, number>;
+  symIndex: Map<string, number>;
 }
 
 function encodeInstr(ins: Instr, pc: number, f: Func, ctx: EncodeCtx): number {
@@ -410,9 +415,17 @@ function encodeInstr(ins: Instr, pc: number, f: Func, ctx: EncodeCtx): number {
       case "func":
         v = ctx.funcIndex.get(a as string) ?? fail(`${f.name}@${pc}: unknown function ${a}`);
         break;
+      case "sym":
+        v = ctx.symIndex.get(a as string) ?? fail(`${f.name}@${pc}: unknown symbol ${a}`);
+        break;
+      case "bivar":
+        v = ctx.env.variableIndex.get(a as string) ?? fail(`${f.name}@${pc}: unknown builtin variable ${a}`);
+        break;
       default:
         return fail(`operand kind ${kind}`);
     }
+    // Names resolved to indices must still fit their field: 8 bits for A/B/C, 16 for Bx.
+    range(v, 0, field === "Bx" || field === "sBx" ? 0xffff : 0xff, `${f.name}@${pc}: ${kind} index`);
     const shift = { A: 8, B: 16, C: 24, Bx: 16, sBx: 16 }[field] ?? fail(`field ${field}`);
     word |= v << shift;
   }
@@ -549,7 +562,7 @@ export function decode(bytes: Uint8Array, env: BuiltinsEnv): DsdbModule {
     regs: h.regs,
     code: words
       .slice(h.start, h.start + h.len)
-      .map((w, pc) => decodeInstr(w, pc, { env, kons, constOf, globals, fheads })),
+      .map((w, pc) => decodeInstr(w, pc, { env, kons, constOf, globals, symbols, fheads })),
     locs: dbg
       .filter(([c]) => c >= h.start && c < h.start + h.len)
       .map(([c, file, line]) => ({ index: c - h.start, file, line })),
@@ -637,6 +650,7 @@ interface DecodeCtx {
   kons: [number, number][];
   constOf: (c: [number, number]) => Const;
   globals: string[];
+  symbols: string[];
   fheads: { name: string }[];
 }
 
@@ -668,6 +682,10 @@ function decodeInstr(w: number, pc: number, ctx: DecodeCtx): Instr {
         return ctx.globals[raw] ?? fail(`global index ${raw}`);
       case "func":
         return ctx.fheads[raw]?.name ?? fail(`function index ${raw}`);
+      case "sym":
+        return ctx.symbols[raw] ?? fail(`symbol index ${raw}`);
+      case "bivar":
+        return ctx.env.variables[raw] ?? fail(`builtin variable index ${raw}`);
       default:
         return raw;
     }

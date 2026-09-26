@@ -183,6 +183,123 @@ export const COMPILER_CATALOG = {
     "Add case value: or default: before this line.",
   ),
 
+  // ---- E2xx: names and assets -------------------------------------------------------------------------------
+  E201: err(
+    "E201",
+    "Unknown function",
+    "There is no function called {name}.",
+    "{suggestion}Check the spelling, or add the function to Scripts.",
+  ),
+  E202: err(
+    "E202",
+    "Unknown name",
+    "{name} is never given a value, so DSS doesn't know what it is.",
+    "{suggestion}Check the spelling, or give {name} a value first (for example in the Create event).",
+  ),
+  E203: err(
+    "E203",
+    "var or global. needed",
+    "{name} needs var or global. before it here.",
+    "Write var {name} = ... for a value used only here, or global.{name} = ... for one shared everywhere.",
+  ),
+  E204: err(
+    "E204",
+    "Function used as a value",
+    "{name} is a function, so it needs brackets to run.",
+    "Write {name}() to call it.",
+  ),
+
+  E205: err(
+    "E205",
+    "Another object's helper",
+    "{name}() is a helper of {owner}, so {here} can't use it.",
+    "To use it from {here}, move it to Scripts.",
+  ),
+  E208: err(
+    "E208",
+    "Function made twice",
+    "There are two functions called {name}.",
+    "Rename one of them: every script function needs its own name.",
+  ),
+
+  // ---- E3xx: types, arguments and event misuse ------------------------------------------------------------------
+  E301: err("E301", "Wrong number of values", "{name} takes {expected}, but {count} given.", "Give {name} {expected}."),
+  E302: err(
+    "E302",
+    "Can't be changed",
+    "{name} can be read but not changed.",
+    "Keep the value in a variable of your own instead.",
+  ),
+  E303: err(
+    "E303",
+    "Needs an instance",
+    "{what} needs an instance, but this code runs without one.",
+    "Move this code into an event of an object.",
+  ),
+  E304: err(
+    "E304",
+    "break or continue outside a loop",
+    "{keyword} can only be used inside {place}.",
+    "Remove it, or use exit to leave the event or function.",
+  ),
+  E305: err(
+    "E305",
+    "Index missing",
+    "{name} holds several values, so it needs an index.",
+    "Write {name}[0] for the first one.",
+  ),
+  E306: err(
+    "E306",
+    "Only functions can be called",
+    "Only a function's name can go before ( ).",
+    "Check the name before the (.",
+  ),
+  E307: err(
+    "E307",
+    "Default value uses a variable",
+    "The default value of {param} can only use numbers, text, constants and global. values.",
+    "Give {param} a fixed default, and work out the rest inside the function.",
+  ),
+
+  E308: err(
+    "E308",
+    "Unknown event file",
+    "{file} is not an event DSDude knows.",
+    "Rename it to an event such as step.dss, create.dss or alarm_0.dss (see the Events list), or move the code into functions.dss.",
+  ),
+  E309: err(
+    "E309",
+    "Collision with an unknown object",
+    "{file} is a collision event, but there is no object called {name}.",
+    "Rename the file to collision_ followed by an object's name.",
+  ),
+
+  // ---- E49x: hardware limits the compiler detects -----------------------------------------------------------------
+  E491: err(
+    "E491",
+    "Too many variables in one object",
+    "{object} has {count} variables of its own (counting its parent's), but an object can have at most {max}.",
+    "Keep some of them in global. values or in an array, or split the object in two.",
+  ),
+  E492: err(
+    "E492",
+    "Too many values at once",
+    "{func} needs more than 64 places for its variables and values at once.",
+    "Split it into smaller functions, or use fewer var variables.",
+  ),
+  E494: err(
+    "E494",
+    "Too many variable names",
+    "The game reaches {count} different variable names through other instances or scripts, but at most 256 fit.",
+    "Use fewer different names with other., with or in Scripts, or keep the values in global. variables.",
+  ),
+  E493: err(
+    "E493",
+    "Array list too long",
+    "An array written with [ ] can hold at most 255 items.",
+    "Build bigger arrays with array_create and a loop.",
+  ),
+
   // ---- W0xx: lints ---------------------------------------------------------------------------------------------
   W030: warn(
     "W030",

@@ -2,8 +2,8 @@
 #ifndef DSD_GEN_OPCODES_H
 #define DSD_GEN_OPCODES_H
 
-#define DSD_OPCODES_VERSION "0.1.0"
-#define DSD_OPCODE_COUNT 55
+#define DSD_OPCODES_VERSION "0.2.0"
+#define DSD_OPCODE_COUNT 59
 
 /* Instruction word: op = bits 0-7, A = 8-15, B = 16-23, C = 24-31, Bx/sBx = 16-31. */
 #define DSD_OP(i) ((unsigned)(i) & 0xFFu)
@@ -51,10 +51,10 @@
 #define DSD_OP_SETSLOT    35 /* provisional: A:reg B:u8 */
 #define DSD_OP_GETSLOTO   36 /* provisional: A:reg B:u8 */
 #define DSD_OP_SETSLOTO   37 /* provisional: A:reg B:u8 */
-#define DSD_OP_GETDYN     38 /* provisional: A:reg B:reg C:u8 */
-#define DSD_OP_SETDYN     39 /* provisional: A:reg B:reg C:u8 */
-#define DSD_OP_GETBI      40 /* provisional: A:reg Bx:u16 */
-#define DSD_OP_SETBI      41 /* provisional: A:reg Bx:u16 */
+#define DSD_OP_GETDYN     38 /* provisional: A:reg B:reg C:sym */
+#define DSD_OP_SETDYN     39 /* provisional: A:reg B:reg C:sym */
+#define DSD_OP_GETBI      40 /* provisional: A:reg Bx:bivar */
+#define DSD_OP_SETBI      41 /* provisional: A:reg Bx:bivar */
 #define DSD_OP_WITHBEGIN  42 /* provisional: A:reg sBx:label */
 #define DSD_OP_WITHNEXT   43 /* provisional: A:reg sBx:label */
 #define DSD_OP_WITHEND    44 /* provisional: A:reg */
@@ -68,6 +68,10 @@
 #define DSD_OP_SUBII      52 /* reserved: - */
 #define DSD_OP_MULII      53 /* reserved: - */
 #define DSD_OP_CMPJII     54 /* reserved: - */
+#define DSD_OP_GETBIX     55 /* provisional: A:reg B:bivar C:reg */
+#define DSD_OP_SETBIX     56 /* provisional: A:reg B:bivar C:reg */
+#define DSD_OP_GETBIO     57 /* provisional: A:reg B:reg C:bivar */
+#define DSD_OP_SETBIO     58 /* provisional: A:reg B:reg C:bivar */
 
 /* X-macro: X(name, number, stable) */
 #define DSD_OPCODE_LIST(X) \
@@ -125,6 +129,10 @@
   X(ADDII, 51, 0) \
   X(SUBII, 52, 0) \
   X(MULII, 53, 0) \
-  X(CMPJII, 54, 0)
+  X(CMPJII, 54, 0) \
+  X(GETBIX, 55, 0) \
+  X(SETBIX, 56, 0) \
+  X(GETBIO, 57, 0) \
+  X(SETBIO, 58, 0)
 
 #endif
