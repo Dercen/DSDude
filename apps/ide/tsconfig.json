@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist-types",
+    "rootDir": "src",
+    "lib": [
+      "es2023",
+      "dom",
+      "dom.iterable"
+    ],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../packages/project-format"
+    },
+    {
+      "path": "../../packages/ipc-contract"
+    },
+    {
+      "path": "../../packages/toolchain"
+    },
+    {
+      "path": "../../packages/compiler"
+    },
+    {
+      "path": "../../packages/asset-pipeline"
+    },
+    {
+      "path": "../../packages/editor-core"
+    },
+    {
+      "path": "../../packages/language-service"
+    },
+    {
+      "path": "../../packages/monaco-dss"
+    }
+  ]
+}

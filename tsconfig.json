@@ -1,0 +1,20 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/project-format" },
+    { "path": "packages/dsdb" },
+    { "path": "packages/lang" },
+    { "path": "packages/toolchain" },
+    { "path": "packages/compiler" },
+    { "path": "packages/asset-pipeline" },
+    { "path": "packages/cli" },
+    { "path": "packages/ipc-contract" },
+    { "path": "packages/editor-core" },
+    { "path": "packages/language-service" },
+    { "path": "packages/monaco-dss" },
+    { "path": "apps/ide" },
+    { "path": "tools/gen-docs" },
+    { "path": "tools" },
+    { "path": "runtime" }
+  ]
+}

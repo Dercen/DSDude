@@ -1,0 +1,16 @@
+{
+  "name": "@dsdude/gen-docs",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --pool=threads --maxWorkers=2"
+  },
+  "dependencies": {
+    "@dsdude/project-format": "0.1.0"
+  }
+}

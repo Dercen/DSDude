@@ -18,13 +18,14 @@ Mode: **hybrid** (no fallback recorded). Schedule position: Phase 0, Day 1 (2026
 Legend: todo / in progress / done (<sha>).
 
 ### Day 1
-- Task 1. Line endings and repo hygiene: in progress
-  - `.gitattributes`, `.editorconfig`, `.npmrc`: in progress
-  - full `.gitignore`, `vendor/README.md`: in progress
-  - `.claude/settings.json` v1 (allowlist + `npm ci` deny): in progress
-  - `CLAUDE.md` Status block: in progress
-  - renormalize, vendor check, commit, push: todo
-- Task 2. Monorepo (root config, skeletons, pinned stack, lockfile guard, postinstall, spike 13): todo
+- Task 1. Line endings and repo hygiene: done (896eb47, pushed)
+- Task 2. Monorepo: in progress
+  - root `package.json`, `tsconfig.base.json`, solution `tsconfig.json`, `tools/tsconfig.json`, `biome.json`, `vitest.config.ts`: done (see git log)
+  - `tools/postinstall.mjs`, `tools/check-lockfile.mjs`: done
+  - 14 skeletons (`packages/*`, `apps/ide`, `tools/gen-docs`, `runtime`) with the pinned stack, briefs via `tools/phase0/gen-briefs.ts`: done
+  - `LICENSE`, `runtime/LICENSE`, `README.md`: done
+  - lockfile (`chore(deps): regenerate lockfile`): done
+  - spike 13 (WS0 part): todo
 - Task 3. Hooks and governance tools: todo
   - `tools/ownership.json`, `tools/check-ownership.ts` + walk test: todo
   - `.githooks/pre-commit`, `commit-msg`, `pre-push`: todo

@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist-types",
+    "rootDir": "src"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../project-format"
+    },
+    {
+      "path": "../dsdb"
+    },
+    {
+      "path": "../toolchain"
+    },
+    {
+      "path": "../compiler"
+    },
+    {
+      "path": "../asset-pipeline"
+    }
+  ]
+}

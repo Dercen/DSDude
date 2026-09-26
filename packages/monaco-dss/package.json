@@ -1,0 +1,21 @@
+{
+  "name": "@dsdude/monaco-dss",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --pool=threads --maxWorkers=2"
+  },
+  "dependencies": {
+    "@dsdude/language-service": "0.1.0",
+    "monaco-editor": "0.57.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@vitest/browser-playwright": "5.0.1"
+  }
+}

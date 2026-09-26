@@ -1,0 +1,19 @@
+{
+  "name": "@dsdude/compiler",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --pool=threads --maxWorkers=2"
+  },
+  "dependencies": {
+    "@dsdude/dsdb": "0.1.0",
+    "@dsdude/lang": "0.1.0",
+    "@dsdude/project-format": "0.1.0",
+    "@dsdude/toolchain": "0.1.0"
+  }
+}

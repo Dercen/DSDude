@@ -1,0 +1,14 @@
+{
+  "name": "@dsdude/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Zlib",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build:runtime": "node -e \"console.log('build:runtime: not implemented until WS3')\"",
+    "test": "vitest run --pool=threads --maxWorkers=2"
+  }
+}

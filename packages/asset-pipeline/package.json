@@ -1,0 +1,21 @@
+{
+  "name": "@dsdude/asset-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --pool=threads --maxWorkers=2"
+  },
+  "dependencies": {
+    "@audio/decode-mp3": "1.3.1",
+    "@audio/decode-wav": "1.5.0",
+    "@dsdude/project-format": "0.1.0",
+    "@dsdude/toolchain": "0.1.0",
+    "pngjs": "7.0.0",
+    "wavefile": "11.0.0"
+  }
+}
