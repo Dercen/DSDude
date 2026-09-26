@@ -148,7 +148,9 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   builds a real ROM end to end**, and its screenshot shows the player sprite at (128,96), 60 fps.
 - Deviation noted (WS3): sound effects are not `mmEffectRelease`d after starting (PLAN.md 3.3 says release), so
   C11's `dsd_plat_sfx_stop` can still cancel them.
-- ADR-0007 emulator key rebinding (WS6 -> WS1, C4 T1): **accepted** by the user (2026-09-26); WS1 implements it.
+- ADR-0007 emulator key rebinding (WS6 -> WS1, C4 T1): **accepted** by the user (2026-09-26); implemented by WS1 as C4 0.6.0
+  (DsButton, SUPPORTED_KEYS, LaunchOptions.keys, E625 warning with per-button fallback; verified with key presses in both
+  emulators); merged at checkpoint-11. WS6 wires its rebinding page next.
 
 - ADR-0004 platform seam: **resolved** (user, 2026-09-26) by WS2's C11 0.2.0/0.3.0, adopted by WS3; no markers left.
 
