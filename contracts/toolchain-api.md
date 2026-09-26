@@ -1,6 +1,6 @@
 # C4: Toolchain driver API and BuildService
 
-Version: 0.5.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+Version: 0.6.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
 
 The types live in `packages/toolchain/src/api.ts` (exported from `@dsdude/toolchain`); this file states the rules
 the implementation follows. `BuildService` is confirmed at CP-A. Sources: PLAN.md sections 2.6, 3.2 and 6 WS1;
@@ -94,11 +94,14 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
     missing `melonDS.exe` afterwards is E621.
 - `ensureInstalled("desmume")` copies the exe from `%USERPROFILE%\Downloads\desmume-0.9.13-win64\` when it is
   missing; otherwise it is E620.
-- `launch(rom, {kind, debug})`, in order:
+- `launch(rom, {kind, debug, keys})`, in order:
   0. `debug` with DeSmuME is E623: it has no GDB stub.
   1. Stop this manager's previous emulator and wait for it to exit.
   2. Reconcile `running.json`.
-  3. For melonDS, patch `melonDS.toml` in place: the Controls key map (Qt codes A=88, B=90, X=83, Y=65, L=81,
+  3. For melonDS, patch `melonDS.toml` in place (0.6.0: a missing or empty file is first seeded with melonDS 1.1's
+     own defaults, `MELONDS_DEFAULT_TOML`, captured from a first start without the machine-specific `RecentROM` and
+     `Geometry`; melonDS 1.1 crashes with 0xC0000409 on a file that holds only DSDude's keys and truncates it to 0
+     bytes, WS3's report). It sets the Controls key map (by default the Qt codes A=88, B=90, X=83, Y=65, L=81,
      R=87, Start=16777220, Select=16777248, Up=16777235, Down=16777237, Left=16777234, Right=16777236),
      `IntegerScaling=true`, `ShowOSD=false`, `[3D] Renderer=0`, `[Screen] UseGL=false` and
      `[Instance0.Gdb] Enabled` = `debug` with ports 3333 (ARM9) and 3334 (ARM7). melonDS binds the stub on
@@ -113,6 +116,20 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
   4. Spawn `exe <absolute rom>` with cwd = the emulator folder, and record
      `{pid, kind, exe, rom, startedAt}` in `<DSDUDE_HOME>\emulators\running.json` (`startedAt` is taken right
      after the spawn).
+- **Key rebinding** (ADR-0007, 0.6.0). `LaunchOptions.keys` maps DS buttons (`DsButton`: `a b x y l r start select
+  up down left right`) to `KeyboardEvent.key` values; a missing button keeps the default key (`DEFAULT_KEYS`, the same
+  as C5 `ControlsSchema`'s defaults).
+  - `SUPPORTED_KEYS` lists the keys it accepts: the letters `a`-`z` (an upper-case letter means the same key), the
+    digits, `" "` (Space), `Enter`, `Shift`, `Control`, `Tab`, `Backspace`, the four arrows, `Insert`, `Delete`,
+    `Home`, `End`, `PageUp`, `PageDown` and the US-layout punctuation `` - = [ ] \ ; ' , . / ` ``. Function keys,
+    `Escape`, `Alt` and `Meta` are left out: the emulators use them or Windows does.
+  - `resolveKeys(keys)` merges them over the defaults and translates each to a Qt key code (`melonDS.toml`
+    `[Instance0.Keyboard]`) and a Windows virtual-key code (`desmume.ini` `[Controls]`; `VK_OEM_*` for punctuation).
+  - A key it cannot translate never fails the launch: that button keeps its default key, and the handle's
+    `diagnostics` holds one E625 **warning** per such key ("The key 'F13' can't be used for the B button, so B stays
+    on z."). `launchRom` adds them to its result and to its `running` events.
+  - The fake manager of `createFakeToolchain()` writes no config, records `keys` in `launches`, and reports the same
+    E625 warnings.
 - `onLine` receives every stdout/stderr line (decoded as latin1, `\r\n` accepted, `DSD|PAD|` lines dropped).
   A new listener first receives the lines printed so far (up to 5000).
 - `stop()` sends `taskkill /PID`, waits up to 2 s for the exit (which flushes the emulator's stdout), then sends
@@ -172,7 +189,7 @@ with `elf = dist/arm9.elf`. `samples/hello` uses the same Makefile shape (its EL
 - `cancel()` aborts the running request: running processes are tree-killed, the next phase does not start, and
   the result is `ok: false` with a `cancelled` event.
 - `debug` (0.3.0) starts melonDS with its GDB stub; with DeSmuME it is E623.
-- `launchRom(ndsPath, {kind, debug})` (not in the interface) launches an already built ROM for
+- `launchRom(ndsPath, {kind, debug, keys})` (not in the interface) launches an already built ROM for
   `dsdude play --no-build`.
 
 ## Fakes for tests: `MockBuildService` and `createFakeToolchain()`
@@ -239,12 +256,13 @@ the same phase order, `BUILD_PHASES`.
 | E609 | not built yet |
 | E610-E614 | pack and header failures |
 | E620-E624 | emulator missing, would not start, bad download checksum, Debug needs melonDS, download failed |
+| E625 | **warning**: a rebound key the emulators can't use; that button keeps its default key (0.6.0) |
 | E630, E631 | Python/py-desmume missing, screenshot failed |
 | E640 | runtime `make` failed |
 | E641 | a DSDude project needs the compiler and asset pipeline, which are not injected yet |
 | E650, E651 | **warnings** from `dsdude doctor`: OneDrive syncing a project folder; a build path near 250 characters |
 
-Every E6xx has `source: "toolchain"` and is an error, except the E65x warnings. The CLI exits 2 on any E6xx error
+Every E6xx has `source: "toolchain"` and is an error, except the E65x warnings and E625. The CLI exits 2 on any E6xx error
 (C10).
 
 ## How to change me
@@ -261,3 +279,4 @@ Every E6xx has `source: "toolchain"` and is an error, except the E65x warnings. 
 - 0.3.0 (WS1, 2026-09-26, T1): `LaunchOptions.debug`, `BuildRequest.debug`, optional `EmulatorManager.reconcile()`; melonDS download + SHA-256 in `ensureInstalled`; reconcile by exe path and start time; E623, E624.
 - 0.4.0 (WS1, 2026-09-26, T1): `PackAssetsFn` gets `outDir` (the build folder) and the build-folder layout is fixed; the `project.json` build path (assets, compile, budgets, seed patch, reuse under the skip flags); `compileOnly` with a provisional manifest; `createFakeToolchain()`; `MockBuildService` phases and ROM name match the real service; the DeSmuME `[Controls]` key map; E641.
 - 0.5.0 (WS1, 2026-09-26, T1): `runDoctor` and the doctor checks; the tools pack (`tools/fetch-vendor.ps1`, `tools/tools-pack.json`); E650/E651 warnings.
+- 0.6.0 (WS1, 2026-09-26, T1, ADR-0007): `DsButton`, `SUPPORTED_KEYS`, `LaunchOptions.keys`, optional `EmulatorHandle.diagnostics`; the E625 warning; `DEFAULT_KEYS`/`resolveKeys`/`translateKey` exported; `FakeLaunch.keys`. A missing or empty `melonDS.toml` is seeded with melonDS 1.1's defaults before it is patched (fixes the first-Play crash).

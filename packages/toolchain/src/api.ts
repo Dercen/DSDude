@@ -11,7 +11,7 @@
  */
 import type { Diagnostic, Project } from "@dsdude/project-format";
 
-export const CONTRACT_VERSION = "0.5.0";
+export const CONTRACT_VERSION = "0.6.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Tools
@@ -140,11 +140,48 @@ export type VerifyRomFn = (ndsPath: string) => Promise<VerifyRomResult>;
 
 export type EmulatorKind = "melonds" | "desmume";
 
+/** A DS button, in C6 order (the `btn_*` names without `btn_`). 0.6.0. */
+export type DsButton = "a" | "b" | "x" | "y" | "l" | "r" | "start" | "select" | "up" | "down" | "left" | "right";
+
+/**
+ * The KeyboardEvent.key values LaunchOptions.keys can name, for the IDE's Settings page to offer (ADR-0007). A single
+ * letter may also come upper-case ("X" with Shift or Caps Lock); it means the same key. Anything else gets E625 at
+ * launch, and that button keeps its default key. Punctuation keys are named as on a US keyboard. 0.6.0.
+ */
+export const SUPPORTED_KEYS: readonly string[] = [
+  ..."abcdefghijklmnopqrstuvwxyz0123456789",
+  " ",
+  "Enter",
+  "Shift",
+  "Control",
+  "Tab",
+  "Backspace",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "Insert",
+  "Delete",
+  "Home",
+  "End",
+  "PageUp",
+  "PageDown",
+  ..."-=[]\\;',./`",
+];
+
 export interface LaunchOptions {
   /** Extra environment for the emulator process. Emulators spawn WITHOUT windowsHide and with stdio 'pipe'. */
   env?: Record<string, string>;
   /** Debug: melonDS starts its GDB stub on 3333 (ARM9) / 3334 (ARM7); DeSmuME has none (E623). 0.3.0. */
   debug?: boolean;
+  /**
+   * Keys per DS button as KeyboardEvent.key values ("x", "Enter", "ArrowUp", "Shift", ...; SUPPORTED_KEYS); a
+   * missing button keeps the default mapping (PLAN.md 6 WS6, C5 `controls`). The manager writes them into
+   * melonDS.toml as Qt key codes and into desmume.ini as Windows virtual-key codes. A key it cannot translate never
+   * fails the launch: that button keeps its default key and the handle's `diagnostics` holds an E625 warning.
+   * ADR-0007, 0.6.0.
+   */
+  keys?: Partial<Record<DsButton, string>>;
 }
 
 /**
@@ -161,6 +198,8 @@ export interface EmulatorHandle {
   stop(): Promise<void>;
   /** Resolves with the exit code (null when killed) once the process ends for any reason. */
   readonly exited: Promise<number | null>;
+  /** Warnings from the launch, such as E625 for a key LaunchOptions.keys cannot use; absent or empty when none. 0.6.0. */
+  readonly diagnostics?: readonly Diagnostic[];
 }
 
 export interface EmulatorManager {

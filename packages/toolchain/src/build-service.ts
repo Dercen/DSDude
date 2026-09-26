@@ -27,6 +27,7 @@ import type {
   EmulatorHandle,
   EmulatorKind,
   EmulatorManager,
+  LaunchOptions,
   PackRomOptions,
   PackRomResult,
   PlayResult,
@@ -123,7 +124,7 @@ export class LocalBuildService implements BuildService {
   /** Launches an already built ROM (`dsdude play --no-build`). */
   async launchRom(
     ndsPath: string,
-    launch: { kind: EmulatorKind; debug?: boolean },
+    launch: LaunchOptions & { kind: EmulatorKind },
     prior: BuildResult = { ok: true, ndsPath, diagnostics: [], timings: {} },
   ): Promise<PlayResult> {
     const timings = { ...prior.timings };
@@ -134,13 +135,12 @@ export class LocalBuildService implements BuildService {
       const emulator = await this.emulators.launch(ndsPath, launch);
       this.#running = emulator;
       timings.launch = Date.now() - t0;
-      emulator.onLine((line) =>
-        this.#emit({ phase: "running", progress: 1, diagnostics: prior.diagnostics, log: [line], timings }),
-      );
+      const diagnostics = [...prior.diagnostics, ...(emulator.diagnostics ?? [])];
+      emulator.onLine((line) => this.#emit({ phase: "running", progress: 1, diagnostics, log: [line], timings }));
       emulator.exited.then(() => {
         if (this.#running === emulator) this.#running = null;
       });
-      return { ...prior, ndsPath, timings, emulator };
+      return { ...prior, ndsPath, diagnostics, timings, emulator };
     } catch (err) {
       const diagnostics = [...prior.diagnostics, ...errorDiagnostics(err)];
       this.#emit({ phase: "failed", progress: 1, diagnostics, log: [], timings });
