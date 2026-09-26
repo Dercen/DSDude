@@ -34,8 +34,8 @@ Legend: todo / in progress / done (<sha>).
   - spike 1 (`tools/phase0/spike1-hooks.ps1`): todo
   - cloud pieces (`tools/cloud/**`, `docs/status/cloud.md`, status stubs), pushed: todo
   - cloud probe (user runs it): todo
-- Task 4. Small contracts, C4 types, project format, samples: todo
-  - C9 `diagnostics.md` + `Diagnostic` type, minimal C1 `Project`, C4 `api.ts` + `MockBuildService`, C10 `cli.md`: todo
+- Task 4. Small contracts, C4 types, project format, samples: in progress
+  - C9 `diagnostics.md` + `Diagnostic` type, C1 `Project` + schemas + load/save, C4 `api.ts` + `MockBuildService`, C10 `cli.md`: done (this commit; WS1 told to merge `main`)
   - C13 `runtime-limits.json`, C8 `log-protocol.md`, C5 `ipc.md` + `ipc-contract`, C12 `preview.ts`: todo
   - C1 `project-format.md` + schemas + load/save: todo
   - `samples/minimal`, `samples/flappy` v0, ADR-0001: todo
