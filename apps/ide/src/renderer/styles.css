@@ -515,7 +515,7 @@ button.primary {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.toolbar .menu-list button {
+.menu-list .menu-item {
   background: none;
   border: none;
   border-radius: 0;
@@ -523,7 +523,7 @@ button.primary {
   padding: 5px 14px;
 }
 
-.toolbar .menu-list button:hover {
+.menu-list .menu-item:hover {
   background: #094771;
 }
 

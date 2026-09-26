@@ -36,6 +36,7 @@ export function HelpMenu() {
   const item = (label: string, testId: string, run: () => void) => (
     <button
       type="button"
+      className="menu-item"
       role="menuitem"
       data-testid={testId}
       onClick={() => {
