@@ -110,9 +110,10 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 - ADR-0002 DeSmuME R4 slot-1 profile does not mount NitroFS: **accepted** by the user (2026-09-25). DeSmuME launches
   only with its default slot-1 device; flashcart-style boots wait for hardware (spike 15).
 
-- ADR-0003 One key-script format for `dsdude screenshot --keys` and `dsdude-host` (proposed by WS1, 2026-09-26):
-  WS0 recommends **accept**; it is a T1 change to WS2's C8 ("Host runner"), so WS2 co-signs. `tools/screenshot.py`
-  carries `ADR-pending ADR-0003` until then.
+- ADR-0003 key-script format (WS1): **superseded** by WS2's C8 0.2.0 `--input` format (user decision, 2026-09-26).
+  **Next WS1 session** (with the compileProject/packAssets wiring): switch `dsdude screenshot --keys` and
+  `tools/screenshot.py` to the C8 format, update `contracts/cli.md` (T1), drop the `ADR-pending ADR-0003` marker.
+  If WS1 does not run again before CP-C, this goes to `docs/kickoff/ws8.md` with the other leftovers.
 
 ## Integration log
 
