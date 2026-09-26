@@ -128,7 +128,7 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
   passes (2432 MB). When to launch WS6 and WS3 locally (see the Day-2 report).
-- P8 (branch selector): WS2 and WS4 were opened on `main` (2026-09-25); start.sh adopts `ws2-runtime-core` / `ws4-compiler`, so the procedure works either way.
+- P8 (branch selector): answered. WS2 and WS4 were opened on `main` (2026-09-25), and WS5 directly on `ws5-assets` (2026-09-26): the selector does offer stream lines. start.sh handles both.
 
 ## Notes for PLAN.md (fold in at CP-A)
 

@@ -12,6 +12,6 @@ its own `docs/status/wsN.md`; WS0 then updates its line here.
 
 - WS2: environment `dsdude-ws2`; session https://claude.ai/code/session_01UQP5ApgJ5KffdkvUkBKc2A (opened on `main`; start.sh adopts the stream line); push target `ws2-runtime-core`; started 2026-09-25 (`start-ws2` at 57efe6c); last merged 9308b03 (2026-09-26)
 - WS4: environment `dsdude-ws4`; session https://claude.ai/code/session_012JYcY9ehVdLYuqmugJcqmm (opened on `main`; start.sh adopts the stream line); push target `ws4-compiler`; started 2026-09-25 (`start-ws4` at 57efe6c); last merged 5fab99f (2026-09-26)
-- WS5: environment `dsdude-ws5`; session (pending: the user sends the URL); push target `ws5-assets`; started 2026-09-26 (`start-ws5`, early: all its inputs were on main and it is on the CP-B/M2 critical path); last merged -
+- WS5: environment `dsdude-ws5`; session https://claude.ai/code/session_01GkN34Fn94o6GRuzGiXK4EW (opened on `ws5-assets`); push target `ws5-assets`; started 2026-09-26 (`start-ws5`, early: all its inputs were on main and it is on the CP-B/M2 critical path); last merged -
 
 Not yet launched: WS7 (CP-A, D+3), WS6b (CP-B, D+7, if usage limits allow).
