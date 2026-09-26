@@ -150,6 +150,8 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   C11's `dsd_plat_sfx_stop` can still cancel them.
 - ADR-0007 emulator key rebinding (WS6 -> WS1, C4 T1): **accepted** by the user (2026-09-26); WS1 implements it.
 
+- ADR-0004 platform seam: **resolved** (user, 2026-09-26) by WS2's C11 0.2.0/0.3.0, adopted by WS3; no markers left.
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
