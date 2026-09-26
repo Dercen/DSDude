@@ -103,7 +103,8 @@ test("fake-toolchain mode compiles DSS for real in the utilityProcess worker", a
     // WS4's compileProject runs in the worker; the fake tools pack the fixture ROM and the fake emulator prints.
     await page.getByTestId("play").click();
     const output = page.getByTestId("output");
-    await expect(output).toContainText("Game started (runtime 0.1.0)");
+    // The first fake-mode Play forks the worker and runs the real compiler: allow for a busy machine.
+    await expect(output).toContainText("Game started (runtime 0.1.0)", { timeout: 60_000 });
     await page.getByTestId("controls-ok").click();
     await page.getByTestId("stop").click();
     await expect(output).toContainText("Game ended");

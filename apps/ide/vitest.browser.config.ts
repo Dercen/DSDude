@@ -18,6 +18,8 @@ export default defineConfig({
     testTimeout: 30_000,
     // One test file (one Chromium context) at a time: parallel contexts cost ~1.5 GB on this 11 GB machine.
     fileParallelism: false,
+    // Failure screenshots and attachments go to the git-ignored test-results folder.
+    attachmentsDir: "test-results/vitest-attachments",
     api: { port, strictPort: true },
     browser: {
       enabled: true,

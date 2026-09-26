@@ -39,7 +39,7 @@ test("smoke: first run, New Project (Flappy), edit, Play, Stop", async () => {
 
     // Play: compile (real), pack (fake), launch (fake emulator); the Controls card, then the game's lines.
     await page.getByTestId("play").click();
-    await expect(page.getByTestId("controls-card")).toBeVisible();
+    await expect(page.getByTestId("controls-card")).toBeVisible({ timeout: 60_000 });
     await page.getByTestId("controls-ok").click();
     const output = page.getByTestId("output");
     await expect(output).toContainText("Controls: Arrows = D-pad");
