@@ -2,8 +2,7 @@
 
 **toolchain-ok: passed 2026-09-25 4ddccb5**
 
-Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `039e6c6`
-(after `phase0`). WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25).
+Mode: **hybrid**, local slot 1. Launched 2026-09-25 (Day 1, evening). Branch `ws1-toolchain`, `main` merged at `ca892e8`. WS0 merged the gate as `19c3ce8` and tagged `toolchain-ok` (2026-09-25).
 
 Gate evidence (all run 2026-09-25 on this machine, section 8 criteria):
 - **Install by `scripts/install-toolchain.ps1`:** fresh run into an empty `C:\msys64\opt\wonderful` (the earlier install was moved aside, then deleted), 23:05:22-23:06:33, exit 0, unattended, no UAC prompt. Then `scripts/smoke-test.ps1 -Screenshot`: 3/3 examples PASS plus a screenshot PASS.
@@ -72,10 +71,38 @@ Legend: todo / in progress / done (<sha>).
       every 10th frame, so it misses one-frame presses; that is the ROM, not py-desmume).
   - The C10 flags `--runtime --skip-compile --skip-assets --emulator --no-build --seed --jobs --json` and exit codes
     0/1/2 were already in place (task 2).
-  - Tests: toolchain 61 (was 54), cli 4; `npm run check` green (Biome, `tsc -b`, generators).- Task 4. `BuildService`: in progress.
-  - Plain-folder builds, cancellation, graceful Stop and the DeSmuME launch work.
-  - Todo: the `project.json` path with the injected WS4/WS5 functions, `createFakeToolchain()`, and a `desmume.ini` key map.
-- Task 5. Spike 5 + `dsdude doctor`: todo.
+  - Tests: toolchain 61 (was 54), cli 4; `npm run check` green (Biome, `tsc -b`, generators).- Task 4. `BuildService`: **done for CP-A** (ac168f9), C4 0.4.0 (T1, CHANGELOG lines appended).
+  Only the wiring of WS4's and WS5's real functions remains; it happens when they land on `main`.
+  - **The `project.json` path:**
+    - `loadProject` → `packAssets(project, paths, buildDir)` → `compile` → `nitrofs\game.dsdb`, with `--seed`
+      patched at C2 offset 12 → `checkRoomBudgets` → runtime → pack, with `project.json`'s banner and the
+      pipeline's `icon.png`;
+    - `--skip-assets` and `--skip-compile` reuse `assets.manifest.json` and `game.dsdb` (E609 when missing);
+    - without the injected functions, a full build is E641.
+  - **`compileOnly`** needs no tools: it compiles against the saved manifest, or a provisional one built from the
+    project files.
+  - **`PackAssetsFn` gains `outDir`**, the build folder. This matches `docs/kickoff/ws5.md` ("writes
+    `<build>/nitrofs`, `<build>/icon.png`, `<build>/assets.manifest.json`"). A two-argument implementation still
+    type-checks.
+  - **`createFakeToolchain()`**: the real service with fake detect, make, packRom and emulators, runnable on Linux,
+    for WS6's `DSDUDE_FAKE_TOOLCHAIN=1` mode and the cloud streams. `MockBuildService` now shares
+    `MOCK_EMULATOR_LINES` and `BUILD_PHASES`, and names its ROM `game.nds`.
+  - **Cancellation** (the next phase never starts, and processes are tree-killed), **graceful Stop** and **Debug**
+    are unit-tested through the fake.
+  - **The DeSmuME profile:**
+    - `desmume.ini` `[Controls]` gets the Controls mapping as virtual-key codes, with key names from the exe's
+      `inputdx.cpp` strings;
+    - DeSmuME keeps the section when it rewrites the file, and still logs `DSD|LOG|hello`;
+    - **unverified:** whether DeSmuME reads those keys. That needs a real key press in the window, which I did not
+      send (it could land in another app).
+  - **`packages/cli`** injects `compileProject` (`@dsdude/compiler`) and `packAssets` + `checkRoomBudgets`
+    (`@dsdude/asset-pipeline`) as soon as both export them. Today neither does, so `dsdude build samples/minimal`
+    is E641, exit 2.
+  - **Regression:** the gate path is unchanged. `dsdude build samples/hello ...` gives the same SHA-256
+    (`73f8bb7e...`), and `play` in melonDS logs `DSD|LOG|hello`.
+  - **Tests:** toolchain 76, cli 6; `npm run check` green.
+  - **Leftover for CP-B** (or WS8 at CP-C): wire and run the real `compileProject`/`packAssets` on `samples/minimal`
+    and `samples/flappy` once they are on `main`.- Task 5. Spike 5 + `dsdude doctor`: todo.
 
 ## Definition of done (section 6 WS1)
 
@@ -98,6 +125,10 @@ Legend: todo / in progress / done (<sha>).
 - **C4 `PackAssetsFn` (for WS5, task 4).** The signature says nothing about where the NitroFS files go. `LocalBuildService` packs `<DSDUDE_HOME>\build\<project-hash>\nitrofs\`, so `packAssets` must write there. Either WS5 computes that folder the same way (`projectBuildDir` is exported), or a T1 adds an `outDir` argument; I'll raise it when wiring.
 - **ADR-0002 (proposed):** DeSmuME's R4 slot-1 profile does not mount NitroFS, so DSDude uses DeSmuME's default slot 1 only.
 - **Python on PATH.** The Microsoft Store alias is found first; MSYS2's own `python.exe` 3.14.3 sits in `C:\msys64\ucrt64\bin` later on PATH. `detectToolchain` uses `lstat`, because `existsSync` misses the alias and would fall through to MSYS2's python.
+- **T1 for review: C4 0.4.0** (ac168f9), details in Task 4.
+  - For WS5: `packAssets` receives the build folder as a third argument and writes only there.
+  - For WS6: `createFakeToolchain()` and `MockBuildService` now share their phases and output; the mock's ROM path
+    changed from `mock.nds` to `game.nds`. No code outside `packages/toolchain` used the mock yet.
 - **ADR-0003 (proposed, for WS2):** one key-script format for `dsdude screenshot --keys` and `dsdude-host`.
   Open marker: `ADR-pending ADR-0003` in `tools/screenshot.py`; it goes when WS2's "Host runner" section adopts the
   format.
