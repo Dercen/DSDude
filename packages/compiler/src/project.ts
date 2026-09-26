@@ -66,6 +66,11 @@ export interface CompileProjectOptions {
    * the conformance goldens leave it off so the VM runs every operation they test. Default off.
    */
   fold?: boolean;
+  /**
+   * Emit the int-specialised ADDII/SUBII/MULII/CMPJII where both operands are proved int (codegen/intproof.ts).
+   * Default off until contracts/opcodes.json promotes 51-54 from reserved and WS2's VM runs them.
+   */
+  intOps?: boolean;
 }
 
 /** compileProject's result plus the symbolic module (for goldens and `dsdb-dis`), null on errors. */
@@ -501,6 +506,7 @@ class ProjectCompiler {
       },
       overridesOf: (name) => this.overridesOf(owner, name),
       fold: this.options.fold === true,
+      intOps: this.options.intOps === true,
     };
     return compileFunction(env, { name: u.funcName, params: u.params, body: u.body });
   }

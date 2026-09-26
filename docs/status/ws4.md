@@ -198,6 +198,41 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   task 4 (its CHANGELOG line is under C7). `packages/compiler/CLAUDE.md`'s contract table is updated to the current
   versions.
 
+- **M1 fallback: int-specialised opcodes (WS0 relay, 2026-09-26; deadline M1 at CP-C, 2026-10-09).**
+  - **Proposal for WS2 to co-sign (the same pattern as ADR-0005):** each one mirrors a stable opcode exactly, minus
+    the tag checks, so nothing new is decided about results or errors.
+
+    | # | Name | Format | Operands | Meaning |
+    |---|---|---|---|---|
+    | 51 | ADDII | ABC | A:reg B:reg C:reg | rA = rB + rC |
+    | 52 | SUBII | ABC | A:reg B:reg C:reg | rA = rB - rC |
+    | 53 | MULII | ABC | A:reg B:reg C:reg | rA = rB * rC |
+    | 54 | CMPJII | ABC | A:reg B:reg C:u8 | as CMPJ: relation C (0 ==, 1 !=, 2 <, 3 <=, 4 >, 5 >=); the next word is a JMP, skipped when the relation holds |
+
+    The compiler emits them only when both operands are proved int, so the handlers read the payloads without
+    looking at the tags. The result is an int, and int32 overflow behaves exactly as ADD/SUB/MUL do today (R52x in
+    a debug build, a wrap to int in a release build). The verifier applies ADD's and CMPJ's operand rules (register
+    bounds; C <= 5 and a JMP next for CMPJII). Suggestion, WS2's call: a debug build may assert both tags are int and
+    stop with an internal-error R code, to catch a compiler proof bug; a release build never checks.
+  - **Rollout:** as soon as WS2 agrees (in docs/status/ws2.md, relayed by WS0), WS4 makes the one T1: opcodes.json
+    0.4.0 (51-54 stable with the formats above), dsdb.md 0.5.0, regenerated `runtime/gen/opcodes.h` and
+    `packages/*/src/gen`, and a CHANGELOG line. WS2 then flips `OP_CHECKS[...].impl` (the loader keeps answering R582
+    until then, so the T1 alone breaks nothing) and adds its `.dsda` fixtures. Once WS2's VM runs them, WS4 turns
+    them on in `compileProject`, `dsdude compile` and the goldens.
+  - **Done in WS4 meanwhile (off by default, `intOps` in the compile options):**
+    - `codegen/intproof.ts`: the proof, sound rather than clever. It covers int literals and constants,
+      read-only int builtin variables (room_width, room_height, room_speed, image_number), int-returning
+      builtins (floor, ceil, round, sign, irandom, irandom_range, instance_number, string_length, ord,
+      array_length), `div` of anything, `+ - * mod` and unary `-` of ints, `?:` of ints, and int locals.
+    - Int locals must be definitely assigned: the first `var` has a value and is a top-level statement or a
+      top-level `for`'s `var`, and every mention comes after it. Every store must be int (optimistic fixpoint);
+      parameters, `/=` and valueless `var` never count.
+    - Each rule was checked against the runtime's C (`number.c`, `math.c`, `bivars.c`, `vm.arm.c`), e.g. `div`
+      always yields an int and an int overflow wraps to an int in a release build.
+    - Emission: `a op b` and `a op= b` use ADDII/SUBII/MULII when both sides are proved int (a small literal still
+      takes ADDI/SUBI/MULI, which is one instruction); comparisons in conditions use CMPJII; `repeat`'s counter
+      (floored, so always int) uses CMPJII. Tests: `src/intproof.test.ts` (six).
+
 ## Next
 
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).

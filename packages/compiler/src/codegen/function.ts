@@ -40,6 +40,7 @@ import { builtinConstants, builtinFunctions, builtinVariables } from "./builtins
 import type { CodegenEnv, FunctionOverride, ObjectInfo, UserFunction } from "./env.ts";
 import { type Folded, fold } from "./fold.ts";
 import { resolveGameMakerNames } from "./gamemaker.ts";
+import { IntProof } from "./intproof.ts";
 import { accepts, category, describeParam, describeType, fromBuiltinType, ordinal, type ValueType } from "./types.ts";
 
 /** Registers in one frame (contracts/runtime-limits.json `registersPerFrame`, dsdb.md section 6). */
@@ -75,6 +76,8 @@ const RELATION: Readonly<Partial<Record<string, number>>> = { "==": 0, "!=": 1, 
 const NEGATED_RELATION: readonly number[] = [1, 0, 5, 4, 3, 2];
 /** The immediate form of each arithmetic opcode (C = signed 8-bit int). */
 const IMMEDIATE_OPCODE: Readonly<Partial<Record<string, string>>> = { ADD: "ADDI", SUB: "SUBI", MUL: "MULI" };
+/** The int-specialised form of each arithmetic opcode (contracts/opcodes.json 51-53; codegen/intproof.ts). */
+const INT_OPCODE: Readonly<Partial<Record<string, string>>> = { ADD: "ADDII", SUB: "SUBII", MUL: "MULII" };
 /** Expression kinds constant folding can replace with a literal (literals and names already load directly). */
 const FOLDABLE_KINDS: ReadonlySet<string> = new Set(["unary", "binary", "ternary"]);
 /** No builtin constants: with folding off, names never count as constants. */
@@ -157,6 +160,8 @@ class FunctionCompiler {
   private other: ObjectInfo | null;
   /** Labels placed at the current end of the code (an epilogue RET is then needed). */
   private labelsAtEnd = 0;
+  /** Which values are proved int (codegen/intproof.ts), or null when the int-specialised opcodes are off. */
+  private ints: IntProof | null = null;
 
   constructor(env: CodegenEnv, source: FunctionSource) {
     this.env = env;
@@ -168,6 +173,10 @@ class FunctionCompiler {
   compile(): Func {
     for (const p of this.source.params) this.declareLocal(p);
     for (const s of this.source.body) this.collectLocals(s);
+    if (this.env.intOps === true)
+      this.ints = new IntProof(this.source.params, this.source.body, new Set(this.locals.keys()), {
+        isUserFunction: (name) => this.env.lookupFunction(name) !== null,
+      });
     this.top = this.locals.size;
     this.maxTop = this.top;
     for (const s of this.source.body) this.statement(s);
@@ -414,8 +423,9 @@ class FunctionCompiler {
     const next = this.newLabel();
     const end = this.newLabel();
     this.place(top);
-    // Run the body while counter > 0: CMPJ skips the JMP out when the relation holds.
-    this.emit("CMPJ", counter, zero, RELATION[">"] as number);
+    // Run the body while counter > 0: CMPJ skips the JMP out when the relation holds. floor() made the counter an
+    // int and SUBI keeps it one, so with the int-specialised opcodes on this is CMPJII.
+    this.emit(this.ints === null ? "CMPJ" : "CMPJII", counter, zero, RELATION[">"] as number);
     this.jump("JMP", end);
     this.loop(body, end, next);
     this.place(next);
@@ -570,12 +580,12 @@ class FunctionCompiler {
     const ref = this.ref(s.target, true);
     if (ref === null) return;
     if (ref.localReg !== null) {
-      this.arith(op, ref.localReg, ref.localReg, s.value);
+      this.arith(op, ref.localReg, ref.localReg, s.value, s.target);
       return;
     }
     const t = this.alloc();
     ref.load(t);
-    this.arith(op, t, t, s.value);
+    this.arith(op, t, t, s.value, s.target);
     ref.store(t);
   }
 
@@ -884,7 +894,7 @@ class FunctionCompiler {
           this.checkBinary(e);
           const left = this.valuePrefer(e.left, dst);
           const op = e.op === "+" && isString(e.left) && isString(e.right) ? "CONCAT" : (BINARY_OPCODE[e.op] as string);
-          this.arith(op, dst, left, e.right);
+          this.arith(op, dst, left, e.right, e.left);
         }
         break;
       case "ternary": {
@@ -985,7 +995,8 @@ class FunctionCompiler {
       const left = this.valueAny(e.left);
       const right = this.valueAny(e.right);
       const relation = RELATION[e.op] as number;
-      this.emit("CMPJ", left, right, when ? (NEGATED_RELATION[relation] as number) : relation);
+      const op = this.bothInt(e.left, e.right) ? "CMPJII" : "CMPJ";
+      this.emit(op, left, right, when ? (NEGATED_RELATION[relation] as number) : relation);
       this.jump("JMP", label);
       this.release(mark);
       return;
@@ -999,7 +1010,7 @@ class FunctionCompiler {
    * `dst = left <op> right` for an arithmetic opcode, using ADDI/SUBI/MULI when `right` is a small int literal
    * (the same meaning as ADD/SUB/MUL with that int, one register and one instruction fewer).
    */
-  private arith(op: string, dst: number, left: number, right: Expr): void {
+  private arith(op: string, dst: number, left: number, right: Expr, leftValue: Expr): void {
     const k = this.constantOf(right);
     const immediate = IMMEDIATE_OPCODE[op];
     if (
@@ -1013,7 +1024,19 @@ class FunctionCompiler {
       this.emit(immediate, dst, left, k.value);
       return;
     }
-    this.emit(op, dst, left, this.valueAny(right));
+    // Both operands proved int: the int-specialised form skips the VM's tag checks (same result, same overflow).
+    const specialised = INT_OPCODE[op];
+    this.emit(
+      specialised !== undefined && this.bothInt(leftValue, right) ? specialised : op,
+      dst,
+      left,
+      this.valueAny(right),
+    );
+  }
+
+  /** True when the int-specialised opcodes are on and both values are proved int. */
+  private bothInt(a: Expr, b: Expr): boolean {
+    return (this.ints?.isInt(a) ?? false) && (this.ints?.isInt(b) ?? false);
   }
 
   /**
