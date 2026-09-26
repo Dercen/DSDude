@@ -1,6 +1,7 @@
 // test_main.c: the host unit-test runner (`make -f runtime/Makefile.host test` builds and runs it twice: -O2 and the
 // UBSan trap variant). Exit status 0 = every check passed, 1 = at least one failed; a UBSan trap kills the process
 // with SIGILL (Linux) or 0xC000001D (Windows), which make also reports as a failure.
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,6 +44,15 @@ int dsd_test_check_str(const char *got, const char *want, const char *file, int 
     return 1;
 }
 
+int32_t dsd_test_read_file(const char *path, char *buf, uint32_t cap) {
+    FILE *f = fopen(path, "rb");
+    if (f == NULL) return -1;
+    size_t n = fread(buf, 1, cap, f);
+    bool whole = feof(f) != 0 || fgetc(f) == EOF;
+    fclose(f);
+    return whole ? (int32_t)n : -1;
+}
+
 uint32_t dsd_test_rand(void) {
     // xorshift32 (Marsaglia), shifts 13/17/5.
     g_rng ^= g_rng << 13;
@@ -64,6 +74,9 @@ static const Suite SUITES[] = {
     {"number", suite_number},
     {"numfmt", suite_numfmt},
     {"trig", suite_trig},
+    {"loader", suite_loader},
+    {"host", suite_host},
+    {"programs", suite_programs},
 };
 
 int main(void) {

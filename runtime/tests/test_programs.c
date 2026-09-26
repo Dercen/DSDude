@@ -1,0 +1,144 @@
+// test_programs.c: whole-program runs through dsd_game_boot on the host platform, compared with goldens:
+//   - conformance tiers: only the DSD|LOG| lines, against fixtures/conformance/expected/** (contract C6);
+//   - runtime fixtures (fixtures/bytecode/*.out, fixtures/bytecode/runtime/*.out): the full output, READY and
+//     EXIT/ERR included, so error codes, object/event/file/line and messages are pinned.
+#include <string.h>
+
+#include "game.h"
+#include "host.h"
+#include "test.h"
+
+// Captured protocol output of one run.
+#define CAPTURE_MAX (256 * 1024)
+#define EXPECT_MAX (256 * 1024)
+#define LOG_PREFIX "DSD|LOG|"
+#define RUN_SEED 1u // every run passes a seed (CLAUDE.md: always --seed N)
+
+static char g_capture[CAPTURE_MAX];
+static uint32_t g_capture_len;
+static char g_expected[EXPECT_MAX];
+static char g_filtered[CAPTURE_MAX];
+
+// HostLogSink: appends each line to g_capture.
+static void capture(const char *line, uint32_t len, void *ctx) {
+    (void)ctx;
+    if (g_capture_len + len >= CAPTURE_MAX) return;
+    memcpy(g_capture + g_capture_len, line, len);
+    g_capture_len += len;
+    g_capture[g_capture_len] = '\0';
+}
+
+// Boots one program with output captured; returns the game state.
+static int32_t run_program(const char *root) {
+    g_capture_len = 0;
+    g_capture[0] = '\0';
+    HostConfig cfg = {root, RUN_SEED, NULL, capture, NULL};
+    host_configure(&cfg);
+    return dsd_game_boot();
+}
+
+// Keeps only the lines of `text` that start with `prefix`, into out.
+static void keep_lines(const char *text, const char *prefix, char *out, uint32_t cap) {
+    uint32_t n = 0;
+    size_t plen = strlen(prefix);
+    while (*text != '\0') {
+        const char *nl = strchr(text, '\n');
+        size_t len = nl ? (size_t)(nl - text) + 1 : strlen(text);
+        if (strncmp(text, prefix, plen) == 0 && n + len < cap) {
+            memcpy(out + n, text, len);
+            n += (uint32_t)len;
+        }
+        text += len;
+    }
+    out[n] = '\0';
+}
+
+// Reads an expected-output file with '\r' removed (goldens compare after stripping \r).
+static bool read_expected(const char *path) {
+    int32_t n = dsd_test_read_file(path, g_expected, EXPECT_MAX - 1);
+    if (!CHECK(n >= 0)) return false;
+    uint32_t w = 0;
+    for (int32_t i = 0; i < n; i++) {
+        if (g_expected[i] != '\r') g_expected[w++] = g_expected[i];
+    }
+    g_expected[w] = '\0';
+    return true;
+}
+
+// One program and its golden.
+typedef struct ProgramCase {
+    const char *dsdb;
+    const char *expected;
+    bool log_only;     // compare only DSD|LOG| lines (conformance goldens)
+    int32_t state;     // DSD_GAME_EXITED or DSD_GAME_FAILED
+} ProgramCase;
+
+static const ProgramCase CASES[] = {
+    {"fixtures/bytecode/hello.dsdb", "fixtures/bytecode/hello.out", false, DSD_GAME_EXITED},
+    {"fixtures/bytecode/conformance/v0-01.dsdb", "fixtures/conformance/expected/v0/01-arith.log", true,
+     DSD_GAME_EXITED},
+    {"fixtures/bytecode/conformance/v0-02.dsdb", "fixtures/conformance/expected/v0/02-fixed.log", true,
+     DSD_GAME_EXITED},
+    {"fixtures/bytecode/conformance/v0-03.dsdb", "fixtures/conformance/expected/v0/03-compare.log", true,
+     DSD_GAME_EXITED},
+    {"fixtures/bytecode/conformance/v0-04.dsdb", "fixtures/conformance/expected/v0/04-control.log", true,
+     DSD_GAME_EXITED},
+    {"fixtures/bytecode/conformance/v0-05.dsdb", "fixtures/conformance/expected/v0/05-functions.log", true,
+     DSD_GAME_EXITED},
+    {"fixtures/bytecode/runtime/strings.dsdb", "fixtures/bytecode/runtime/strings.out", false, DSD_GAME_EXITED},
+    {"fixtures/bytecode/runtime/err-assert.dsdb", "fixtures/bytecode/runtime/err-assert.out", false,
+     DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-compare.dsdb", "fixtures/bytecode/runtime/err-compare.out", false,
+     DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-divzero.dsdb", "fixtures/bytecode/runtime/err-divzero.out", false,
+     DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-missing-builtin.dsdb", "fixtures/bytecode/runtime/err-missing-builtin.out", false,
+     DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-overflow.dsdb", "fixtures/bytecode/runtime/err-overflow.out", false,
+     DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-recursion.dsdb", "fixtures/bytecode/runtime/err-recursion.out", false,
+     DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-string-plus-number.dsdb", "fixtures/bytecode/runtime/err-string-plus-number.out",
+     false, DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-unset-global.dsdb", "fixtures/bytecode/runtime/err-unset-global.out", false,
+     DSD_GAME_FAILED},
+    {"fixtures/bytecode/runtime/err-watchdog.dsdb", "fixtures/bytecode/runtime/err-watchdog.out", false,
+     DSD_GAME_FAILED},
+};
+
+static void test_cases(void) {
+    for (size_t i = 0; i < sizeof CASES / sizeof CASES[0]; i++) {
+        const ProgramCase *c = &CASES[i];
+        int32_t st = run_program(c->dsdb);
+        if (!dsd_test_check_i64(st, c->state, __FILE__, __LINE__, c->dsdb)) continue;
+        dsd_test_check_i64(host_fatal_seen(), c->state == DSD_GAME_FAILED, __FILE__, __LINE__, c->dsdb);
+        if (!read_expected(c->expected)) continue;
+        if (c->log_only) {
+            keep_lines(g_capture, LOG_PREFIX, g_filtered, sizeof g_filtered);
+            dsd_test_check_str(g_filtered, g_expected, __FILE__, __LINE__, c->dsdb);
+        } else {
+            dsd_test_check_str(g_capture, g_expected, __FILE__, __LINE__, c->dsdb);
+        }
+    }
+}
+
+static void test_missing_file(void) {
+    CHECK_EQ(run_program("fixtures/bytecode/no-such-game.dsdb"), DSD_GAME_FAILED);
+    CHECK_STR(g_capture, "DSD|ERR|R584|||game.dsdb|0|The game file could not be read (game.dsdb)\n");
+    CHECK(host_fatal_seen());
+}
+
+static void test_repeatable(void) {
+    // Booting again resets every piece of state: the second run prints the same bytes.
+    static char first[CAPTURE_MAX];
+    run_program("fixtures/bytecode/conformance/v0-05.dsdb");
+    memcpy(first, g_capture, g_capture_len + 1);
+    run_program("fixtures/bytecode/conformance/v0-05.dsdb");
+    CHECK_STR(g_capture, first);
+}
+
+void suite_programs(void) {
+    test_cases();
+    test_missing_file();
+    test_repeatable();
+}

@@ -1,0 +1,10 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 2
+    .loc "rt/assert.dss" 1
+    LOADB r0, false
+    LOADK r1, "lives must stay positive"
+    CALLN r0, 2, assert
+    RET r0, 0
+.end

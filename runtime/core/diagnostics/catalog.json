@@ -1,0 +1,141 @@
+{
+  "catalog": "R5xx",
+  "owner": "WS2",
+  "version": "0.1.0",
+  "howToChange": "WS2 adds entries inside R500-R599 as T0 changes (contracts/diagnostics.md). Codes never change meaning; runtime/core/include/errors.h carries the same numbers and the core builds its messages from these templates ({name} placeholders). Messages follow the C9 voice and banned-word list.",
+  "entries": [
+    {
+      "code": "R500",
+      "severity": "error",
+      "title": "Variable never given a value",
+      "message": "{name} was never given a value in {object}",
+      "hint": "Give it a value first, for example in the Create event."
+    },
+    {
+      "code": "R501",
+      "severity": "error",
+      "title": "Global never given a value",
+      "message": "global.{name} was never given a value",
+      "hint": "Set global.{name} before reading it, for example in the first room's Create event."
+    },
+    {
+      "code": "R510",
+      "severity": "error",
+      "title": "Script never finished",
+      "message": "{object} / {event} never finished: a loop there seems to run forever",
+      "hint": "Check that every loop's condition can become false."
+    },
+    {
+      "code": "R511",
+      "severity": "error",
+      "title": "Too many calls inside each other",
+      "message": "Too many functions were called inside each other in {event}",
+      "hint": "Check that a function that calls itself stops at some point."
+    },
+    {
+      "code": "R520",
+      "severity": "error",
+      "title": "Whole number too big",
+      "message": "A whole number got too big (past +-2147483647)",
+      "hint": "Keep numbers smaller, or divide before you multiply."
+    },
+    {
+      "code": "R521",
+      "severity": "error",
+      "title": "Number with a fraction too big",
+      "message": "A number with a fraction got too big (past +-524287.99)",
+      "hint": "Numbers with a fraction must stay between -524288 and 524288 on the DS."
+    },
+    {
+      "code": "R530",
+      "severity": "error",
+      "title": "Division by zero",
+      "message": "Can't divide by zero",
+      "hint": "Check the number you divide by before dividing."
+    },
+    {
+      "code": "R531",
+      "severity": "error",
+      "title": "Square root of a negative number",
+      "message": "Can't take the square root of a negative number ({value})",
+      "hint": "Use abs() first, or check that the number is 0 or more."
+    },
+    {
+      "code": "R540",
+      "severity": "error",
+      "title": "Values that don't go together",
+      "message": "Can't {action} {left} and {right}",
+      "hint": "Use string(n) to turn a number into text before joining it to text."
+    },
+    {
+      "code": "R541",
+      "severity": "error",
+      "title": "Values that can't be compared",
+      "message": "Can't compare {left} with {right} using {op}",
+      "hint": "Only numbers with numbers, or text with text, can be put in order."
+    },
+    {
+      "code": "R542",
+      "severity": "error",
+      "title": "Wrong kind of value for a function",
+      "message": "{function} needs {expected} here, but got {actual}",
+      "hint": null
+    },
+    {
+      "code": "R550",
+      "severity": "error",
+      "title": "List position out of range",
+      "message": "Position {index} is outside the list (it has {length} items)",
+      "hint": "List positions start at 0 and stop at the length minus 1."
+    },
+    {
+      "code": "R560",
+      "severity": "error",
+      "title": "Out of memory for text and lists",
+      "message": "The game ran out of memory for text and lists",
+      "hint": "Keep fewer long texts and big lists around at once."
+    },
+    {
+      "code": "R580",
+      "severity": "error",
+      "title": "Damaged game file",
+      "message": "The game file is damaged ({detail})",
+      "hint": "Build the game again."
+    },
+    {
+      "code": "R581",
+      "severity": "error",
+      "title": "Built for a different runtime",
+      "message": "This ROM was built for a different DSDude runtime",
+      "hint": "Build the game again with this version of DSDude."
+    },
+    {
+      "code": "R582",
+      "severity": "error",
+      "title": "Feature not in this runtime",
+      "message": "This game uses something this DSDude runtime can't do yet ({detail})",
+      "hint": "Update DSDude, or avoid {detail} for now."
+    },
+    {
+      "code": "R583",
+      "severity": "error",
+      "title": "Game too big",
+      "message": "The game is too big for the DS ({detail})",
+      "hint": "Make the game smaller: fewer or shorter scripts, rooms or globals."
+    },
+    {
+      "code": "R584",
+      "severity": "error",
+      "title": "Game file missing",
+      "message": "The game file could not be read ({detail})",
+      "hint": "Build the game again; if it keeps happening, the ROM is damaged."
+    },
+    {
+      "code": "R590",
+      "severity": "error",
+      "title": "Assertion failed",
+      "message": "Assertion failed: {message}",
+      "hint": null
+    }
+  ]
+}
