@@ -110,6 +110,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 
 ## C13 Runtime limits (`contracts/runtime-limits.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): the 22 PLAN 5.2 C13 keys and values.
+- 0.2.0 (2026-09-26, WS2, T1, proposed by WS3): scanlineObjCycles 1200 -> 2048. On a real 3DS in DS mode (WS3 spike 15), 2,178 OBJ line cycles drew fully and 2,208 dropped, consistently for normal, affine and affine2x sprites, so the limit with DISPCNT bit 23 clear is 2,178-2,207; 2048 keeps ~6% margin. The value is still a warning threshold (checkers and meters read it from this file).
 
 ## C14 Phase-0 fixtures
 - 0.1.0 (2026-09-25, WS0, Phase 0): samples/minimal, samples/flappy v0 (ADR-0001 applied), fixtures/bytecode hello + conformance/v0-01, fixtures/assets, fixtures/conformance v0.

@@ -64,7 +64,7 @@ int32_t dsd_game_boot(void) {
     // A non-zero header seed (a build with --seed N) always wins over the platform's (C2, C11).
     dsd_rng_seed(g_prog.seed != 0 ? g_prog.seed : dsd_plat_rng_seed());
     dsd_vm_init(&g_vm, &g_prog, g_regs);
-    // ADR-pending ADR-0008: release builds wrap on overflow; debug builds (the default) raise R520/R521.
+    // ADR-0008: release builds wrap on overflow; debug builds (the default) raise R520/R521.
     g_vm.debug = (g_prog.flags & DSDB_FLAG_RELEASE) == 0;
 
     if (g_prog.first_room != DSDB_NONE) {
