@@ -82,15 +82,26 @@ function Toolbar() {
           {"■"} Stop
         </button>
       ) : (
-        <button
-          type="button"
-          className="play"
-          data-testid="play"
-          disabled={!hasProject || status === "building"}
-          onClick={() => void actions.play()}
-        >
-          {"▶"} Play
-        </button>
+        <>
+          <button
+            type="button"
+            data-testid="debug"
+            title="Play with the debugger (melonDS waits for GDB)"
+            disabled={!hasProject || status === "building"}
+            onClick={() => void actions.debug()}
+          >
+            Debug
+          </button>
+          <button
+            type="button"
+            className="play"
+            data-testid="play"
+            disabled={!hasProject || status === "building"}
+            onClick={() => void actions.play()}
+          >
+            {"▶"} Play
+          </button>
+        </>
       )}
     </div>
   );

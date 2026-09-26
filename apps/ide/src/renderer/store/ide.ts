@@ -81,6 +81,8 @@ export interface IdeActions {
   chooseAndOpenProject(): Promise<void>;
   save(): Promise<boolean>;
   play(): Promise<void>;
+  /** Play with melonDS's GDB stub (C4 debug); Output shows the attach command. */
+  debug(): Promise<void>;
   stop(): Promise<void>;
   editDocument(docId: string, text: string): void;
   /** C12 ProjectStore.update: applies an immer recipe and marks the resource's file dirty. */
@@ -166,6 +168,46 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
     set({ output: output.length > OUTPUT_LIMIT ? output.slice(output.length - OUTPUT_LIMIT) : output });
   };
 
+  /** Play, or Debug with melonDS's GDB stub. */
+  async function runGame(debug: boolean): Promise<void> {
+    const { projectDir, project, dirty, build } = get();
+    if (!projectDir || !project) {
+      actions.showToast("Open a project first.", "error");
+      return;
+    }
+    if (build.status === "building") return;
+    if ((Object.keys(dirty).length > 0 || options.savePanels) && !(await actions.save())) return;
+    const seq = exitSeq;
+    set({ build: { status: "building", phase: "load", progress: 0 }, runtimeDiagnostics: [], stats: null });
+    append({ kind: "info", text: `${debug ? "Debug" : "Play"} ${project.project.title}` });
+    try {
+      const res = await ipc.invoke("build.play", {
+        projectDir,
+        // Only melonDS has a GDB stub (C4 E623 for DeSmuME).
+        emulator: debug ? "melonds" : get().settings?.emulator,
+        ...(debug ? { debug: true } : {}),
+      });
+      void actions.refreshManifest();
+      if (!res.ok) {
+        set({ build: { ...get().build, status: "idle" }, buildDiagnostics: res.diagnostics });
+        const n = errorsIn(problemsOf(get())).length;
+        actions.showToast(
+          n > 0 ? `Fix ${n} problem${n === 1 ? "" : "s"} to play` : "The game did not start: see Output.",
+          "error",
+        );
+        workbench.focusPanel(n > 0 ? "problems" : "output");
+        return;
+      }
+      // The game may already have ended (emulator.exit arrived while build.play was answering).
+      set({ build: { ...get().build, status: exitSeq === seq ? "running" : "idle" } });
+      // The Controls card appears on the first Play of each session (PLAN.md 6 WS6).
+      if (!controlsShown) actions.showControls();
+    } catch (err) {
+      set({ build: { ...get().build, status: "idle" } });
+      actions.showToast(`Play failed: ${parseIpcError(err).message}`, "error");
+    }
+  }
+
   const actions: IdeActions = {
     async boot() {
       try {
@@ -236,40 +278,11 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
     },
 
     async play() {
-      const { projectDir, project, dirty, build } = get();
-      if (!projectDir || !project) {
-        actions.showToast("Open a project first.", "error");
-        return;
-      }
-      if (build.status === "building") return;
-      if ((Object.keys(dirty).length > 0 || options.savePanels) && !(await actions.save())) return;
-      const seq = exitSeq;
-      set({ build: { status: "building", phase: "load", progress: 0 }, runtimeDiagnostics: [], stats: null });
-      append({ kind: "info", text: `Play ${project.project.title}` });
-      try {
-        const res = await ipc.invoke("build.play", {
-          projectDir,
-          emulator: get().settings?.emulator,
-        });
-        void actions.refreshManifest();
-        if (!res.ok) {
-          set({ build: { ...get().build, status: "idle" }, buildDiagnostics: res.diagnostics });
-          const n = errorsIn(problemsOf(get())).length;
-          actions.showToast(
-            n > 0 ? `Fix ${n} problem${n === 1 ? "" : "s"} to play` : "The game did not start: see Output.",
-            "error",
-          );
-          workbench.focusPanel(n > 0 ? "problems" : "output");
-          return;
-        }
-        // The game may already have ended (emulator.exit arrived while build.play was answering).
-        set({ build: { ...get().build, status: exitSeq === seq ? "running" : "idle" } });
-        // The Controls card appears on the first Play of each session (PLAN.md 6 WS6).
-        if (!controlsShown) actions.showControls();
-      } catch (err) {
-        set({ build: { ...get().build, status: "idle" } });
-        actions.showToast(`Play failed: ${parseIpcError(err).message}`, "error");
-      }
+      await runGame(false);
+    },
+
+    async debug() {
+      await runGame(true);
     },
 
     async stop() {

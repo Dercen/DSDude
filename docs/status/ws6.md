@@ -188,6 +188,11 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - Tests: node 85, browser 10, ipc-contract 73, Playwright 10 (first-run.spec new). Screenshot checked.
 - 2026-09-26: WS0 merged `85eb04c` at checkpoint-8 (C5 0.6.0/0.7.0 accepted). ADR-0007 was accepted by the user; WS1 implements `LaunchOptions.keys`; the marker stays until WS0 reports it on main.
 
+- **Task 6f, Debug: done.**
+  - The toolbar has Debug next to Play: a Play with C4 `debug: true`, always on melonDS, since DeSmuME has no GDB stub (E623).
+  - After the Controls line, Output says melonDS waits on port 3333 (ARM9) / 3334 (ARM7) and gives the attach command: `arm-none-eabi-gdb "<runtime>/dist/arm9-debug.elf" -ex "target remote localhost:3333"`. The ELF is the C8 runtime artifact's debug ELF (`DSDUDE_RUNTIME_DIR`, `resources/runtime` when packaged, else the repo's `runtime/dist`).
+  - Tests: node 87.
+
 ## Next
 - Task 6 continues: import dialogs (the preview needs WS5's previewSprite, CP-B), Debug, the fake-toolchain smoke test; the rebinding page once WS1's `LaunchOptions.keys` is on main.
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
