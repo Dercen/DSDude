@@ -11,7 +11,7 @@
  */
 import type { Diagnostic, Project } from "@dsdude/project-format";
 
-export const CONTRACT_VERSION = "0.4.0";
+export const CONTRACT_VERSION = "0.5.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Tools

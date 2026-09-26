@@ -11,6 +11,7 @@ import type { BuildServiceDeps, CliCommand, EmulatorKind, ExitCode } from "./api
 import { LocalBuildService } from "./build-service.ts";
 import { detectToolchain } from "./detect.ts";
 import { ToolchainError, toolchainDiagnostic } from "./diagnostics/catalog.ts";
+import { runDoctor } from "./doctor.ts";
 import { LocalEmulatorManager } from "./emulator.ts";
 import { dsdudeHome } from "./layout.ts";
 import { takeScreenshot } from "./screenshot.ts";
@@ -311,7 +312,28 @@ export function makeCliCommands(opts: ToolchainCliOptions = {}): CliCommand[] {
     }),
   };
 
-  return [toolchain, emulator, build, play, screenshot];
+  const doctor: CliCommand = {
+    name: "doctor",
+    summary: "doctor [project] [--json]: check the DS tools, emulators, py-desmume, path lengths and OneDrive",
+    run: guard(async (argv) => {
+      const { values, positionals } = parseArgs({
+        args: argv,
+        options: { json: { type: "boolean" } },
+        allowPositionals: true,
+      });
+      if (positionals.length > 1) return usage(io, "usage: dsdude doctor [project] [--json]");
+      const report = await runDoctor({ env, project: positionals[0] });
+      if (!values.json) {
+        const mark = { ok: "OK  ", warn: "WARN", fail: "FAIL", info: "INFO" } as const;
+        for (const c of report.checks) io.err(`${mark[c.status]}  ${c.name}: ${c.detail}`);
+      }
+      if (values.json)
+        io.out(JSON.stringify({ ok: report.ok, diagnostics: report.diagnostics, checks: report.checks }));
+      return exitCodeFor(report.diagnostics);
+    }),
+  };
+
+  return [toolchain, emulator, build, play, screenshot, doctor];
 }
 
 /** The commands with the default wiring (no compiler or asset pipeline injected). */

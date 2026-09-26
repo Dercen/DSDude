@@ -1,6 +1,6 @@
 # C4: Toolchain driver API and BuildService
 
-Version: 0.4.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+Version: 0.5.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
 
 The types live in `packages/toolchain/src/api.ts` (exported from `@dsdude/toolchain`); this file states the rules
 the implementation follows. `BuildService` is confirmed at CP-A. Sources: PLAN.md sections 2.6, 3.2 and 6 WS1;
@@ -193,6 +193,35 @@ the same phase order, `BUILD_PHASES`.
   - the emulator manager returns `fakeEmulator()` handles printing `emulatorLines` and records every launch in
     `launches` (Debug with DeSmuME is E623, as for real).
 - The fixture paths are exported as `FIXTURE_ROM`, `FIXTURE_PACKROM`, `FIXTURE_NITROFS` and `FIXTURE_ELF`.
+## `dsdude doctor` (`runDoctor`) and the tools pack
+
+- **`runDoctor({env, cwd, project})`** returns `{ok, checks, diagnostics}` (0.5.0). Every probe is injectable for
+  tests: `detect`, `runVersion`, `checkPyDesmume`, `isRunning`. The checks:
+  1. `detectToolchain()`, then `<tool> -V` for ndstool, grit and mmutil with the tool env (E601, or E602 on
+     0xC0000135);
+  2. melonDS under `DSDUDE_HOME` (E620); DeSmuME is info only;
+  3. `python -c "import desmume.emulator"` (E630);
+  4. build folders of the repo and the project within 40 characters of 250 (E651, warning);
+  5. OneDrive: a warning (E650) only when `OneDrive.exe` runs (tasklist) and the repo, the project or
+     `DSDUDE_HOME` is under `%OneDrive%`, `%OneDriveConsumer%` or `%OneDriveCommercial%`.
+
+  It changes nothing. `ok` is false only on an error.
+- **The tools pack** (`tools/fetch-vendor.ps1`, pin `tools/tools-pack.json`) builds `vendor\tools-pack\`.
+  - Its files:
+    - `ndstool.exe`, `grit.exe`, `mmutil.exe`;
+    - `libstdc++-6.dll`, `libgcc_s_seh-1.dll`, `libiconv-2.dll`, `libwinpthread-1.dll`, copied only from
+      `C:\msys64\opt\wonderful\bin`;
+    - `arm7_maxmod.elf` and `icon.bmp`;
+    - `licenses\` (the PLAN 2.11 texts) and a copy of `tools-pack.json`.
+  - Everything is SHA-256-pinned to BlocksDS 1.24.0. The recursive `objdump -p` import walk must find exactly the
+    pinned DLLs, each importing `api-ms-win-crt-*` and not `msvcrt.dll`.
+  - `-Test` is the clean-PATH test. With `PATH=C:\Windows\System32`, in a path with spaces:
+    - the three tools print `v1.24.0`;
+    - ndstool repacks `fixtures/build/hello` byte for byte;
+    - without the DLLs, ndstool and grit exit 0xC0000135 while mmutil (no DLLs) still runs.
+  - In the packaged IDE (WS8) these files replace `C:\msys64\...`: `ToolPaths` point into the pack, and the tool env
+    puts the pack folder first on PATH.
+
 ## E6xx catalog
 
 `packages/toolchain/src/diagnostics/catalog.ts`:
@@ -211,8 +240,10 @@ the same phase order, `BUILD_PHASES`.
 | E630, E631 | Python/py-desmume missing, screenshot failed |
 | E640 | runtime `make` failed |
 | E641 | a DSDude project needs the compiler and asset pipeline, which are not injected yet |
+| E650, E651 | **warnings** from `dsdude doctor`: OneDrive syncing a project folder; a build path near 250 characters |
 
-Every E6xx is an error with `source: "toolchain"`, and the CLI exits 2 on any of them (C10).
+Every E6xx has `source: "toolchain"` and is an error, except the E65x warnings. The CLI exits 2 on any E6xx error
+(C10).
 
 ## How to change me
 
@@ -227,3 +258,4 @@ Every E6xx is an error with `source: "toolchain"`, and the CLI exits 2 on any of
   `BuildResult.ndsPath` comment names `game.nds` (PLAN.md 3.2). No field was removed or retyped.
 - 0.3.0 (WS1, 2026-09-26, T1): `LaunchOptions.debug`, `BuildRequest.debug`, optional `EmulatorManager.reconcile()`; melonDS download + SHA-256 in `ensureInstalled`; reconcile by exe path and start time; E623, E624.
 - 0.4.0 (WS1, 2026-09-26, T1): `PackAssetsFn` gets `outDir` (the build folder) and the build-folder layout is fixed; the `project.json` build path (assets, compile, budgets, seed patch, reuse under the skip flags); `compileOnly` with a provisional manifest; `createFakeToolchain()`; `MockBuildService` phases and ROM name match the real service; the DeSmuME `[Controls]` key map; E641.
+- 0.5.0 (WS1, 2026-09-26, T1): `runDoctor` and the doctor checks; the tools pack (`tools/fetch-vendor.ps1`, `tools/tools-pack.json`); E650/E651 warnings.

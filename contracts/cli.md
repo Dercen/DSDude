@@ -1,6 +1,6 @@
 # C10: the `dsdude` CLI
 
-Version: 0.3.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
+Version: 0.4.0 · Owner: WS1 (WS8 from `start-ws8`) · Changes: see the tiers in contracts/README.md
 
 Phase-0 draft by WS0; WS1 finalises it by CP-C. Source: PLAN.md section 5.2 C10 and section 6 WS1.
 Run it as `npx dsdude <command> ...` from a worktree or clone root; `packages/cli` declares the `dsdude` bin
@@ -18,7 +18,7 @@ Run it as `npx dsdude <command> ...` from a worktree or clone root; `packages/cl
 | `dsdude toolchain status` | `detectToolchain()` (C4): whether BlocksDS is installed, and every tool path. | reports "missing" (E605) |
 | `dsdude toolchain install` | Not in the CLI yet: run `scripts/install-toolchain.ps1`. | no |
 | `dsdude emulator install\|status <melonds\|desmume>` | `EmulatorManager.ensureInstalled()` and its path. `install melonds` downloads the 1.1 release zip and checks its SHA-256 (E622 on a mismatch, E624 when the download fails); `install desmume` copies it from `%USERPROFILE%\Downloads\desmume-0.9.13-win64\`. | no: exit 2 + E6xx |
-| `dsdude doctor` | Checks the toolchain, emulators, py-desmume, paths under 250 characters, and warns when `OneDrive.exe` runs and the repo or project is under `%OneDrive%`. (Planned; WS1 task 5 or WS8.) | partial |
+| `dsdude doctor [project]` | Checks, and names the fix for:<ul><li>BlocksDS, running each tool once (exit 0xC0000135 is E602, a missing DLL);</li><li>melonDS (E620) and DeSmuME (optional);</li><li>py-desmume, by importing it (E630);</li><li>build-folder paths near 250 characters (E651, warning);</li><li>`OneDrive.exe` running while the repo, the project or `DSDUDE_HOME` is under `%OneDrive%` (E650, warning).</li></ul>Changes nothing. Exit 2 only on a failed check; warnings exit 0. | E605 |
 | `dsdude gen-builtins` | Runs the builtins generator (`tools/gen-builtins.ts`). (Registered by its owner.) | yes |
 
 Commands are registered from each package's `cliCommands: CliCommand[]` export (C4, `packages/toolchain/src/api.ts`),
@@ -67,6 +67,7 @@ commands first, then those of `@dsdude/compiler`, `@dsdude/asset-pipeline` and `
 | `build` | `ndsPath`, `timings` |
 | `play` | `ndsPath`, `emulator`, `pid`, `exitCode`, `ms`, `log` (the `DSD|` lines, pads dropped) |
 | `screenshot` | `top`, `bottom`, `uniform` (`{top, bottom}`: true when that screen is one solid colour), `log` |
+| `doctor` | `checks`: `[{name, status: "ok"\|"warn"\|"fail"\|"info", detail}]` |
 
 Without `--json`, `play` prints each `DSD|` line on stdout as it arrives and everything else on stderr.
 
@@ -117,3 +118,4 @@ The folder holds `nitrofs\`, `game.nds` and `packrom.json` (C4).
   command; `screenshot.json`; the provisional key-script format. `toolchain install` points to the script for now.
 - 0.3.0 (WS1, 2026-09-26, T1): `play --debug`; the `--keys` format of ADR-0003 (adds `TOUCH`); `emulator install melonds` downloads and SHA-256-checks.
 - 0.3.0 T0 (WS1, 2026-09-26): `--seed` is written into `game.dsdb`; DSDude projects need the injected compiler and asset pipeline (E641).
+- 0.4.0 (WS1, 2026-09-26, T1): `dsdude doctor [project]` implemented, with the `checks` `--json` field; E650/E651 warnings.

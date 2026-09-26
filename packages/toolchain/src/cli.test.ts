@@ -41,7 +41,14 @@ describe("exit codes (C10)", () => {
 
 describe("dsdude commands", () => {
   it("registers the C10 toolchain commands", () => {
-    expect(harness().commands.map((c) => c.name)).toEqual(["toolchain", "emulator", "build", "play", "screenshot"]);
+    expect(harness().commands.map((c) => c.name)).toEqual([
+      "toolchain",
+      "emulator",
+      "build",
+      "play",
+      "screenshot",
+      "doctor",
+    ]);
   });
 
   it("toolchain status --json prints exactly one JSON object", async () => {

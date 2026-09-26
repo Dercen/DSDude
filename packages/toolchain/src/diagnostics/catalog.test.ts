@@ -17,11 +17,11 @@ const BANNED = [
 ];
 
 describe("E6xx catalog", () => {
-  it("keys match codes, all in E600-E699, all errors", () => {
+  it("keys match codes, all in E600-E699; errors, except the E65x doctor warnings", () => {
     for (const [key, entry] of Object.entries(TOOLCHAIN_CATALOG)) {
       expect(entry.code).toBe(key);
       expect(entry.code).toMatch(/^E6\d\d$/);
-      expect(entry.severity).toBe("error");
+      expect(entry.severity).toBe(entry.code.startsWith("E65") ? "warning" : "error");
     }
     expect(TOOLCHAIN_CATALOG_ENTRIES).toHaveLength(Object.keys(TOOLCHAIN_CATALOG).length);
   });

@@ -134,6 +134,21 @@ export const TOOLCHAIN_CATALOG = {
     "{what} needs the compiler and the asset pipeline, and this copy of DSDude doesn't have them yet.",
     "Add --skip-compile --skip-assets to pack the last build again.",
   ),
+  // E650-E659: warnings from `dsdude doctor` (they never block a build).
+  E650: {
+    code: "E650",
+    severity: "warning",
+    title: "OneDrive is syncing the project",
+    message: "OneDrive is running and {path} is inside the OneDrive folder, so build files may get locked.",
+    hint: "Turn off sync for that folder, or move the project out of OneDrive, for example to C:\\DSDudeProjects.",
+  },
+  E651: {
+    code: "E651",
+    severity: "warning",
+    title: "Long project path",
+    message: "The build folder {path} is {length} characters long; the DS tools stop working at 250.",
+    hint: "Move the project to a shorter folder, or set DSDUDE_HOME to a short folder such as C:\\DSDude.",
+  },
 } as const satisfies Record<string, CatalogEntry>;
 
 export type ToolchainCode = keyof typeof TOOLCHAIN_CATALOG;

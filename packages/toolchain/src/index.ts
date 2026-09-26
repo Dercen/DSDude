@@ -15,6 +15,7 @@ export {
   ToolchainError,
   toolchainDiagnostic,
 } from "./diagnostics/catalog.ts";
+export { type DoctorCheck, type DoctorOptions, type DoctorReport, runDoctor } from "./doctor.ts";
 export { LineSplitter, LocalEmulatorManager, patchToml } from "./emulator.ts";
 export {
   createFakeToolchain,

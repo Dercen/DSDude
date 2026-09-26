@@ -34,7 +34,15 @@ describe("@dsdude/cli", () => {
     const list = await commandRegistry(
       defaultSources(async (pkg) => (pkg === "@dsdude/compiler" ? { cliCommands: [extra] } : {})),
     );
-    expect(list.map((c) => c.name)).toEqual(["toolchain", "emulator", "build", "play", "screenshot", "compile"]);
+    expect(list.map((c) => c.name)).toEqual([
+      "toolchain",
+      "emulator",
+      "build",
+      "play",
+      "screenshot",
+      "doctor",
+      "compile",
+    ]);
   });
 
   it("keeps the first command of a name", async () => {
