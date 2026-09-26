@@ -5,12 +5,17 @@
  * tests can call it. The conversion is exactly the pack's (C3 section 3), so what the dialog shows is what the DS
  * gets.
  */
-import type { Diagnostic } from "@dsdude/project-format";
 import { OBJ_MAX_SIDE, objSizeFor, roundUp, TILE_SIDE } from "./image/objsize.ts";
 import { decodePng, type RgbaImage } from "./image/png.ts";
-import { type Dither, quantizeImage, reductionProblems } from "./image/quantize.ts";
+import { quantizeImage, reductionProblems } from "./image/quantize.ts";
 import { dsToRgb } from "./image/rgb555.ts";
-import type { PreviewFrame, PreviewSpriteOptions, SpritePreview } from "./preview.ts";
+import type {
+  PreviewDetailsOptions,
+  PreviewFrame,
+  PreviewSpriteOptions,
+  SpritePreview,
+  SpritePreviewDetails,
+} from "./preview.ts";
 import { toDiagnostic } from "./problems.ts";
 
 /** Bytes per RGBA8 pixel. */
@@ -19,30 +24,6 @@ const RGBA_BYTES = 4;
 const ALPHA_OPAQUE = 255;
 /** The name used in preview diagnostics when the caller gives none. */
 const DEFAULT_PREVIEW_NAME = "This sprite";
-
-/** Extra, optional inputs of `previewSpriteDetails` (beyond the frozen C12 options). */
-export interface PreviewDetailsOptions extends PreviewSpriteOptions {
-  /** Dithering for colour reduction; packs use "none" in 0.1 (C3 step 5). Default "none". */
-  dither?: Dither;
-  /** Asset name for the diagnostics' `{name}`; default "This sprite". */
-  name?: string;
-}
-
-/** Everything the import dialog shows. */
-export interface SpritePreviewDetails {
-  /** The C12 result, exactly as `previewSprite` returns it. */
-  preview: SpritePreview;
-  /** The frames as imported: `frames * frameWidth` x `frameHeight`, RGBA8 (outside the PNG: transparent). */
-  original: RgbaImage;
-  /** The same area after DS conversion, RGBA8 (index 0 fully transparent). */
-  converted: RgbaImage;
-  /** Distinct opaque colours in the original. */
-  sourceColors: number;
-  /** True when colours were merged (then `diagnostics` holds the warning E407). */
-  reduced: boolean;
-  /** E401 (frame larger than 64x64) and E407 (colour reduction), with `file` null. */
-  diagnostics: Diagnostic[];
-}
 
 /** Frames the preview shows: every whole frame across the PNG, at least one. */
 function frameCount(pngWidth: number, frameWidth: number): number {

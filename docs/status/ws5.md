@@ -5,7 +5,7 @@ Cloud push target: `ws5-assets`
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
-- start.sh (2026-09-26, after checkpoint-8 relay; main 80fb430 merged after checkpoint-9, where WS0 merged ws5-assets@037001c green on Windows): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
+- start.sh (2026-09-26, "continue" relay; main b47cd2c+ merged; latest checkpoint-12, all WS5 work merged and green): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
   origin/main by 17 (then merged, main 5b8d0cc+); latest checkpoint: docs/status/checkpoint-8.md; open IF entries: 1
   by start.sh's count (see Blockers). Lockfile guard passed. WS0 merged ws5-assets@3bbe1f8 at checkpoint-8, green on
   Windows.
@@ -50,6 +50,10 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   - `npx dsdude build samples/minimal` builds a real ROM end to end with `packAssets` + `checkRoomBudgets`; the
     screenshot shows the sprite at (128,96), 60 fps.
   - The fflate lockfile entry landed at checkpoint-6; `wavefile` is gone.
+- [x] C12 0.2.0 (T1, before the CP-B freeze on 2026-10-02): `preview.ts` now also types what WS6's import dialog
+  calls from `./browser` (`previewSpriteDetails`, `spriteDefaults`, `decodePng` and their option/result types), so
+  the freeze covers them. The implementation files alias these types; `tsc -b` passes for asset-pipeline,
+  ipc-contract and apps/ide. No behaviour changed.
 - [ ] Remaining DoD item (WS0-owned): the py-desmume golden in `fixtures/assets/golden/` for a ROM built from the
   sample assets. Otherwise WS5 is at its definition of done; later work is fixes from IF entries and contract T1s.
 

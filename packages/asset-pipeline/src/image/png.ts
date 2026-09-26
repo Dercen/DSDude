@@ -7,14 +7,11 @@
  * interlacing, and always returns RGBA8 (other depths are scaled with rounding, as pngjs does).
  */
 import { unzlibSync, zlibSync } from "fflate";
+import type { PreviewImage } from "../preview.ts";
 import { dsToRgb } from "./rgb555.ts";
 
-/** Decoded image: `rgba` holds width * height * 4 bytes, row-major, R G B A per pixel. */
-export interface RgbaImage {
-  width: number;
-  height: number;
-  rgba: Uint8Array;
-}
+/** Decoded image (C12 `PreviewImage`): `rgba` holds width * height * 4 bytes, row-major, R G B A per pixel. */
+export type RgbaImage = PreviewImage;
 
 /** Thrown for anything that is not a readable PNG; callers turn it into E404. */
 export class PngError extends Error {}

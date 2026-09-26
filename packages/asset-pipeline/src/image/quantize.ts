@@ -4,6 +4,7 @@
  * Floyd-Steinberg or Bayer dithering, and the palette order. Integer maths only, so results are identical on every
  * platform. Pure TypeScript.
  */
+import type { PreviewDither } from "../preview.ts";
 import type { Problem } from "../problems.ts";
 import type { RgbaImage } from "./png.ts";
 import {
@@ -33,7 +34,7 @@ export const MAX_OPAQUE_256 = 255;
 const RGBA_BYTES = 4;
 
 /** Dithering used when colours are merged. Only the preview offers it in 0.1 (C3 step 5: packs use "none"). */
-export type Dither = "none" | "floyd-steinberg" | "bayer";
+export type Dither = PreviewDither;
 
 /** How a C1 `transparent` setting picks transparent pixels (C3 section 3 step 2). */
 export type TransparentSetting = "alpha" | `#${string}`;

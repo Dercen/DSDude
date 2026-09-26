@@ -4,6 +4,7 @@
  * defaults of C1 (frame detection, origin, bbox). Pure TypeScript; problems are returned, never thrown, so the
  * pack turns them into E4xx diagnostics and the preview can still show what it can.
  */
+import type { SpriteDefaults as C12SpriteDefaults } from "../preview.ts";
 import type { Problem } from "../problems.ts";
 import { isObjSize, OBJ_MAX_SIDE, type ObjSize, objSizeFor } from "./objsize.ts";
 import type { RgbaImage } from "./png.ts";
@@ -121,14 +122,8 @@ export function convertSprite(image: RgbaImage, s: SpriteSettings): Converted<Co
 // ---------------------------------------------------------------------------------------------------------
 // Import defaults (C1 sprite.json defaults)
 
-/** The C1 fields a new import starts with. */
-export interface SpriteDefaults {
-  frames: number;
-  frameWidth: number;
-  frameHeight: number;
-  origin: { x: number; y: number };
-  bbox: { left: number; top: number; right: number; bottom: number };
-}
+/** The C1 fields a new import starts with (C12 `SpriteDefaults`). */
+export type SpriteDefaults = C12SpriteDefaults;
 
 /**
  * Guesses the frame layout of an imported strip: an image that is exactly one OBJ size is one frame (C1); a strip

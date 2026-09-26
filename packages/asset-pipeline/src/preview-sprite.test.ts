@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { decodePng } from "./image/png.ts";
 import { dsToRgb } from "./image/rgb555.ts";
-import { convertSprite } from "./image/sprite.ts";
-import type { PreviewSpriteFn } from "./preview.ts";
+import { convertSprite, spriteDefaults } from "./image/sprite.ts";
+import type { DecodePngFn, PreviewSpriteDetailsFn, PreviewSpriteFn, SpriteDefaultsFn } from "./preview.ts";
 import { previewSprite, previewSpriteDetails } from "./preview-sprite.ts";
 import { readRepoFile } from "./testing/golden.ts";
 
 /** Compile-time check: the implementation matches the C12 function type. */
 const asContract: PreviewSpriteFn = previewSprite;
+/** Compile-time checks for the 0.2.0 additions (the import dialog's other calls). */
+export const contractChecks: [PreviewSpriteDetailsFn, SpriteDefaultsFn, DecodePngFn] = [
+  previewSpriteDetails,
+  spriteDefaults,
+  decodePng,
+];
 
 const BIRD = "samples/flappy/sprites/spr_bird/sheet.png";
 const OPTS = { frameWidth: 16, frameHeight: 16, colorMode: "auto", transparent: "alpha" } as const;
