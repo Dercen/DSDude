@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "drawlist.h"
+#include "engine.h"
 #include "game.h"
 #include "host.h"
 #include "test.h"
@@ -16,6 +18,7 @@
 #define TRACE_MAX (1024 * 1024) // a 600-frame trace (~210 KB for Flappy)
 #define LOG_PREFIX "DSD|LOG|"
 #define RUN_SEED 1u // every run passes a seed (CLAUDE.md: always --seed N)
+#define DRAW_FRAMES 60 // tier v4 runs: one DSD|STAT period
 
 static char g_capture[CAPTURE_MAX];
 static uint32_t g_capture_len;
@@ -136,6 +139,9 @@ static const ProgramCase CASES[] = {
     {"fixtures/bytecode/v3-01-collide.dsdb", "fixtures/bytecode/v3-01-collide.out", false, DSD_GAME_RUNNING, 15, NULL},
     {"fixtures/bytecode/v3-02-anim-outside-touch.dsdb", "fixtures/bytecode/v3-02-anim-outside-touch.out", false,
      DSD_GAME_RUNNING, 10, "fixtures/bytecode/v3-02-anim-outside-touch.keys"},
+    // Tier v4 (draw): 60 frames, so the golden pins one DSD|STAT line with the sprite counts.
+    {"fixtures/bytecode/v4-01-draw.dsdb", "fixtures/bytecode/v4-01-draw.out", false, DSD_GAME_RUNNING, DRAW_FRAMES, NULL},
+    {"fixtures/bytecode/v4-02-caps.dsdb", "fixtures/bytecode/v4-02-caps.out", false, DSD_GAME_RUNNING, DRAW_FRAMES, NULL},
     {"fixtures/bytecode/bench.dsdb", "fixtures/bytecode/bench.out", false, DSD_GAME_RUNNING, 2, NULL},
     {"fixtures/bytecode/runtime/err-unset-slot.dsdb", "fixtures/bytecode/runtime/err-unset-slot.out", false,
      DSD_GAME_FAILED, 2, NULL},
@@ -147,8 +153,8 @@ static const ProgramCase CASES[] = {
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-divzero.dsdb", "fixtures/bytecode/runtime/err-divzero.out", false,
      DSD_GAME_FAILED, 0, NULL},
-    {"fixtures/bytecode/runtime/err-missing-builtin.dsdb", "fixtures/bytecode/runtime/err-missing-builtin.out", false,
-     DSD_GAME_FAILED, 0, NULL},
+    {"fixtures/bytecode/runtime/err-draw-not-loaded.dsdb", "fixtures/bytecode/runtime/err-draw-not-loaded.out", false,
+     DSD_GAME_FAILED, 1, NULL},
     {"fixtures/bytecode/runtime/err-overflow.dsdb", "fixtures/bytecode/runtime/err-overflow.out", false,
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-recursion.dsdb", "fixtures/bytecode/runtime/err-recursion.out", false,
@@ -276,9 +282,75 @@ static void test_flappy_deterministic(void) {
     if (!CHECK_STR(got, want)) printf("      the trace is runtime/build-host/flappy-a.jsonl\n");
 }
 
+// ---- Tier v4: the shadow OAM (drawlist.c) -------------------------------------------------------------------------
+
+// Sprite assets of v4-01-draw.dsda in ASET order, and the flag combinations the checks expect.
+#define SPR_A 0u
+#define SPR_C 1u
+#define SPR_W 2u
+#define FLIPS (DSD_OAM_HFLIP | DSD_OAM_VFLIP)
+#define ROTATED (DSD_OAM_AFFINE | DSD_OAM_DOUBLE)
+#define AFFINE_ONE 256 // 1.0 in an 8.8 affine parameter
+
+// Checks one OAM entry against the expected position, sprite, frame and flags (priority 1: sprites in 0.1).
+static void check_entry(const dsd_oam_entry *o, uint32_t screen, uint32_t sprite, int32_t x, int32_t y,
+                        uint32_t frame, uint32_t flags, int line) {
+    const char *what = "OAM entry (failures report the checking line)";
+    dsd_test_check_i64(o->x, x, __FILE__, line, what);
+    dsd_test_check_i64(o->y, y, __FILE__, line, what);
+    dsd_test_check_i64(o->sprite, dsd_engine.sprite_handle[screen][sprite], __FILE__, line, what);
+    dsd_test_check_i64(o->frame, frame, __FILE__, line, what);
+    dsd_test_check_i64(o->flags, flags, __FILE__, line, what);
+    dsd_test_check_i64(o->priority, 1, __FILE__, line, what);
+}
+
+static void test_draw_oam(void) {
+    // v4-01-draw, top view (16, 0), bottom view (0, 8). Positions are derived by hand in fixtures/bytecode/README.md.
+    CHECK_EQ(run_frames("fixtures/bytecode/v4-01-draw.dsdb", 1, NULL), DSD_GAME_RUNNING);
+    const HostScreenOam *top = host_oam(DSD_SCREEN_TOP);
+    const HostScreenOam *bot = host_oam(DSD_SCREEN_BOTTOM);
+    if (CHECK_EQ(top->n, 6) && CHECK_EQ(top->naffine, 1)) {
+        // depth -3: obj_rot, spr_c (12x10 in a 16x16 box, origin 2,3) at (128, 96) turned 90 degrees. Animation
+        // (image_speed 1) ran before Draw, so image_index is 1.
+        check_entry(&top->list[0], DSD_SCREEN_TOP, SPR_C, 101, 74, 1, ROTATED, __LINE__);
+        CHECK_EQ(top->list[0].affine, 0);
+        CHECK_EQ(top->affine[0].pa, 0);
+        CHECK_EQ(top->affine[0].pb, -AFFINE_ONE);
+        CHECK_EQ(top->affine[0].pc, AFFINE_ONE);
+        CHECK_EQ(top->affine[0].pd, 0);
+        // depth 0: obj_flip, both scales -1; image_index 4 + 1 wrapped past 3 frames to 2.
+        check_entry(&top->list[1], DSD_SCREEN_TOP, SPR_C, 70, 47, 2, FLIPS, __LINE__);
+        // depth 2: obj_drawer's calls in order (the 360-degree one needs no affine set; the off-screen one is gone).
+        check_entry(&top->list[2], DSD_SCREEN_TOP, SPR_W, 184, 20, 0, 0, __LINE__);
+        check_entry(&top->list[3], DSD_SCREEN_TOP, SPR_A, 6, 142, 0, 0, __LINE__);
+        // depth 5: the two obj_plain instances by id (the invisible obj_hidden draws nothing).
+        check_entry(&top->list[4], DSD_SCREEN_TOP, SPR_A, 16, 42, 0, 0, __LINE__);
+        check_entry(&top->list[5], DSD_SCREEN_TOP, SPR_A, 36, 42, 0, 0, __LINE__);
+    }
+    if (CHECK_EQ(bot->n, 1)) check_entry(&bot->list[0], DSD_SCREEN_BOTTOM, SPR_A, 42, 44, 0, 0, __LINE__);
+
+    // v4-02-caps: 130 rotated instances on one screen. 128 are shown (the last two by id are dropped), the first 32
+    // take affine sets, the other 96 draw unrotated.
+    CHECK_EQ(run_frames("fixtures/bytecode/v4-02-caps.dsdb", 1, NULL), DSD_GAME_RUNNING);
+    top = host_oam(DSD_SCREEN_TOP);
+    CHECK_EQ(dsd_draw_stats.sprites[DSD_SCREEN_TOP], DSD_C13_SPRITES_PER_SCREEN);
+    CHECK_EQ(dsd_draw_stats.oam_drop, 2);
+    CHECK_EQ(dsd_draw_stats.aff_drop, DSD_C13_SPRITES_PER_SCREEN - DSD_C13_AFFINE_PER_SCREEN);
+    if (CHECK_EQ(top->n, DSD_C13_SPRITES_PER_SCREEN) && CHECK_EQ(top->naffine, DSD_C13_AFFINE_PER_SCREEN)) {
+        // Instance 0 at (0, 50), origin at the box centre: the double-size area is centred there.
+        check_entry(&top->list[0], DSD_SCREEN_TOP, SPR_A, -16, 34, 0, ROTATED, __LINE__);
+        const dsd_affine *m = &top->affine[0];
+        CHECK(m->pa == m->pd && m->pb == -m->pc && m->pa > 0 && m->pc > 0); // 45 degrees, scale 1
+        CHECK_EQ(top->list[31].affine, 31);
+        // Instance 32 at (32, 50) found no set left: drawn plain.
+        check_entry(&top->list[32], DSD_SCREEN_TOP, SPR_A, 24, 42, 0, 0, __LINE__);
+    }
+}
+
 void suite_programs(void) {
     test_cases();
     test_collector_ran();
+    test_draw_oam();
     test_flappy_deterministic();
     test_missing_file();
     test_core_main();

@@ -17,12 +17,14 @@ static HostConfig g_cfg;
 static uint32_t g_frame;    // frames completed
 static bool g_fatal;        // dsd_plat_fatal was called
 static int32_t g_sprite_handles; // sprite handles handed out since the last dsd_plat_assets_free
+static HostScreenOam g_oam[DSD_SCREEN_COUNT]; // last submitted shadow OAM per screen
 
 void host_configure(const HostConfig *cfg) {
     g_cfg = *cfg;
     g_frame = 0;
     g_fatal = false;
     g_sprite_handles = 0;
+    memset(g_oam, 0, sizeof g_oam);
 }
 
 bool host_fatal_seen(void) { return g_fatal; }
@@ -112,12 +114,15 @@ void dsd_plat_bg_scroll(uint32_t screen, int32_t x, int32_t y) {
 
 void dsd_plat_oam_submit(uint32_t screen, const dsd_oam_entry *list, uint32_t n, const dsd_affine *affine,
                          uint32_t naffine) {
-    (void)screen;
-    (void)list;
-    (void)n;
-    (void)affine;
-    (void)naffine;
+    // The core caps n and naffine (drawlist.c); copy them as submitted.
+    HostScreenOam *o = &g_oam[screen];
+    memcpy(o->list, list, n * sizeof *list);
+    o->n = n;
+    memcpy(o->affine, affine, naffine * sizeof *affine);
+    o->naffine = naffine;
 }
+
+const HostScreenOam *host_oam(uint32_t screen) { return &g_oam[screen]; }
 
 void dsd_plat_ui_text(uint32_t screen, int32_t cx, int32_t cy, const char *str, uint32_t len, uint32_t colour) {
     (void)screen;

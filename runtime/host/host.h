@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "dsd_limits.h"
 #include "dsd_platform.h"
 
 // ---- Key scripts (--input; format in contracts/log-protocol.md "Host runner") -----------------------------------
@@ -50,6 +51,19 @@ void host_configure(const HostConfig *cfg);
 bool host_fatal_seen(void);
 // Frames completed (dsd_plat_frame_end calls).
 uint32_t host_frame_count(void);
+
+// ---- Shadow OAM ---------------------------------------------------------------------------------------------------
+
+// The last list the core submitted for one screen (dsd_plat_oam_submit), kept for tests and the PNG renderer.
+typedef struct HostScreenOam {
+    dsd_oam_entry list[DSD_C13_SPRITES_PER_SCREEN];
+    uint32_t n;
+    dsd_affine affine[DSD_C13_AFFINE_PER_SCREEN];
+    uint32_t naffine;
+} HostScreenOam;
+
+// Screen `screen`'s last submitted shadow OAM (empty before the first Draw stage).
+const HostScreenOam *host_oam(uint32_t screen);
 
 // ---- Traces (--trace; schema in contracts/log-protocol.md "Traces") ---------------------------------------------
 

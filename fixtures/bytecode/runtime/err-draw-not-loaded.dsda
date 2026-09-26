@@ -1,0 +1,31 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_a "gfx/spr_a.grf" 1 origin=0,0 size=16,16 bbox=0,0,15,15
+
+.func painter_draw 0 4
+    .loc "objects/obj_painter/draw.dss" 1
+    LOADI r0, 1
+    CALLN r0, 1, draw_set_screen
+    .loc "objects/obj_painter/draw.dss" 2
+    LOADK r0, @spr_a
+    LOADI r1, 0
+    LOADI r2, 10
+    LOADI r3, 10
+    CALLN r0, 4, draw_sprite
+    RET r0, 0
+.end
+
+.object obj_painter sprite=- parent=- visible=1 screen=top depth=0
+    .event draw painter_draw
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_painter 0 0 top -
+    .set top spr_a -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a

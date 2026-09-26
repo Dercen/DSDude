@@ -6,6 +6,7 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 ## Environment
 - start.sh (2026-09-26): `node v24.16.0, npm 11.13.0; push target: none yet; behind origin/main by 0; latest checkpoint: docs/status/checkpoint-0.md; open IF entries: 0`
+- Merged `origin/main` at checkpoint-4 (296821c, 2026-09-26): no open IF entries (IF-1 closed as a WS0 false alarm).
 - Linux gcc check: done in the cloud (gcc 13.3.0 Ubuntu, GNU Make 4.3).
 - Test: `make -f runtime/Makefile.host test` builds and runs `runtime/build-host/dsdude-tests` twice (`-O2`, and the UBSan trap variant `-fsanitize=undefined -fsanitize-trap=undefined`).
 
@@ -57,6 +58,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 - **Cross-merge with WS4 (2026-09-26):** merged `origin/ws4-compiler` (e899c34). WS4's compiled v0 programs (`fixtures/compiler/conformance/v0/*.dsdb`) run on the VM and match every v0 golden: the first compiler + runtime conformance pass; they are now in the `programs` suite. WS4's samples (`fixtures/compiler/samples/*.dsdb`) load up to their first provisional instance opcode (R582) until the engine lands.
 - **WS2 co-signs WS4's ADR-0005 (was ADR-0003; provisional opcode operands, opcodes 0.2.0 / dsdb.md 0.2.0), 2026-09-26.** Runtime notes for the promotion: (1) instance slots and globals start in an internal "never assigned" state, so GETSLOT/GETDYN/GETGLOB raise R500/R501 as rule 1 requires, distinct from a variable holding `undefined`; (2) WITHBEGIN leaves an opaque loop handle (an INT) in rA: the compiler must not touch rA between WITHBEGIN and WITHEND, as the ADR's fixed shape already guarantees; (3) GETDYN/GETBIO on `noone`, or on an object with no instance, raise R5xx; on `all` they read the first instance. WS2 implements the opcodes with the engine (tasks 4 and 6), then both streams promote them to stable in one T1.
 
+- **Task 6, part 2a: the draw list (tier v4 draw), 2026-09-26.** `runtime/core/src/drawlist.c` + `include/drawlist.h`, `builtins/sprites.c` (draw_self, draw_sprite, draw_sprite_ext: every builtin function is now implemented), the default draw (visible instances without a Draw event run `draw_self()`, errors named after the object's Draw event), `DSD|STAT` spr_top/spr_bot/oam_drop/aff_drop. Shadow OAM rules (PLAN 3.3): stable sort by (depth, id, call order); OBJ box = the smallest of C3's 12 OBJ sizes containing the frame; scales of exactly +-1 at an angle that is a multiple of 360 use hflip/vflip, mirrored around the origin (left = x + xorig - boxW); anything else takes an affine set with double size (scale clamped to [1/16, 2] in magnitude, the origin-to-centre vector scaled and turned counter-clockwise, then minus the box size), inverse matrix in 8.8; beyond 32 sets per screen the rest draw unrotated (aff_drop), beyond 128 entries per screen the highest (depth, id) are dropped (oam_drop); draws entirely off the screen are culled and count for nothing; `image_index` / `subimg` wrap modulo the frame count both ways; R572 for a sprite not loaded on the draw screen. The host keeps the last submitted list per screen (`host_oam`) for the tests. Fixtures: `v4-01-draw` (flip, affine, view, ordering, culling, invisible, both screens; positions derived in `fixtures/bytecode/README.md`), `v4-02-caps` (130 rotated instances), `runtime/err-draw-not-loaded` (R572); `err-missing-builtin` retired. 115,855 checks per variant, both green.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -71,11 +74,20 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 - **Engine decisions to review (WS0/WS4):**
   - Draw events run in creation order, like every other stage (C6 says "each stage iterates a snapshot ... in creation order"); sprites then stack by the shadow-OAM sort.
-  - The shadow OAM sort key "(depth, instance id)" is read literally: at equal depth the **lower id is in front**. GameMaker shows the later-created instance on top; if that is wanted, C6/PLAN 3.3 need a T0 clarification "(depth ascending, id descending)" before drawlist.c lands.
+  - The shadow OAM sort key "(depth, instance id)" is read literally: at equal depth the **lower id is in front**. GameMaker shows the later-created instance on top; if that is wanted, C6/PLAN 3.3 need a T0 clarification "(depth ascending, id descending)" and drawlist.c's `before()` flips one comparison (v4-01's two obj_plain entries swap).
   - Instances without a sprite have no bbox: they never collide, and Outside Room uses their position as a point.
   - `touch_x`/`touch_y` and `view_x`/`view_y` are whole pixels (INT); positions, speeds, directions and image values read as REAL (Q20.12 storage), so `x = 1000000` is R521 in debug builds.
   - `game_end()` lets the current frame finish, then runs Game End and prints DSD|EXIT|0; HALT exits at once without Game End.
+  - Draw list: several calls from one instance keep their call order at that instance's (depth, id); a draw off the screen is culled before the 128 cap, so it never pushes a visible one out; `subimg` wraps modulo the frame count both ways; affine scales are clamped to [1/16, 2] in magnitude (0 counts as +1/16).
   - `move_wrap` moves an instance that is more than `margin` past one side to the same distance past the other side; `collision_rectangle` covers [min, max) on each axis.
+
+## ADR-0004 answer
+WS2's answer to WS3's ADR-0004 (platform-seam DS needs), published as C11 0.2.0 (T1, 2026-09-26) for WS0 to copy into the ADR and close it. All four items adopted, two in a changed form:
+1. **Core entry point: adopted.** `int dsd_core_main(void)` in `dsd_platform.h` runs the whole game (boot, frames, EXIT or ERR) and re-initialises all core state on entry; it returns 0 after `DSD|EXIT` and 1 after `DSD|ERR`. WS3's `main.c` calls it after its own hardware set-up; the host keeps `dsd_game_boot`/`dsd_game_frame` for per-frame traces.
+2. **Log lines: adopted in a changed form.** Kept `dsd_plat_log(line, len)` with the `\n` included (the core formats every line and applies the C8 splitting and `|` rules), plus an explicit `dsd_plat_log_flush()` the core calls after READY, ERR and STAT, so the DS writes the >= 5120-byte pad there without matching line prefixes.
+3. **Platform errors: adopted in a changed form.** `dsd_plat_fatal(const dsd_fatal *)` as published (string fields, called after the ERR line). Start-up failures come back through `dsd_plat_init`'s result (`DSD_PLAT_ENOENT`: NitroFS missing, reported as R584 "file system"; `DSD_PLAT_ELOAD`: soundbank, R571) and sound loads through `dsd_plat_sfx_load`/`dsd_plat_music_load` (R571), so the platform never prints ERR lines and needs no codes of its own. ADR-0004's proposed R580-R583 remain the loader's codes in `runtime/core/diagnostics/catalog.json`.
+4. **Memory report: adopted.** `dsd_plat_mem_report(dsd_mem_report *)` with the `DSD|MEM` keys ADR-0004 lists; the core prints the line after Room Start.
+WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; anything still missing before CP-A (2026-09-28) goes in a note on ADR-0004.
 
 ## Needs a local check (WS0, mingw32-make under cmd.exe)
 - `mkdir "runtime/build-host"`: relies on cmd.exe accepting a quoted forward-slash path.
@@ -85,16 +97,16 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 ## Leftovers
 - **Collector design differs from PLAN 3.3** ("ref-counting plus a mark-sweep pass at room change"): WS2 uses a tracing mark-compact collector triggered when the arena fills. Reference counts would cost a tag check and a count update on every register write in the VM's hot path (the M1 gate), while collecting only at room change would let a room that builds text every frame (`draw_text("Score: " + string(score))`) exhaust the arena. Internal to the runtime (no contract changes); WS0 may want a PLAN note.
-- Builtins not implemented yet (draw_self, draw_sprite, draw_sprite_ext) raise R582 when called (the loader accepts them). Unimplemented opcodes (CMPJ, reserved 51-54) are R582 at load, with the detail "bytecode N" (C9 bans the word opcode).
+- Every builtin function is implemented (a future one without an implementation would raise R582 when called). Unimplemented bytecodes (reserved 51-54) are R582 at load, with the detail "bytecode N" (C9 bans the word opcode).
 
 ## Next
 - CP-A (2026-09-28): C11 (now 0.2.0) freezes; fold in anything WS3 still needs from ADR-0004 first.
-- Task 6, part 2: `drawlist.c` (draw_self, draw_sprite, draw_sprite_ext, the default draw, the section 3.3 shadow-OAM rules with affine sets and the 128/32 caps, DSD|STAT spr/oam/aff counts), the collision grid broadphase, tier v3 fixtures (collisions, alarms, with; sprite geometry is in), then v4 (rooms and draw) with `--png-dir`.
+- Task 6, part 2b: `--png-dir` (the host renders the last frame's screens from the NitroFS GRFs, the shadow OAM, the backgrounds and the UI layer), the collision grid broadphase, a 300-instance stress fixture, then the rest of tier v4 (rooms and draw) with PNG goldens.
 - WS4's conformance programs 6-10 (v1): run them and write `fixtures/conformance/expected/v1/*.log` when they land; ADR draft if they are not on `main` by D+5 (2026-09-30).
 - With WS4: promote the provisional opcodes the VM now implements (CALL, ADDI/SUBI/MULI, CMPJ, slots, GETDYN/SETDYN, GETBI*, WITH*, arrays, TOINT/TOFIXED) to stable in one T1, once WS4 has co-signed the CMPJ proposal and WS2's notes on ADR-0005.
 
 ## Open ADR-pending markers
-- none in WS2's code. ADRs WS2 is party to: ADR-0004 (WS3, answered by C11 0.2.0), ADR-0005 (WS4, co-signed), ADR-0006 (WS2, implemented by WS4 and WS2; WS0 to close).
+- none in WS2's code (no `ADR-pending ADR-0006` markers were ever in WS2's paths; WS4's are in `packages/`). ADRs WS2 is party to: ADR-0004 (WS3; WS2's answer is the "ADR-0004 answer" section above), ADR-0005 (WS4, co-signed), ADR-0006 (WS2; accepted by the user, option A with WS4's rule: format minor 2 only in files that carry the extension table, and the loader accepts both).
 
 ## Integration feedback
 - IF-1 2026-09-26 checkpoint-2 @2b51ae1: ownership failed: `node tools/check-ownership.ts --range main..origin/ws2-runtime-core --stream WS2` ->  ?: . Action: revert or move those changes (they belong to another stream), then push again.

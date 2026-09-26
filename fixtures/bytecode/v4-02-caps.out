@@ -1,0 +1,3 @@
+DSD|READY|0.1.0|0dd9987a
+DSD|MEM|inst=131/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0
+DSD|STAT|fps=60,inst=131,spr_top=128,spr_bot=0,oam_drop=2,aff_drop=96,sfx_drop=0,ops=0

@@ -51,6 +51,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.1.0 (2026-09-25, WS0, Phase 0): READY/LOG/ERR/MEM/STAT/PAD/EXIT lines, one protocol from 0x04FFFA00, >= 5 KB flush pad.
 - 0.2.0 (2026-09-26, WS2, T1): "Host runner" section: dsdude-host command line (a `.dsdb` path as the root), LF-only stdout, exit codes 0/1/2, empty ERR fields in program form and load errors, the `--input` key-script format, the `--trace` JSONL schema (one integer-only object per frame, fixed key order), and `--png-dir` (from tier v4).
 - 0.2.0 T0 (2026-09-26, WS2): a trace line is written when the frame has ended (after a pending room change); DSD|STAT comes every 60th frame; DSD|MEM comes after Room Start and its `inst` counts instance blocks in use.
+- 0.2.0 T0 (2026-09-26, WS2, from WS1): the flush pad is >= 5120 bytes, at least six DSD|PAD| lines (five 1023-char lines are 5,115 characters). DSD|STAT's spr_top/spr_bot/oam_drop/aff_drop describe the last frame (oam_drop and aff_drop summed over both screens).
 
 ## C8 Runtime artifact (`contracts/runtime-artifact.md`)
 - owed: WS3, with its first runtime/dist build.

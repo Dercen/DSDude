@@ -17,7 +17,7 @@ Every line starts with `DSD|`, has `|`-separated fields and ends with `\n`. Pars
 | `DSD\|LOG\|<text>` | `show_debug_message` and runtime notes | free text (rules below) |
 | `DSD\|ERR\|<code>\|<object>\|<event>\|<file>\|<line>\|<message>` | a runtime error (the game stops) | R5xx code (C9); object and event names; project-relative DSS file; 1-based line (0 if unknown); message in the C9 voice |
 | `DSD\|MEM\|inst=14/512,arena=40/512,heapfree=1310,snd=120/768,objvram_top=48/128,objvram_bot=12/128,pal16_top=1/16,pal256_top=3/16,pal16_bot=0/16,pal256_bot=1/16,cstack=2/11` | at room start (after Room Start) | `key=used/total` pairs; KB unless a count; `inst` counts instance blocks in use |
-| `DSD\|STAT\|fps=60,inst=14,spr_top=9,spr_bot=2,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1820` | once per second: every 60th frame | `oam_drop`: instances beyond 128 visible per screen; `aff_drop`: rotated or scaled instances beyond 32 per screen that drew unrotated; `sfx_drop`: effects that found no free channel; `ops`: VM ops in the last frame |
+| `DSD\|STAT\|fps=60,inst=14,spr_top=9,spr_bot=2,oam_drop=0,aff_drop=0,sfx_drop=0,ops=1820` | once per second: every 60th frame | `spr_top`/`spr_bot`: sprites shown per screen in the last frame; `oam_drop`: draws beyond 128 visible per screen in the last frame (on both screens together); `aff_drop`: rotated or scaled draws beyond 32 per screen that drew unrotated in the last frame; `sfx_drop`: effects that found no free channel; `ops`: VM ops in the last frame |
 | `DSD\|PAD\|...` | after READY, ERR and STAT | flush pad (below); parsers drop it |
 | `DSD\|EXIT\|<code>` | the game ends (`game_end()`, the end of a program-form `__main`) | integer exit code, 0 = normal |
 
@@ -48,10 +48,10 @@ prints `DSD|EXIT|0` and stops; the host runner then exits.
 ## Flush pad
 
 Both emulators block-buffer stdout on a pipe in ~4 KB blocks and never flush. So every `DSD|READY`, `DSD|ERR` and
-`DSD|STAT` line is followed by a flush pad of **>= 5 KB**: at least five `DSD|PAD|` lines of <= 1023 chars each
-(e.g. `DSD|PAD|` + 1014 `.` characters). EmulatorManager drops every `DSD|PAD|` line before `onLine`. Other lines
-arrive when a later pad pushes them out, or at a graceful stop (`taskkill /PID`, then `/F` after 2 s), which flushes
-the buffer.
+`DSD|STAT` line is followed by a flush pad of **>= 5120 bytes**: at least six `DSD|PAD|` lines of <= 1023 chars each
+(e.g. `DSD|PAD|` + 1014 `.` characters; five such lines are only 5,115 characters plus their newlines, so six).
+EmulatorManager drops every `DSD|PAD|` line before `onLine`. Other lines arrive when a later pad pushes them out,
+or at a graceful stop (`taskkill /PID`, then `/F` after 2 s), which flushes the buffer.
 
 ## Host runner
 

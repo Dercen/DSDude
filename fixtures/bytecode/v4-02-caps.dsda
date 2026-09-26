@@ -1,0 +1,47 @@
+.dsda 0.1
+.seed 0
+.asset sprite spr_a "gfx/spr_a.grf" 1 origin=8,8 size=16,16 bbox=0,0,15,15
+
+.func ctrl_create 0 4
+    .loc "objects/obj_ctrl/create.dss" 1
+    LOADI r3, 0
+  L0:
+    LOADI r0, 130
+    LT r0, r3, r0
+    JMPF r0, L1
+    .loc "objects/obj_ctrl/create.dss" 2
+    MOV r0, r3
+    LOADI r1, 50
+    LOADK r2, @obj_many
+    CALLN r0, 3, instance_create
+    ADDI r3, r3, 1
+    JMP L0
+  L1:
+    RET r0, 0
+.end
+
+.func many_create 0 1
+    .loc "objects/obj_many/create.dss" 1
+    LOADI r0, 45
+    SETBI r0, image_angle
+    RET r0, 0
+.end
+
+.object obj_many sprite=spr_a parent=- visible=1 screen=top depth=0
+    .event create many_create
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event create ctrl_create
+.end
+
+.room rm_caps 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .set top spr_a -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_caps

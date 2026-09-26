@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+#include "drawlist.h"
 #include "dsd_log.h"
 #include "errors.h"
 #include "fixed.h"
@@ -410,18 +411,42 @@ static bool stage_outside(void) {
     return true;
 }
 
-// Draw (step 11): visible instances run their Draw event (drawing sprites and the UI layer arrive with drawlist.c).
+// The default draw of an instance without a Draw event: draw_self(), run in that event's context so an error (R572)
+// names the object and the Draw event (with no file or line: no script code ran).
+static bool default_draw(uint32_t idx) {
+    DsdVm *vm = dsd_engine.vm;
+    uint32_t saved_self = vm->self;
+    uint32_t saved_ev = vm->ev_id;
+    uint32_t saved_owner = vm->ev_owner;
+    vm->self = idx;
+    vm->ev_id = DSD_EVENT_ID(DSD_EV_DRAW, 0);
+    vm->ev_owner = dsd_inst_at(idx)->object;
+    vm->pc = DSD_VM_NO_PC;
+    if (!dsd_draw_self(vm, idx)) return false;
+    vm->self = saved_self;
+    vm->ev_id = saved_ev;
+    vm->ev_owner = saved_owner;
+    return true;
+}
+
+// Draw (step 11): visible instances run their Draw event, or draw_self() without one; then each screen's shadow OAM
+// is built from the draw list and submitted (step 12's commit happens in dsd_plat_frame_end).
 static bool stage_draw(void) {
     DsdEngine *e = &dsd_engine;
+    uint32_t draw_id = DSD_EVENT_ID(DSD_EV_DRAW, 0);
     uint32_t n = snapshot();
+    dsd_draw_begin();
     for (uint32_t i = 0; i < n && running(); i++) {
         uint32_t idx = g_snap[i];
         if (!dsd_inst_live(idx) || !dsd_inst_at(idx)->visible) continue;
         e->draw_screen = dsd_inst_at(idx)->screen;
         e->draw_screen_set = false;
-        if (!dsd_engine_event(idx, DSD_EVENT_ID(DSD_EV_DRAW, 0), DSD_VM_NO_INST)) return false;
+        uint32_t owner;
+        bool has_draw = dsd_world_event(e->world, dsd_inst_at(idx)->object, draw_id, &owner) != DSD_NO_EVENT;
+        if (!(has_draw ? dsd_engine_event(idx, draw_id, DSD_VM_NO_INST) : default_draw(idx))) return false;
     }
     for (uint32_t s = 0; s < DSD_SCREEN_COUNT; s++) dsd_plat_bg_scroll(s, e->view_x[s], e->view_y[s]);
+    dsd_draw_commit();
     return true;
 }
 
@@ -632,7 +657,15 @@ static void log_stat(void) {
     dsd_text_uint(&t, ms == 0 ? DSD_STAT_EVERY : (DSD_STAT_EVERY * MS_PER_SECOND + ms / 2) / ms);
     dsd_text_str(&t, ",inst=");
     dsd_text_uint(&t, dsd_instances.count);
-    dsd_text_str(&t, ",spr_top=0,spr_bot=0,oam_drop=0,aff_drop=0,sfx_drop=");
+    dsd_text_str(&t, ",spr_top=");
+    dsd_text_uint(&t, dsd_draw_stats.sprites[DSD_SCREEN_TOP]);
+    dsd_text_str(&t, ",spr_bot=");
+    dsd_text_uint(&t, dsd_draw_stats.sprites[DSD_SCREEN_BOTTOM]);
+    dsd_text_str(&t, ",oam_drop=");
+    dsd_text_uint(&t, dsd_draw_stats.oam_drop);
+    dsd_text_str(&t, ",aff_drop=");
+    dsd_text_uint(&t, dsd_draw_stats.aff_drop);
+    dsd_text_str(&t, ",sfx_drop=");
     dsd_text_uint(&t, e->sfx_drops);
     dsd_text_str(&t, ",ops=");
     dsd_text_uint(&t, e->ops_last);

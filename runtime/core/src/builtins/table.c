@@ -34,7 +34,8 @@ const DsdBuiltinFn dsd_builtin_fn[DSD_BUILTIN_FUNC_COUNT] = {
     IMPL(motion_add),     IMPL(motion_set),  IMPL(move_towards_point), IMPL(move_wrap),
     IMPL(audio_play_sound), IMPL(audio_stop_sound), IMPL(audio_play_music), IMPL(audio_stop_music),
     IMPL(audio_set_volume), IMPL(audio_is_playing), IMPL(draw_text), IMPL(draw_set_screen),
-    IMPL(draw_set_color), IMPL(draw_rectangle), IMPL(draw_clear),
+    IMPL(draw_set_color), IMPL(draw_rectangle), IMPL(draw_clear), IMPL(draw_self),
+    IMPL(draw_sprite),    IMPL(draw_sprite_ext),
 };
 #undef IMPL
 
