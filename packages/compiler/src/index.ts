@@ -20,3 +20,5 @@ export {
 export { type FileKind, isLValue, type ParseOptions, type ParseResult, parse } from "./syntax/parser.ts";
 
 export const packageName = "@dsdude/compiler";
+export { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
+export { compileProgram, MAIN_FUNCTION, type ProgramOptions, type ProgramResult } from "./program.ts";

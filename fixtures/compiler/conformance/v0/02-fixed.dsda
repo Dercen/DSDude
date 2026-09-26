@@ -1,0 +1,49 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 3
+    .loc "v0/02-fixed.dss" 2
+    LOADI r0, 1
+    LOADI r1, 2
+    DIV r0, r0, r1
+    .loc "v0/02-fixed.dss" 3
+    MOV r1, r0
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 4
+    LOADI r1, 7
+    LOADI r2, 2
+    DIV r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 5
+    LOADK r1, 0.25
+    LOADK r2, 0.25
+    ADD r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 6
+    LOADK r1, 1.5
+    LOADI r2, 4
+    MUL r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 7
+    LOADI r1, 10
+    LOADI r2, 4
+    DIV r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 8
+    LOADK r1, 7.5
+    LOADI r2, 2
+    MOD r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 9
+    LOADK r1, 0.125
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 10
+    LOADK r1, -0.125
+    CALLN r1, 1, show_debug_message
+    .loc "v0/02-fixed.dss" 11
+    LOADK r1, 0.5
+    LOADK r2, 0.5
+    SUB r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    RET r0, 0
+.end

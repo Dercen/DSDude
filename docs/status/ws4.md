@@ -24,14 +24,23 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   changed. **WS0: please regenerate `package-lock.json`** (the workspace entries for `packages/compiler` and
   `packages/lang` are stale; nothing else changes).
 
+- **Task 2, codegen: in progress.**
+  - Program form done (2026-09-26): `compileProgram()` (`src/program.ts`) and the per-function code generator
+    (`src/codegen/function.ts`). Locals get fixed registers, temporaries a stack above them (a single-pass
+    allocation; the PLAN's IR + linear scan is only needed for frames over 64 registers, which report E492).
+  - `v0/01-arith` compiles byte-identically to WS0's hand-assembled `fixtures/bytecode/conformance/v0-01.dsda`.
+  - New catalog entries: E201-E204, E301-E307, E492, E493 (did-you-mean via `src/diagnostics/suggest.ts`).
+
 ## Next
 
-- Task 2: binder and codegen to `.dsda` (locals to registers, slot layouts, 3-address IR, linear scan, OBJS/ROOMS),
-  goldens against `samples/flappy`.
+- ADR-0003 (provisional opcode operands: `sym`/`bivar` operand kinds, GETBIX/SETBIX/GETBIO/SETBIO), then project
+  codegen: slot layouts, OBJS, events, `with`, ROOMS with per-screen asset sets, ASET; goldens for `samples/*`.
 
 ## Goldens (tier status)
 
-- None yet.
+- `fixtures/compiler/conformance/v0/*.dsda` + `.dsdb` (all five v0 programs; `.dsdb` from `node tools/gen-dsdb.ts`):
+  disassembly snapshots; they execute once WS2's VM lands v0 (**WS2: these can replace hand-assembling v0 02-05**).
+- Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.
 
 ## Open ADR-pending markers
 
