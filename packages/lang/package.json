@@ -11,6 +11,7 @@
     "test": "vitest run --pool=threads --maxWorkers=2"
   },
   "dependencies": {
+    "@dsdude/compiler": "0.1.0",
     "@dsdude/project-format": "0.1.0"
   }
 }

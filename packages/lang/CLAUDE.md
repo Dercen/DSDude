@@ -29,6 +29,7 @@ Cloud session: see the Cloud setup block in docs/kickoff/ws4.md.
 
 ## Isolation
 Diagnostic-snapshot tests need no runtime. The AST stays internal; only C7 (`host.ts`) is public.
+The lexer, parser and catalog live in `@dsdude/compiler`; this package depends on it (never the reverse).
 
 ## Rules
 - Import other packages only through their `src/index.ts` or a declared subpath; relative imports carry `.ts`.
