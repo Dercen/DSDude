@@ -483,7 +483,8 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
         [DSD_OP_GETBI] = &&op_GETBI,     [DSD_OP_SETBI] = &&op_SETBI,     [DSD_OP_GETBIX] = &&op_GETBIX,
         [DSD_OP_SETBIX] = &&op_SETBIX,   [DSD_OP_GETBIO] = &&op_GETBIO,   [DSD_OP_SETBIO] = &&op_SETBIO,
         [DSD_OP_WITHBEGIN] = &&op_WITHBEGIN, [DSD_OP_WITHNEXT] = &&op_WITHNEXT, [DSD_OP_WITHEND] = &&op_WITHEND,
-        [DSD_OP_CMPJ] = &&op_CMPJ,
+        [DSD_OP_CMPJ] = &&op_CMPJ,         [DSD_OP_ADDII] = &&op_ADDII,     [DSD_OP_SUBII] = &&op_SUBII,
+        [DSD_OP_MULII] = &&op_MULII,       [DSD_OP_CMPJII] = &&op_CMPJII,
     };
     if (g_dispatch[DSD_OP_HALT] == NULL) memcpy(g_dispatch, labels, sizeof labels);
     const void *const *dispatch_base = g_dispatch;
@@ -822,6 +823,66 @@ op_CMPJ: {
         if (!relation_holds(vm, DSD_C(ins), a, b, &holds)) goto failed;
     }
     if (holds) TRANSFER(ip + 1); // skip the JMP (the verifier guarantees one follows), which never runs
+    DISPATCH();
+}
+
+// Int-specialised ADDII/SUBII/MULII rA, rB, rC and CMPJII (the M1 fallback, PLAN.md 8): the compiler emits them only
+// when both operands are proven ints, so no tag is read. A wrong program can only get a wrong number here, never
+// unsafe memory access (every register index was verified). Overflow still raises R520 in debug builds and wraps in
+// release builds, like ADD/SUB/MUL.
+op_ADDII:
+    if (!dsd_add_ovf(RB.payload, RC.payload, &r)) {
+        RA = dsd_int(r);
+        DISPATCH();
+    }
+    goto int_overflow;
+
+op_SUBII:
+    if (!dsd_sub_ovf(RB.payload, RC.payload, &r)) {
+        RA = dsd_int(r);
+        DISPATCH();
+    }
+    goto int_overflow;
+
+op_MULII:
+    if (!dsd_mul_ovf(RB.payload, RC.payload, &r)) {
+        RA = dsd_int(r);
+        DISPATCH();
+    }
+    goto int_overflow;
+
+int_overflow: // r holds the wrapped result (__builtin_*_overflow): an error in debug builds, the value in release
+    SYNC_PC();
+    if (!dsd_vm_number_status(vm, DSD_NUM_OVERFLOW, dsd_int(r))) goto failed;
+    RA = dsd_int(r);
+    DISPATCH();
+
+// CMPJII rA, rB, rel; JMP L: CMPJ on two proven ints (payload comparison only).
+op_CMPJII: {
+    int32_t x = RA.payload;
+    int32_t y = RB.payload;
+    bool holds;
+    switch (DSD_C(ins)) {
+    case REL_EQ:
+        holds = x == y;
+        break;
+    case REL_NE:
+        holds = x != y;
+        break;
+    case REL_LT:
+        holds = x < y;
+        break;
+    case REL_LE:
+        holds = x <= y;
+        break;
+    case REL_GT:
+        holds = x > y;
+        break;
+    default:
+        holds = x >= y;
+        break;
+    }
+    if (holds) TRANSFER(ip + 1); // skip the JMP, which never runs
     DISPATCH();
 }
 

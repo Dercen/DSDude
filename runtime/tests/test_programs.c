@@ -13,6 +13,7 @@
 #include "font8x8.h"
 #include "game.h"
 #include "host.h"
+#include "opcodes.h"
 #include "test.h"
 
 // Captured protocol output of one run.
@@ -267,14 +268,14 @@ static void test_collector_ran(void) {
     CHECK(dsd_game_vm()->heap.collections > 0);
 }
 
-// Runs a room game for `frames` frames writing its --trace to `path` (under runtime/build-host/, which exists
+// Runs a room game for `frames` frames (with key script `keys`, or none when NULL) writing its --trace to `path` (under runtime/build-host/, which exists
 // whenever the tests run). False when the trace could not be written.
 static bool trace_run(const char *dsdb, uint32_t frames, const char *keys, const char *path) {
     FILE *f = fopen(path, "wb");
     if (f == NULL) return false;
     g_capture_len = 0;
     char err[HOST_KEY_ERR_MAX];
-    int32_t n = dsd_test_read_file(keys, g_key_text, sizeof g_key_text);
+    int32_t n = keys != NULL ? dsd_test_read_file(keys, g_key_text, sizeof g_key_text) : 0; // NULL: no input
     bool ok = n >= 0 && host_keys_parse(&g_keys, g_key_text, (uint32_t)n, err, sizeof err);
     HostConfig cfg = {dsdb, RUN_SEED, &g_keys, capture, NULL};
     host_configure(&cfg);
@@ -627,6 +628,90 @@ static void test_mutations(void) {
     CHECK(loaded > 0 && refused > 0); // both paths were exercised
 }
 
+// ---- Int-specialised opcodes (ADDII/SUBII/MULII/CMPJII, the M1 fallback) ------------------------------------------
+// WS4's assembler cannot write them until its T1, so these tests rewrite the opcode byte of chosen instructions in a
+// copy of a fixture. Where every operand is an int, the rewritten program must behave exactly like the original.
+
+#define DSDB_SECTION_TABLE 32  // contracts/dsdb.md section 2: 12-byte {tag, offset, size} entries from offset 32
+#define DSDB_SECTION_ENTRY 12
+#define DSDB_CODE_SECTION 3    // STRS SYMS KONS CODE ...
+#define WORD 4
+#define ALL_OCCURRENCES UINT32_MAX
+#define II_COPY "runtime/build-host/int-specialised.dsdb"
+#define BENCH_FRAMES 2
+
+static uint32_t rd32le(const char *p) {
+    return (uint32_t)(uint8_t)p[0] | (uint32_t)(uint8_t)p[1] << 8 | (uint32_t)(uint8_t)p[2] << 16 |
+           (uint32_t)(uint8_t)p[3] << 24;
+}
+
+// In `bytes` (a whole DSDB), rewrites opcode `from` to `to` in its `which`-th occurrence (0-based) in CODE, or in
+// every occurrence when `which` is ALL_OCCURRENCES. Returns how many instructions changed.
+static uint32_t rewrite_ops(char *bytes, uint8_t from, uint8_t to, uint32_t which) {
+    const char *entry = bytes + DSDB_SECTION_TABLE + DSDB_CODE_SECTION * DSDB_SECTION_ENTRY;
+    uint32_t off = rd32le(entry + WORD);
+    uint32_t count = rd32le(bytes + off);
+    uint32_t seen = 0;
+    uint32_t changed = 0;
+    for (uint32_t i = 0; i < count; i++) {
+        char *op = bytes + off + WORD + i * WORD; // the opcode is the low byte of each little-endian word
+        if ((uint8_t)*op != from) continue;
+        if (which == ALL_OCCURRENCES || seen == which) {
+            *op = (char)to;
+            changed++;
+        }
+        seen++;
+    }
+    return changed;
+}
+
+// Writes `n` bytes to `path`. False on an I/O error.
+static bool write_bytes(const char *path, const char *bytes, int32_t n) {
+    FILE *f = fopen(path, "wb");
+    if (f == NULL) return false;
+    bool ok = fwrite(bytes, 1, (size_t)n, f) == (size_t)n;
+    return fclose(f) == 0 && ok;
+}
+
+static void test_int_specialised(void) {
+    static char bytes[EXPECT_MAX];
+    static char want[TRACE_MAX];
+    static char got[TRACE_MAX];
+    // bench: every ADD/SUB/MUL/CMPJ works on ints, so the II forms must give the same trace (ops included).
+    int32_t n = dsd_test_read_file("fixtures/bytecode/bench.dsdb", bytes, sizeof bytes);
+    if (!CHECK(n > 0)) return;
+    uint32_t changed = rewrite_ops(bytes, DSD_OP_ADD, DSD_OP_ADDII, ALL_OCCURRENCES) +
+                       rewrite_ops(bytes, DSD_OP_SUB, DSD_OP_SUBII, ALL_OCCURRENCES) +
+                       rewrite_ops(bytes, DSD_OP_MUL, DSD_OP_MULII, ALL_OCCURRENCES) +
+                       rewrite_ops(bytes, DSD_OP_CMPJ, DSD_OP_CMPJII, ALL_OCCURRENCES);
+    CHECK(changed > 0);
+    if (!CHECK(write_bytes(II_COPY, bytes, n))) return;
+    CHECK(trace_run("fixtures/bytecode/bench.dsdb", BENCH_FRAMES, NULL, "runtime/build-host/bench-a.jsonl"));
+    CHECK(trace_run(II_COPY, BENCH_FRAMES, NULL, "runtime/build-host/bench-ii.jsonl"));
+    int32_t nw = dsd_test_read_file("runtime/build-host/bench-a.jsonl", want, sizeof want - 1);
+    int32_t ng = dsd_test_read_file("runtime/build-host/bench-ii.jsonl", got, sizeof got - 1);
+    CHECK(nw > 0 && nw == ng && memcmp(want, got, (size_t)nw) == 0);
+
+    // wrap: its int-only overflow lines (1 ADD, 2 MUL, 4 SUB; line 3 adds a fraction and keeps ADD). Debug: R520
+    // on line 1, as wrap.out; release (header flag bit 0): the wrapped values, as wrap-release.out.
+    n = dsd_test_read_file(WRAP_DSDB, bytes, sizeof bytes);
+    if (!CHECK(n > HEADER_FLAGS_OFFSET)) return;
+    CHECK_EQ(rewrite_ops(bytes, DSD_OP_ADD, DSD_OP_ADDII, 0) + rewrite_ops(bytes, DSD_OP_MUL, DSD_OP_MULII, 0) +
+                 rewrite_ops(bytes, DSD_OP_SUB, DSD_OP_SUBII, 0),
+             3);
+    const char *goldens[2] = {"fixtures/bytecode/runtime/wrap.out", "fixtures/bytecode/runtime/wrap-release.out"};
+    for (uint32_t release = 0; release < 2; release++) {
+        bytes[HEADER_FLAGS_OFFSET] = (char)(release ? FLAG_RELEASE : 0);
+        if (!CHECK(write_bytes(II_COPY, bytes, n))) return;
+        run_program(II_COPY);
+        if (CHECK(read_expected(goldens[release]))) {
+            dsd_test_mask_abi(g_capture);
+            dsd_test_mask_abi(g_expected);
+            CHECK_STR(g_capture, g_expected);
+        }
+    }
+}
+
 void suite_programs(void) {
     test_cases();
     test_collector_ran();
@@ -635,6 +720,7 @@ void suite_programs(void) {
     test_broadphase();
     test_release_flag();
     test_music_and_seed();
+    test_int_specialised();
     test_mutations();
     test_flappy_deterministic();
     test_missing_file();
