@@ -36,6 +36,10 @@ export interface CodegenEnv {
   self: ObjectInfo | null;
   /** The object `other` is known to be (collision events), or null. */
   other: ObjectInfo | null;
+  /** The event stem when the code is an event (for `allowedEvents`, E313); null for functions and programs. */
+  event: string | null;
+  /** The screen of the object whose code this is (W031); null when not tied to an object. */
+  objectScreen: "top" | "bottom" | null;
   /** Resolves a callable user function by name (the object's own and inherited ones, then scripts). */
   lookupFunction(name: string): UserFunction | null;
   /** Names of every user function reachable from here, for did-you-mean. */

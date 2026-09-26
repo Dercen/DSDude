@@ -52,6 +52,8 @@ export class Reporter {
   suppressed = false;
   /** Project-relative path with "/" separators, or null when the text is not tied to a file. */
   readonly file: string | null;
+  /** The source text the offsets refer to (for messages that quote the code). */
+  readonly text: string;
   private readonly lines: LineMap;
 
   /**
@@ -60,6 +62,7 @@ export class Reporter {
    */
   constructor(file: string | null, text: string) {
     this.file = file;
+    this.text = text;
     this.lines = new LineMap(text);
   }
 

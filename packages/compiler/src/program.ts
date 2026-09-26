@@ -52,6 +52,8 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
     hasInstance: false,
     self: null,
     other: null,
+    event: null,
+    objectScreen: null,
     lookupFunction: (name) => functions.get(name) ?? null,
     functionNames: () => functions.keys(),
     assetKind: () => null,

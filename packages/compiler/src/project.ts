@@ -55,6 +55,8 @@ const FUNCTION_PREFIX = "fn_";
 const EVENT_STEM =
   /^(create|destroy|begin_step|step|end_step|alarm_[0-7]|draw|(button_pressed|button_released|button_held)_(a|b|x|y|l|r|start|select|up|down|left|right)|touch_pressed|touch_released|touch_held|global_touch_pressed|global_touch_released|global_touch_held|game_start|game_end|room_start|room_end|animation_end|outside_room|user_[0-7])$/;
 const COLLISION_PREFIX = "collision_";
+/** Instance touch events, which fire only for bottom-screen instances (events.md section 1; W031). */
+const TOUCH_EVENT = /^touch_(pressed|released|held)$/;
 
 export interface CompileProjectOptions {
   /** DSDB header RNG seed (`--seed N`); 0 lets the runtime choose (contracts/dsdb.md section 2). */
@@ -136,6 +138,7 @@ class ProjectCompiler {
   run(): CompileProjectResult {
     this.index();
     if (this.hasErrors()) return this.failed();
+    this.projectLints();
     const functions = this.units.map((u) => this.generate(u));
     const fromCodegen = this.units.flatMap((u) => u.source.reporter.diagnostics);
     this.diagnostics.push(...dedupe(fromCodegen));
@@ -416,6 +419,40 @@ class ProjectCompiler {
     return null;
   }
 
+  // ---- Project lints (contracts/diagnostics.md "Lints") ----------------------------------------------------------
+
+  /** W031 touch events on the top screen, W050 empty rooms, W051 placed objects nobody can see, W052 unused sprites. */
+  private projectLints(): void {
+    for (const o of this.objects.values())
+      if (o.res.screen === "top")
+        for (const stem of Object.keys(o.res.events).sort())
+          if (TOUCH_EVENT.test(stem))
+            this.report(`objects/${o.res.name}/${stem}.dss`, "W031", { what: `The ${stem} event`, object: o.res.name });
+    for (const room of this.project.rooms) {
+      const file = `rooms/${room.name}/room.json`;
+      if (room.instances.length === 0) this.report(file, "W050", { room: room.name });
+      const warned = new Set<string>();
+      for (const inst of room.instances) {
+        const o = this.objects.get(inst.object);
+        if (o === undefined || warned.has(o.res.name) || !o.res.visible || o.res.sprite !== null) continue;
+        // Visible-off objects (controllers such as Flappy's obj_ctrl) are exempt; so is anything with a Draw event.
+        if (this.ancestors(o).some((c) => "draw" in c.res.events)) continue;
+        warned.add(o.res.name);
+        this.report(file, "W051", { object: o.res.name, room: room.name });
+      }
+    }
+    const usedSprites = new Set(this.project.objects.map((o) => o.sprite));
+    for (const u of this.units)
+      walk(u.body, {
+        expr: (e) => {
+          if (e.kind === "name" && this.assetKinds.get(e.name) === "sprite") usedSprites.add(e.name);
+        },
+      });
+    for (const sprite of this.project.sprites)
+      if (!usedSprites.has(sprite.name))
+        this.report(`sprites/${sprite.name}/sprite.json`, "W052", { sprite: sprite.name });
+  }
+
   // ---- Pass 4: code generation -----------------------------------------------------------------------------------
 
   /** An object function visible from `owner`'s code: its own, then its ancestors' (events.md section 3). */
@@ -444,6 +481,8 @@ class ProjectCompiler {
       hasInstance: true,
       self: owner?.info ?? null,
       other: collisionTarget?.info ?? null,
+      event: u.kind === "event" ? u.stem : null,
+      objectScreen: owner?.res.screen ?? null,
       lookupFunction: (name) =>
         (u.owner === null ? null : this.lookupObjectFunction(u.owner, name)) ?? this.scripts.get(name) ?? null,
       functionNames: reachable,

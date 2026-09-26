@@ -50,6 +50,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C9 Diagnostics (`contracts/diagnostics.md`, `packages/project-format/src/diagnostics.ts`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): shape, code ranges and the five catalogs, style rules, lints.
 - 0.1.0 T0 (2026-09-26, WS4): compiler catalog `packages/compiler/src/diagnostics/catalog.ts` started: E101-E129 (syntax), W030, W032.
+- 0.1.0 T0 (2026-09-26, WS4): compiler catalog adds E201-E206, E208 (names, assets, helpers), E301-E314 (arguments, types, events), E491-E494 (limits), W031, W040-W043, W050-W052 (lints).
 
 ## C10 CLI (`contracts/cli.md`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): draft commands, flags, exit codes; WS1 finalises.

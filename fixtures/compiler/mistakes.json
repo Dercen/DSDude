@@ -1,0 +1,327 @@
+[
+  {
+    "mistake": "missing closing parenthesis",
+    "file": "objects/obj_player/step.dss",
+    "code": "if (x > 3 {\n    x = 0;\n}\n",
+    "diagnostic": {
+      "code": "E101",
+      "severity": "error",
+      "message": "The ( on line 1 is never closed.",
+      "hint": "Add a ) where the part in brackets ends.",
+      "line": 1,
+      "col": 4
+    }
+  },
+  {
+    "mistake": "= in an if",
+    "file": "objects/obj_player/step.dss",
+    "code": "if (x = 3) y = 1;\n",
+    "diagnostic": {
+      "code": "W030",
+      "severity": "warning",
+      "message": "This = compares the two sides; it doesn't change anything.",
+      "hint": "Write == here to make that clear. To change a value, do it on its own line.",
+      "line": 1,
+      "col": 7
+    }
+  },
+  {
+    "mistake": "undefined variable",
+    "file": "objects/obj_player/step.dss",
+    "code": "x = speeed * 2;\n",
+    "diagnostic": {
+      "code": "E202",
+      "severity": "error",
+      "message": "speeed is never given a value, so DSS doesn't know what it is.",
+      "hint": "Did you mean speed? Check the spelling, or give speeed a value first (for example in the Create event).",
+      "line": 1,
+      "col": 5
+    }
+  },
+  {
+    "mistake": "misspelt builtin",
+    "file": "objects/obj_player/step.dss",
+    "code": "instance_destory();\n",
+    "diagnostic": {
+      "code": "E201",
+      "severity": "error",
+      "message": "There is no function called instance_destory.",
+      "hint": "Did you mean instance_destroy()? Check the spelling, or add the function to Scripts.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "text + number",
+    "file": "objects/obj_player/step.dss",
+    "code": "show_debug_message(\"x is \" + x);\n",
+    "diagnostic": {
+      "code": "E310",
+      "severity": "error",
+      "message": "Text and a number can't be joined with +.",
+      "hint": "Turn the number into text first, like \"Score: \" + string(score).",
+      "line": 1,
+      "col": 20
+    }
+  },
+  {
+    "mistake": "wrong number of values",
+    "file": "objects/obj_player/step.dss",
+    "code": "instance_create(10, 20);\n",
+    "diagnostic": {
+      "code": "E301",
+      "severity": "error",
+      "message": "instance_create() takes 3 values, but 2 were given.",
+      "hint": "Give instance_create() 3 values.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "draw_sprite in Step",
+    "file": "objects/obj_player/step.dss",
+    "code": "draw_sprite(spr_player, 0, x, y);\n",
+    "diagnostic": {
+      "code": "E313",
+      "severity": "error",
+      "message": "draw_sprite() only works in the Draw event.",
+      "hint": "Move this line into draw.dss.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "unknown sprite name",
+    "file": "objects/obj_player/create.dss",
+    "code": "sprite_index = spr_playr;\n",
+    "diagnostic": {
+      "code": "E206",
+      "severity": "error",
+      "message": "There is no sprite called spr_playr.",
+      "hint": "Did you mean spr_player? Check the name in the Sprites list.",
+      "line": 1,
+      "col": 16
+    }
+  },
+  {
+    "mistake": "missing closing brace",
+    "file": "objects/obj_player/step.dss",
+    "code": "if (x > 3) {\n    x = 0;\n",
+    "diagnostic": {
+      "code": "E103",
+      "severity": "error",
+      "message": "The { on line 1 is never closed.",
+      "hint": "Add a } where this block of code ends.",
+      "line": 1,
+      "col": 12
+    }
+  },
+  {
+    "mistake": "assignment to a constant",
+    "file": "objects/obj_player/step.dss",
+    "code": "btn_a = 3;\n",
+    "diagnostic": {
+      "code": "E302",
+      "severity": "error",
+      "message": "btn_a can be read but not changed.",
+      "hint": "Keep the value in a variable of your own instead.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "== used to assign",
+    "file": "objects/obj_player/step.dss",
+    "code": "x == 5;\n",
+    "diagnostic": {
+      "code": "E115",
+      "severity": "error",
+      "message": "This line compares two values but does nothing with the answer.",
+      "hint": "To give x a new value, write = instead of ==.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "condition without brackets",
+    "file": "objects/obj_player/step.dss",
+    "code": "if x > 3 x = 0;\n",
+    "diagnostic": {
+      "code": "E117",
+      "severity": "error",
+      "message": "if needs its condition in brackets.",
+      "hint": "Write it like this: if (x > 0).",
+      "line": 1,
+      "col": 4
+    }
+  },
+  {
+    "mistake": "text in single quotes",
+    "file": "objects/obj_player/step.dss",
+    "code": "show_debug_message('hi');\n",
+    "diagnostic": {
+      "code": "E128",
+      "severity": "error",
+      "message": "DSS writes text in double quotes, not single quotes.",
+      "hint": "Write \"like this\" instead of 'like this'.",
+      "line": 1,
+      "col": 20
+    }
+  },
+  {
+    "mistake": "text never closed",
+    "file": "objects/obj_player/step.dss",
+    "code": "show_debug_message(\"hi);\n",
+    "diagnostic": {
+      "code": "E105",
+      "severity": "error",
+      "message": "The line ends before this text in quotes is closed.",
+      "hint": "Add a \" at the end of the text.",
+      "line": 1,
+      "col": 20
+    }
+  },
+  {
+    "mistake": "++ inside a line",
+    "file": "objects/obj_player/step.dss",
+    "code": "y = x++;\n",
+    "diagnostic": {
+      "code": "E121",
+      "severity": "error",
+      "message": "++ only works after a variable, on a line of its own.",
+      "hint": "Write it like this: x += 1.",
+      "line": 1,
+      "col": 6
+    }
+  },
+  {
+    "mistake": "break outside a loop",
+    "file": "objects/obj_player/step.dss",
+    "code": "break;\n",
+    "diagnostic": {
+      "code": "E304",
+      "severity": "error",
+      "message": "break can only be used inside a loop or a switch.",
+      "hint": "Remove it, or use exit to leave the event or function.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "another object's helper",
+    "file": "objects/obj_player/step.dss",
+    "code": "jump();\n",
+    "diagnostic": {
+      "code": "E205",
+      "severity": "error",
+      "message": "jump() is a helper of obj_enemy, so obj_player can't use it.",
+      "hint": "To use it from obj_player, move it to Scripts.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "wrong kind of value",
+    "file": "objects/obj_player/step.dss",
+    "code": "instance_create(10, 20, \"obj_enemy\");\n",
+    "diagnostic": {
+      "code": "E311",
+      "severity": "error",
+      "message": "instance_create() needs an object as its 3rd value, but this is text.",
+      "hint": "Give it an object here.",
+      "line": 1,
+      "col": 25
+    }
+  },
+  {
+    "mistake": "using a call that gives nothing back",
+    "file": "objects/obj_player/step.dss",
+    "code": "var n = instance_destroy();\n",
+    "diagnostic": {
+      "code": "E312",
+      "severity": "error",
+      "message": "instance_destroy() doesn't give back a value, so there is nothing to use here.",
+      "hint": "Call it on a line of its own instead.",
+      "line": 1,
+      "col": 9
+    }
+  },
+  {
+    "mistake": "dividing by zero",
+    "file": "objects/obj_player/step.dss",
+    "code": "x = x / 0;\n",
+    "diagnostic": {
+      "code": "E314",
+      "severity": "error",
+      "message": "This divides by 0, which would stop the game.",
+      "hint": "Check the number after the /.",
+      "line": 1,
+      "col": 9
+    }
+  },
+  {
+    "mistake": "extra closing brace",
+    "file": "objects/obj_player/step.dss",
+    "code": "x = 1;\n}\n",
+    "diagnostic": {
+      "code": "E104",
+      "severity": "error",
+      "message": "This } has nothing to close.",
+      "hint": "Remove it, or add the matching { before it.",
+      "line": 2,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "changing a read-only variable",
+    "file": "objects/obj_player/step.dss",
+    "code": "room_width = 512;\n",
+    "diagnostic": {
+      "code": "E302",
+      "severity": "error",
+      "message": "room_width can be read but not changed.",
+      "hint": "Keep the value in a variable of your own instead.",
+      "line": 1,
+      "col": 1
+    }
+  },
+  {
+    "mistake": "touch event on the top screen",
+    "file": "objects/obj_player/touch_pressed.dss",
+    "code": "x = 0;\n",
+    "diagnostic": {
+      "code": "W031",
+      "severity": "warning",
+      "message": "The touch_pressed event only works for objects on the bottom (touch) screen, but obj_player is on the top screen.",
+      "hint": "Move obj_player to the bottom screen, or use touch_pressed(), touch_x and touch_y, which work anywhere.",
+      "line": null,
+      "col": null
+    }
+  },
+  {
+    "mistake": "misspelt event file",
+    "file": "objects/obj_player/stepp.dss",
+    "code": "x = 0;\n",
+    "diagnostic": {
+      "code": "E308",
+      "severity": "error",
+      "message": "objects/obj_player/stepp.dss is not an event DSDude knows.",
+      "hint": "Rename it to an event such as step.dss, create.dss or alarm_0.dss, or move the code into functions.dss.",
+      "line": null,
+      "col": null
+    }
+  },
+  {
+    "mistake": "a word DSS uses as a name",
+    "file": "objects/obj_player/step.dss",
+    "code": "var if = 3;\n",
+    "diagnostic": {
+      "code": "E126",
+      "severity": "error",
+      "message": "if is a word DSS uses itself, so it can't be a name.",
+      "hint": "Pick another name, such as my_if.",
+      "line": 1,
+      "col": 5
+    }
+  }
+]

@@ -75,9 +75,21 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   rule 8 music and the RNG seed rule not yet). Intended outputs are in each file's comments / README.md for WS2's
   `expected/`. All compile with zero diagnostics to goldens in `fixtures/compiler/conformance/`.
 
+- **Task 6, the beginner mistakes: done** (2026-09-26). `src/mistakes.test.ts` runs 25 of them, each giving
+  exactly one diagnostic; the reviewed messages are snapshotted in `fixtures/compiler/mistakes.json`. New checks:
+  a small type lattice (`src/codegen/types.ts`; it only proves mistakes, "unknown" is accepted everywhere): E310
+  text + number, E311 wrong kind of value for a builtin, E312 using a call that gives nothing back, E313 Draw-only
+  builtins outside Draw (`allowedEvents`), E314 division by a literal 0, E206 unknown asset names (by closest asset
+  or `spr_`/`snd_`/`obj_`/`rm_`/`bg_` prefix). Lints: W031 (touch events and `touch_in_instance(self)` on top-screen
+  objects), W040 squaring a position, W041 fractional array index, W042 `div` with a fraction, W043 letters the DS
+  font lacks in `draw_text`, W050 empty room, W051 placed object nobody can see (Visible off and Draw exempt), W052
+  unused sprite. A parser error on a line that already has a lexer error is dropped (one mistake, one diagnostic).
+  - Not yet: `alias`/`unsupported` builtins.json entries (the generated table has none yet; E207 is reserved for
+    unsupported GameMaker names once WS0 adds entries and gen-builtins emits them).
+
 ## Next
 
-- Task 6: the 20 beginner mistakes (checker); task 7: peephole passes (formatter done).
+- Task 7: peephole passes (constant folding, fused compare+jump, ADDI/SUBI/MULI); formatter done.
 - Leftovers: object functions bind statically (an inherited parent event calls the parent's helper even when a
   child overrides it; events.md section 3 says the child's wins); constant folding (task 7).
 

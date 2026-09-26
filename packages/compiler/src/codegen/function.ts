@@ -35,8 +35,10 @@ import type {
   SwitchStmt,
   WithStmt,
 } from "../syntax/ast.ts";
+import { FIXED_ONE } from "../syntax/lexer.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./builtins.ts";
 import type { CodegenEnv, ObjectInfo } from "./env.ts";
+import { accepts, category, describeParam, describeType, fromBuiltinType, ordinal, type ValueType } from "./types.ts";
 
 /** Registers in one frame (contracts/runtime-limits.json `registersPerFrame`, dsdb.md section 6). */
 export const MAX_REGISTERS = 64;
@@ -630,7 +632,8 @@ class FunctionCompiler {
     if (bare) {
       const problem = this.bareNameProblem(name, forWrite);
       if (problem !== null) {
-        this.report(problem.code, problem.args, at);
+        if (problem.code === "E202") this.unknownName(name, at, null);
+        else this.report(problem.code, problem.args, at);
         return null;
       }
     }
@@ -729,6 +732,7 @@ class FunctionCompiler {
       arr = this.alloc();
       parent.load(arr);
     } else arr = this.valueAny(object);
+    if (fractionalLiteral(index)) this.env.reporter.report("W041", {}, index.start, index.end);
     const i = this.valueAny(index);
     const writeBack = parent;
     return {
@@ -755,6 +759,19 @@ class FunctionCompiler {
   }
 
   private unknownName(name: string, at: Span, known: ObjectInfo | null): void {
+    // A misspelt asset (spr_playr) gets its own message: the kind comes from the closest asset, else the prefix.
+    const asset = suggest(name, this.env.assetNames());
+    const kind =
+      (asset === null ? null : this.env.assetKind(asset)) ?? ASSET_PREFIXES.find(([p]) => name.startsWith(p))?.[1];
+    if (kind !== undefined && kind !== null) {
+      const list = `${kind === "music" ? "Sound" : kind[0]?.toUpperCase() + kind.slice(1)}s`;
+      this.report(
+        "E206",
+        { name, kind: kind === "music" ? "sound" : kind, list, suggestion: suggestionText(asset) },
+        at,
+      );
+      return;
+    }
     this.report("E202", { name, suggestion: suggestionText(this.suggestName(name, known)) }, at);
   }
 
@@ -834,6 +851,7 @@ class FunctionCompiler {
       case "binary":
         if (e.op === "&&" || e.op === "||") this.logical(e, dst);
         else {
+          this.checkBinary(e);
           const left = this.valuePrefer(e.left, dst);
           const right = this.valueAny(e.right);
           const op = e.op === "+" && isString(e.left) && isString(e.right) ? "CONCAT" : (BINARY_OPCODE[e.op] as string);
@@ -934,6 +952,126 @@ class FunctionCompiler {
     this.release(mark);
   }
 
+  // ---- Checks (the beginner-mistake checker, PLAN.md 6 WS4) ------------------------------------------------------
+
+  /** What the checker can prove about a value's type; "unknown" whenever it can't. */
+  private typeOf(e: Expr): ValueType {
+    switch (e.kind) {
+      case "number":
+        return e.repr === "fixed" ? "fixed" : "number";
+      case "string":
+      case "bool":
+      case "undefined":
+      case "array":
+        return e.kind;
+      case "special":
+        return "instance";
+      case "name": {
+        if (this.locals.has(e.name)) return "unknown";
+        const c = builtinConstants.get(e.name);
+        if (c !== undefined) return fromBuiltinType(c.type);
+        const v = builtinVariables.get(e.name);
+        if (v !== undefined) return v.arrayLength > 0 ? "unknown" : fromBuiltinType(v.type);
+        return this.env.assetKind(e.name) ?? "unknown";
+      }
+      case "member": {
+        const v = builtinVariables.get(e.name);
+        return v === undefined || v.arrayLength > 0 ? "unknown" : fromBuiltinType(v.type);
+      }
+      case "call": {
+        if (
+          e.callee.kind !== "name" ||
+          this.locals.has(e.callee.name) ||
+          this.env.lookupFunction(e.callee.name) !== null
+        )
+          return "unknown";
+        const f = builtinFunctions.get(e.callee.name);
+        return f === undefined ? "unknown" : fromBuiltinType(f.returns);
+      }
+      case "unary":
+        return e.op === "!" ? "bool" : this.typeOf(e.operand) === "fixed" ? "fixed" : "number";
+      case "binary": {
+        if (["==", "!=", "<", "<=", ">", ">=", "&&", "||"].includes(e.op)) return "bool";
+        const l = category(this.typeOf(e.left));
+        const r = category(this.typeOf(e.right));
+        if (e.op === "+" && (l === "string" || r === "string"))
+          return l === "string" && r === "string" ? "string" : "unknown";
+        return l === "unknown" || r === "unknown" ? "unknown" : "number";
+      }
+      case "ternary": {
+        const a = this.typeOf(e.then);
+        return a === this.typeOf(e.otherwise) ? a : "unknown";
+      }
+      default:
+        return "unknown";
+    }
+  }
+
+  /** Checks an arithmetic or comparison operator: E310 text + number, E314 division by 0, W040, W042. */
+  private checkBinary(e: Expr & { kind: "binary" }): void {
+    const report = (code: CompilerCode, args: DiagArgs, at: Span) =>
+      this.env.reporter.report(code, args, at.start, at.end);
+    if (e.op === "+") {
+      const l = category(this.typeOf(e.left));
+      const r = category(this.typeOf(e.right));
+      if ((l === "string" && r === "number") || (l === "number" && r === "string")) report("E310", {}, e);
+    }
+    if ((e.op === "/" || e.op === "div" || e.op === "mod" || e.op === "%") && isZeroLiteral(e.right))
+      report("E314", { op: e.op }, e.right);
+    if (e.op === "*" && sameVariable(e.left, e.right)) {
+      const name = e.left.kind === "name" || e.left.kind === "member" ? e.left.name : "";
+      if (builtinVariables.get(name)?.type === "number") report("W040", { name }, e);
+    }
+    if (e.op === "div")
+      for (const side of [e.left, e.right])
+        if (fractionalLiteral(side)) report("W042", { value: this.sourceOf(side) }, side);
+  }
+
+  /** The source text of a node (for messages that quote it). */
+  private sourceOf(e: Span): string {
+    return this.env.reporter.text.slice(e.start, e.end);
+  }
+
+  /**
+   * Checks a builtin call: E311 a provably wrong kind of argument (the first one only), E312 a void result used as
+   * a value, E313 a Draw-only builtin outside Draw, W031 touch_in_instance(self) on the top screen, W043 letters the
+   * DS font lacks in draw_text.
+   */
+  private checkBuiltinCall(e: Call, name: string, valueUsed: boolean): void {
+    const f = builtinFunctions.get(name);
+    if (f === undefined) return;
+    const report = (code: CompilerCode, args: DiagArgs, at: Span) =>
+      this.env.reporter.report(code, args, at.start, at.end);
+    if (valueUsed && f.returns === "void") report("E312", { name }, e);
+    if (f.allowedEvents !== "*" && this.env.event !== null && !f.allowedEvents.includes(this.env.event))
+      report("E313", { name }, e.callee);
+    for (const [i, arg] of e.args.entries()) {
+      const param = f.params[Math.min(i, f.params.length - 1)];
+      if (param === undefined) break;
+      const t = this.typeOf(arg);
+      if (!accepts(param.type, t)) {
+        report(
+          "E311",
+          { name, expected: describeParam(param.type), position: ordinal(i + 1), actual: describeType(t) },
+          arg,
+        );
+        break;
+      }
+    }
+    if (name === "touch_in_instance" && this.env.objectScreen === "top") {
+      const first = e.args[0];
+      if (first === undefined || (first.kind === "special" && first.which === "self"))
+        report("W031", { what: "touch_in_instance(self)", object: this.env.self?.name ?? "this object" }, e);
+    }
+    if (name === "draw_text") {
+      const text = e.args[2];
+      if (text?.kind === "string" && !DS_FONT.test(text.value)) {
+        const char = [...text.value].find((c) => !DS_FONT.test(c)) as string;
+        report("W043", { char }, text);
+      }
+    }
+  }
+
   // ---- Calls -----------------------------------------------------------------------------------------------------
 
   /**
@@ -986,12 +1124,46 @@ class FunctionCompiler {
           { name, expected: countText(builtin.minArgs, builtin.maxArgs), count: givenText(e.args.length) },
           e,
         );
+      this.checkBuiltinCall(e, name, dst !== null);
       for (const [i, arg] of e.args.entries()) this.valueTo(arg, i === 0 ? base : this.alloc());
       this.emit("CALLN", base, e.args.length, name);
     }
     if (dst !== null && dst !== base) this.emit("MOV", dst, base);
   }
 }
+
+/** A number literal with a fraction (possibly negated), e.g. `1.5` or `-0.25`. */
+function fractionalLiteral(e: Expr): boolean {
+  const n = e.kind === "unary" && e.op === "-" ? e.operand : e;
+  return n.kind === "number" && n.repr === "fixed" && n.value % FIXED_ONE !== 0;
+}
+
+/** Is `e` the number literal 0 (possibly negated)? */
+function isZeroLiteral(e: Expr): boolean {
+  const n = e.kind === "unary" && e.op === "-" ? e.operand : e;
+  return n.kind === "number" && n.value === 0;
+}
+
+/** Are two values the same variable, written the same way (`x` and `x`, `other.y` and `other.y`)? */
+function sameVariable(a: Expr, b: Expr): boolean {
+  if (a.kind === "name" && b.kind === "name") return a.name === b.name;
+  if (a.kind === "member" && b.kind === "member") return a.name === b.name && sameVariable(a.object, b.object);
+  if (a.kind === "special" && b.kind === "special") return a.which === b.which;
+  return false;
+}
+
+/** Name prefixes that say which kind of asset a misspelt name meant (the usual GameMaker naming). */
+const ASSET_PREFIXES: readonly [string, "sprite" | "sound" | "object" | "room" | "background"][] = [
+  ["spr_", "sprite"],
+  ["snd_", "sound"],
+  ["mus_", "sound"],
+  ["obj_", "object"],
+  ["rm_", "room"],
+  ["bg_", "background"],
+];
+
+/** Characters the DS font can show (contracts/language.md section 7): printable ASCII. */
+const DS_FONT = /^[\x20-\x7e]*$/;
 
 /** "2 values", "no values", "1 to 16 values" for E301. */
 function countText(min: number, max: number): string {
