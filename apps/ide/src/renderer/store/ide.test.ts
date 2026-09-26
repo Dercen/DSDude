@@ -266,6 +266,17 @@ describe("IDE store", () => {
     expect(store.getState().toast?.message).toMatch(/Could not open the tutorial assets: .*not installed/);
   });
 
+  it("opens the first-run wizard until it has been finished once", async () => {
+    const a = setup();
+    await a.actions.boot();
+    expect(a.store.getState().firstRun).toBe(true);
+    await a.actions.finishFirstRun();
+    expect(a.store.getState().firstRun).toBe(false);
+    expect(await a.settings.get("firstRunDone")).toBe(true);
+    await a.actions.boot();
+    expect(a.store.getState().firstRun).toBe(false);
+  });
+
   it("asks for a project before Play", async () => {
     const { store, actions } = setup();
     await actions.play();

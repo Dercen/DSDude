@@ -45,6 +45,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.5.0 (2026-09-26, WS6, T1): new channel learn.openAssets ({} -> {path}; opens docs/tutorial/assets/ in the file manager for Help > Tutorial assets). Additive.
 - 0.6.0 (2026-09-26, WS6, T1): new channel build.manifest ({projectDir} -> {manifest}: the build folder's C3 assets.manifest.json through the tolerant ManifestSummarySchema, or null); for the status-bar meters. Additive.
 - 0.7.0 (2026-09-26, WS6, T1): new channels project.templates and app.info; TemplateIndexSchema (the reader's format for WS7's templates/index.json: {templates: [{id, title, description, dir}]}); project.create semantics pinned (creates <dir>/<name>, refuses a non-empty folder, sets name/title). Additive.
+- 0.8.0 (2026-09-26, WS6, T1): doctor.run checks gain an optional status (ok|warn|fail|info, from C10 dsdude doctor); ok stays false only for fail. Additive.
 
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).

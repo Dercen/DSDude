@@ -18,6 +18,7 @@ import { ProjectTree } from "./panels/ProjectTree.tsx";
 import { loadEditorModules, registerEditor, saveDirtyPanels } from "./panels/registry.ts";
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
 import { createIde } from "./store/ide.ts";
+import { FirstRunWizard } from "./wizards/FirstRunWizard.tsx";
 import { NewProjectDialog } from "./wizards/NewProjectDialog.tsx";
 import { DockWorkbench } from "./workbench.ts";
 
@@ -204,6 +205,7 @@ export function App() {
         <ToastView />
         <ControlsCard />
         <NewProjectDialog />
+        <FirstRunWizard />
       </div>
     </IdeContext.Provider>
   );

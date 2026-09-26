@@ -1,6 +1,6 @@
 # C5: IPC channel map
 
-Version: 0.7.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
+Version: 0.8.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
 
 The typed channels between the IDE's renderer and its main process. Source: PLAN.md section 5.2 C5. The Phase-0
 channel list and zod stubs were written by WS0; WS6 completed them in 0.2.0. The schemas live in
@@ -43,7 +43,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `settings.set` | `{key, value}` (value checked against that key's schema) | `{ok: true}` |
 | `settings.getAll` (0.2.0) | `{}` | `{settings}` (defaults filled in) |
 | `toolchain.status` / `toolchain.install` | `{}` | `{installed, blocksdsVersion, diagnostics}` / `{installed, diagnostics}` |
-| `doctor.run` | `{}` | `{checks: [{name, ok, detail}]}` |
+| `doctor.run` | `{}` | `{checks: [{name, ok, detail, status?}]}`: C10 `dsdude doctor`'s checks; `status` (0.8.0) is `ok`, `warn`, `fail` or `info`, and `ok` is false only for `fail` |
 | `project.readFile` (0.4.0) | `{dir, path: AssetPath}` | `{bytes: Uint8Array}` |
 | `project.writeFile` (0.4.0) | `{dir, path: AssetPath, bytes: Uint8Array}` | `{ok: true}` (temp file + rename; creates the folder). JSON and DSS files go through `project.save`. |
 | `learn.list` (0.4.0) | `{}` | `{docs: [{path, title, section}]}`: tutorial, then manual, then reference; `assets/` folders skipped; title = first `# ` heading, else the file name |
