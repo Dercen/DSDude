@@ -1,11 +1,16 @@
 #!/usr/bin/env node
-// dsdude CLI entry (C10). Phase-0 skeleton: WS1 registers the commands from each package's `cliCommands`.
-import { packageName } from "./index.ts";
+// dsdude CLI entry (C10, contracts/cli.md): runs one command from the registry and exits with its code.
+import { commandRegistry, formatHelp } from "./index.ts";
 
-const [command] = process.argv.slice(2);
-if (command === undefined || command === "--help" || command === "-h") {
-  console.log(`${packageName}: no commands yet (WS1 implements contracts/cli.md)`);
+const [command, ...rest] = process.argv.slice(2);
+const commands = await commandRegistry();
+if (command === undefined || command === "--help" || command === "-h" || command === "help") {
+  console.log(formatHelp(commands));
   process.exit(0);
 }
-console.error(`dsdude: unknown command '${command}'`);
-process.exit(2);
+const found = commands.find((c) => c.name === command);
+if (!found) {
+  console.error(`dsdude: unknown command '${command}'. Run dsdude --help for the list.`);
+  process.exit(2);
+}
+process.exitCode = await found.run(rest);

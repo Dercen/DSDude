@@ -11,7 +11,7 @@
  */
 import type { Diagnostic, Project } from "@dsdude/project-format";
 
-export const CONTRACT_VERSION = "0.1.0";
+export const CONTRACT_VERSION = "0.2.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Tools
@@ -31,6 +31,12 @@ export interface ToolPaths {
   ndstool?: string;
   grit?: string;
   mmutil?: string;
+  /** <core>\sys\arm7\main_core\arm7_maxmod.elf, always passed to ndstool as -7 (0.2.0). */
+  arm7Elf?: string;
+  /** <core>\sys\icon.bmp, the ndstool -b icon when a build has none of its own (0.2.0). */
+  icon?: string;
+  /** arm-none-eabi-gcc.exe; only buildRuntime needs it (0.2.0). */
+  gcc?: string;
   /** melonDS 1.1 exe under <DSDUDE_HOME>\emulators\. */
   melonds?: string;
   /** DeSmuME 0.9.13 exe under <DSDUDE_HOME>\emulators\ (optional profile). */
@@ -92,10 +98,24 @@ export interface PackRomOptions {
   gamecode: string;
 }
 
+/** The NitroFS fields of a ROM header that verifyRom() checks (PLAN.md 3.2 step 6; 0.2.0). */
+export interface RomHeaderInfo {
+  /** FNT offset/size at 0x40/0x44, FAT offset/size at 0x48/0x4C. */
+  fntOffset: number;
+  fntSize: number;
+  fatOffset: number;
+  fatSize: number;
+  /** fatOffset + fatSize: where the 8 bytes "NitroFS!" must be. */
+  magicOffset: number;
+  magicOk: boolean;
+}
+
 export interface RomInfo {
   sizeBytes: number;
   sha256: string;
   nitrofsFiles: number;
+  /** The checked header fields (0.2.0). */
+  header?: RomHeaderInfo;
 }
 
 export interface PackRomResult {
@@ -237,7 +257,7 @@ export interface BuildRequest {
 
 export interface BuildResult {
   ok: boolean;
-  /** <DSDUDE_HOME>\build\<project-hash>\<name>.nds; null for compileOnly or on failure. */
+  /** <DSDUDE_HOME>\build\<project-hash>\game.nds; null for compileOnly or on failure. */
   ndsPath: string | null;
   diagnostics: Diagnostic[];
   timings: Partial<Record<BuildPhase, number>>;
