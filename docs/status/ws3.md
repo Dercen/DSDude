@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `b8ba3e1`, after checkpoint-8 merged `ws3-platform` at `32c931d`; ADR-0004 closed as resolved). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `b47cd2c`, checkpoint-12). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -88,7 +88,29 @@ Legend: todo / in progress / done (<sha>).
   - 300-char line, `%` line and CR/LF splitting: checked through the same writer in the selftest (below).
   - **DoD item met: `hello.dsdb` prints `DSD|READY|0.1.0|0dd9987a`, `DSD|LOG|hello`, `DSD|EXIT|0` exactly once on
     melonDS 1.1 and DeSmuME 0.9.13 (windows, `dsdude play --seconds 8`) through WS2's VM**; no duplicates on melonDS.
-    todo: the timer harness (M1, with `bench.dsda`).
+  - **M1 timer harness: done (79c116a); the M1 VM gate is NOT met.** See "M1 benchmark" below.
+- **M1 benchmark (spike 14, DS side)** (2026-09-26, 79c116a). `npm run bench -w runtime [-- --emulator melonds|desmume]
+  [-- --mix]`; harness `runtime/selftest/bench/bench.c` (`make DSD_BENCH=1`, `DSD_VM_BL=1` for plain BL). It boots
+  WS2's `fixtures/bytecode/bench.dsdb` through `dsd_game_boot`, runs 30 warm-up frames, then times 600
+  `dsd_game_frame` calls with cascaded timers 0+1 (ticks x 2 = ARM9 cycles) while `dsd_plat_frame_end` skips the
+  VBlank wait and the log is muted. A baseline (the same game with `bench_step` emptied, assembled on the fly from
+  `bench.dsda`) isolates the VM: cycles/op = (full - baseline) / (ops - baseline ops).
+  - **melonDS 1.1, JIT off (the gate platform):** VM **39.84 cycles/op = 28,122 ops/frame** (gate 44,000 on
+    melonDS; 35,000 on hardware): **FAIL**. Whole frame (block + engine + platform) 54.50 cycles/op = 20,554
+    ops/frame; per-frame overhead 16,954 cycles (1.5 % of a frame).
+  - **py-desmume (DeSmuME core):** VM 67.54 cycles/op = 16,589 ops/frame; whole frame 86.10 cycles/op.
+  - **`-mlong-calls` vs plain BL:** no difference (melonDS 39.84 vs 39.94 cycles/op; DeSmuME 67.54 vs 67.82).
+    Kept `-mlong-calls` (the BlocksDS default). ITCM 11,056 B of 24 KB.
+  - **Per-opcode, melonDS (`--mix`, 1,200 of one op minus the baseline):** LOADI 21.1, MOV 24.0, CMPJ+JMP 37.2,
+    SETSLOT 37.9, ADD 37.9, MUL 38.9, GETSLOT 41.9, CALLN 84.7 cycles/op. Every op pays ~20 cycles of dispatch.
+  - **Finding for WS2 (the VM is theirs; not changed here):** the dispatch sequence in `run` (ITCM, ARM) is
+    `cmp/sub/beq` (watchdog), `ldr ins,[ip],#4` (bytecode, main RAM), `ldr rT,=labels` (literal pool),
+    `ldr rT,[rT,op,lsl #2]` and `mov pc,rT`. `labels` is `static const` in `.rodata`, i.e. **main RAM**
+    (`labels.1` at 0x02023324), so every dispatch makes two main-RAM loads. PLAN 3.3 puts the dispatch table in DTCM
+    (`DTCM_DATA`), and `__dtcm_data_size` (0x1200) has 512 B spare for its 59 x 4 bytes. Keeping the table's
+    address in a register, and CALLN's 85 cycles, are the next candidates. A local experiment to measure the DTCM
+    table was not run: it would have edited WS2's `vm.arm.c`. PLAN 8 M1's fallback (int-specialised opcodes) is
+    WS2's call; the harness re-measures any change in one command.
 - Task 3. Selftest ROM: **done** (237f847). `runtime/selftest/`, assets in `fixtures/runtime/selftest/`.
   - Page 1: 128 sprites per screen (16x16 8bpp, 3 frames, 4 extended OBJ palettes; the bottom's 128th is an 8x8
     4bpp sprite in its own 128-byte slot), GRF room BG on BG1 of both screens (ext palette slot 1), BG0 UI text,
@@ -112,7 +134,7 @@ Legend: todo / in progress / done (<sha>).
     painted stack: ~4 KB used by the printf-heavy selftest of 10.9 KB).
 - Task 4. `dsd_platform.h` implementation: **done for C11 0.2.0** (see the reconciliation above). Not yet exercised
   by a room game with sprites and backgrounds (WS2's v2 fixtures load no assets); that comes with samples/flappy.
-- Task 5. Spikes:
+- Task 5. Spikes (spike 14's DS side: see "M1 benchmark" above; the cache-resident loop variant is still todo):
   - **Spike 10 (graphics): PASS.** grit 1.24.0 with the PLAN 2.9 sprite, 4bpp and BG lines; the ROM uses the 3.3
     bank table, 128-byte-aligned frames (strides 256/128/4096 logged) and the UI layer. The screenshot shows the
     source PNGs' colours exactly: 0 of 6,144 background pixels and 0 of 96 opaque sprite pixels differ at RGB555

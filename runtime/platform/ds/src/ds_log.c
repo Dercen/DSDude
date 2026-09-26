@@ -21,6 +21,7 @@ static char ds_fmt_line[DSD_LOG_LINE_MAX + 1];
 static char ds_raw_line[DSD_LOG_LINE_MAX + 1];
 static char ds_emulator_id[17];
 static ds_log_protocol ds_protocol = DSD_LOG_LEGACY;
+static bool ds_muted = false;
 
 ds_log_protocol ds_log_init(void)
 {
@@ -52,6 +53,11 @@ const char *ds_log_emulator_id(void)
     return ds_emulator_id;
 }
 
+void ds_log_set_muted(bool muted)
+{
+    ds_muted = muted;
+}
+
 const char *ds_log_protocol_name(void)
 {
     return ds_protocol == DSD_LOG_RAW ? "raw" : "legacy";
@@ -65,6 +71,8 @@ static char *ds_buffer(void)
 // buf[0..len) holds the line; len <= DSD_LOG_LINE_MAX - 1.
 static void ds_emit(char *buf, size_t len)
 {
+    if (ds_muted)
+        return;
     buf[len] = '\n';
     buf[len + 1] = '\0';
 

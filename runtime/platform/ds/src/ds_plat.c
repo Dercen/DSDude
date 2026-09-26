@@ -49,6 +49,8 @@ static struct { mm_sfxhand handle; uint16_t id; } g_sfx_playing[DS_SFX_TRACKED];
 static uint32_t g_sfx_next;
 static mm_byte g_sfx_volume = 255;
 
+bool ds_frame_nowait = false;
+
 static volatile uint32_t g_vblanks;
 static uint32_t g_vblanks_at_init;
 static char g_path[DS_PATH_MAX];
@@ -118,6 +120,8 @@ void dsd_plat_frame_end(void)
         build_oam(s);
         bgSetScroll(ds_bg1[s], g_scroll_x[s], g_scroll_y[s]);
     }
+    if (ds_frame_nowait)
+        return;
     swiWaitForVBlank();
     oamUpdate(&oamMain);
     oamUpdate(&oamSub);
