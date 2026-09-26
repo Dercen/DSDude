@@ -74,6 +74,11 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 - **After checkpoint-8 (2026-09-26):** start.sh `node v24.16.0, npm 11.13.0; push target: ws2-runtime-core; behind origin/main by 17; latest checkpoint: docs/status/checkpoint-8.md; open IF entries: 0`; merged main. The user closed ADR-0004 (C11 0.2.0/0.3.0 are the answer; WS3's DS adoption is complete); C11 freezes at CP-A (2026-09-28), after which changes are T1 or T2 with WS3. WS4 now emits ADDI/SUBI/MULI and CMPJ (1655274): Flappy's 600-frame trace is identical except the per-frame `ops` (2.8% fewer VM steps), and so are its logs; `flappy-trace.fnv` re-pinned (dsdb 0xf4c83269, trace 0x84a71faf). The Flappy check is now trace-first: an unchanged trace passes whatever the DSDB bytes are, and only a changed trace with a changed DSDB is skipped with a note.
 
+- **Tier v4 rooms and views on screen, 2026-09-26.** `fixtures/runtime-core/v4-screens` gained a second room, `rm_pan` (room_goto at the end of frame 3: assets freed and the new set loaded, the bottom background hidden, the UI layer emptied), whose Step pans the top view with `view_x[0]`/`view_y[0]` (GETBIX/SETBIX). `check_screens.mjs` checks frame 1 and frame 5 against the source PNGs (178,856 pixels exact), and `test_screens` pins both by hash. Tier v4's host side is complete: draw list, screens, rooms, views, the broadphase and WS4's program 10.
+
+- **Spike 12, host side: done, 2026-09-26.** `fixtures/bytecode/runtime/numeric-hashes` (DSS source compiled by WS4's `compileProgram`, header seed 20260926) hashes the raw results of the number builtins per category (trig, atan2, sqrt, div, mul, lengthdir, string, random) and logs one `<category> <a> <b>` line each. `make -f runtime/Makefile.host test` now builds and runs a third test binary at -O0, so -O2, the UBSan trap and -O0 all print the same lines (and pass every other golden, the Flappy trace included) on Linux gcc 13.3; WS0's MinGW run covers gcc 15.2. **For WS3 (DS side):** run `fixtures/bytecode/runtime/numeric-hashes.dsdb` on the ARM9 build (py-desmume via `conformance:ds`, and melonDS as PLAN 7.1 asks) and compare with `numeric-hashes.out`; a mismatching category names the area. The expected lines:
+  `trig 2802 7574`, `atan2 33076 23775`, `sqrt 20444 21605`, `div 51 59715`, `mul 47882 38740`, `lengthdir 29239 47856`, `string 5784 62728`, `random 43187 48735`.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -119,8 +124,9 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 - Every builtin function is implemented (a future one without an implementation would raise R582 when called). Unimplemented bytecodes (reserved 51-54) are R582 at load, with the detail "bytecode N" (C9 bans the word opcode).
 
 ## Next
-- CP-A (2026-09-28): C11 (now 0.2.0) freezes; fold in anything WS3 still needs from ADR-0004 first.
-- The rest of tier v4: room changes with backgrounds and views, pinned with PNG hashes.
+- CP-A (2026-09-28): C11 0.3.0 freezes (ADR-0004 closed by the user).
+- Spike 12: WS3's DS run of `numeric-hashes` (by CP-C). Spike 14 / the M1 gate: WS3's timer harness on `bench.dsdb` (M1); below the gate, WS2 adds the reserved int-specialised opcodes.
+- Open conformance rules without fixtures: rule 8 (music) and the RNG seed rule (WS4 programs; the expected values are WS2's).
 
 ## Open ADR-pending markers
 - none in WS2's code (no `ADR-pending ADR-0006` markers were ever in WS2's paths; WS4's are in `packages/`). ADRs WS2 is party to: ADR-0004 (WS3; WS2's answer is the "ADR-0004 answer" section above), ADR-0005 (WS4, co-signed), ADR-0006 (WS2; accepted by the user, option A with WS4's rule: format minor 2 only in files that carry the extension table, and the loader accepts both).

@@ -49,6 +49,13 @@ the regenerated `.dsdb` together.
   whose CMPJ relation holds are skipped). CMPJ uses WS2's proposed encoding (C = relation 0-5 `== != < <= > >=`;
   the next word is a JMP taken when the relation fails), provisional until WS4 promotes it. WS3 times one Step event
   with its timer harness; on the Linux host (x86-64, 2.8 GHz) 100,000 frames take ~0.36 s (~320 M steps/s).
+- `runtime/numeric-hashes` (`.dss` source, `.dsda`, `.dsdb`, `.out`): spike 12's numeric harness (PLAN.md 7.1,
+  `docs/research/verification.md` claim 11). The `.dsda` is WS4's `compileProgram` output for the `.dss` (then
+  `.seed 20260926` in the header, so every platform draws the same random numbers). It folds the raw Q20.12
+  results of trig, point_direction, sqrt, `/`/`div`/`mod`, fixed products, lengthdir, `string()` and the seeded RNG
+  into one Adler-style pair per category (mod 65521, no step can overflow) and logs `<category> <a> <b>`. The host
+  tests run it in the -O2, UBSan-trap and -O0 builds against the same `.out`; the DS side is WS3's
+  (`npm run conformance:ds -w runtime` runs every WS2 program against its host `.out`).
 - `runtime/*.dsda`: WS2's runtime fixtures, each with a hand-checked `*.out` holding the full expected `dsdude-host
   --seed 1` output (READY, LOG, and EXIT or ERR with code, function, file, line and message): `strings` (TOSTR,
   CONCAT, string comparison and equality, asset ids) and one `err-*` program per runtime error the VM raises so far
