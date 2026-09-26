@@ -171,13 +171,31 @@ describe("project-form round trip", () => {
 describe("errors", () => {
   const fn = (body: string) => `.dsda 0.1\n.seed 0\n\n.func f 0 2\n${body}\n.end\n`;
   const enc = (t: string) => () => encode(assemble(t), env);
-  it("rejects unknown builtins, reserved opcodes, bad registers and unknown labels", () => {
+  it("rejects unknown builtins, missing operands, bad registers and unknown labels", () => {
     expect(enc(fn("    CALLN r0, 0, no_such_builtin"))).toThrow(/unknown builtin/);
-    expect(() => assemble(fn("    ADDII"))).not.toThrow();
-    expect(enc(fn("    ADDII"))).toThrow(/reserved/);
+    // Opcodes 0.4.0 has no reserved numbers left (51-54 are stable); ADDII now needs its three registers.
+    expect(enc(fn("    ADDII r0, r1, r1\n    RET r0, 0"))).not.toThrow();
+    expect(enc(fn("    ADDII"))).toThrow();
     expect(enc(fn("    MOV r0, r2"))).toThrow(/register/);
     expect(() => assemble(fn("    JMP nowhere"))).toThrow(/unknown label/);
     expect(() => assemble(".dsda 9.9\n")).toThrow(/starts with/);
+  });
+  it("writes .release as header flags bit 0 and round-trips it (ADR-0008)", () => {
+    /** Header offset of the u16 flags. */
+    const FLAGS_AT = 22;
+    const debug = fn("    RET r0, 0");
+    const release = debug.replace(".seed 0\n", ".seed 0\n.release\n");
+    const flags = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset).getUint16(FLAGS_AT, true);
+    expect(flags(encode(assemble(debug), env))).toBe(0);
+    const bytes = encode(assemble(release), env);
+    expect(flags(bytes)).toBe(1);
+    expect(disassemble(decode(bytes, env))).toBe(release);
+    expect(disassemble(assemble(debug))).toBe(debug);
+    // Bits 1-15 are reserved: a reader refuses them, like the runtime's loader (R581).
+    const future = bytes.slice();
+    new DataView(future.buffer).setUint16(FLAGS_AT, 0x3, true);
+    expect(() => decode(future, env)).toThrow(/reserved bits/);
+    expect(() => assemble(release.replace(".release", ".release 1"))).toThrow(/takes nothing/);
   });
   it("refuses a DSDB with another ABI hash", () => {
     const bytes = encode(assemble(fn("    RET r0, 0")), env);

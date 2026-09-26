@@ -261,6 +261,11 @@ export function assemble(text: string): DsdbModule {
       case ".seed":
         m.seed = int(rest[0], where);
         return;
+      case ".release":
+        // A release build (header flags bit 0, ADR-0008): overflow wraps instead of raising R520/R521.
+        if (rest.length > 0) throw new DsdbError(`${where}: .release takes nothing after it`);
+        m.release = true;
+        return;
       case ".global":
         m.globals.push(name(rest[0], where));
         return;
@@ -342,6 +347,7 @@ export function assemble(text: string): DsdbModule {
 /** Prints the canonical `.dsda` form of a module. */
 export function disassemble(m: DsdbModule): string {
   const out: string[] = [`.dsda ${VERSION}`, `.seed ${m.seed >>> 0}`];
+  if (m.release === true) out.push(".release");
   for (const g of [...new Set(m.globals)].sort(compareUtf8)) out.push(`.global ${g}`);
   for (const s of [...new Set(m.symbols)].sort(compareUtf8)) out.push(`.symbol ${s}`);
   for (const a of m.assets) {

@@ -27,6 +27,7 @@ import { builtinConstants, builtinFunctions, builtinVariables } from "./codegen/
 import { declareFunction } from "./codegen/declare.ts";
 import type { AssetNameKind, CodegenEnv, FunctionOverride } from "./codegen/env.ts";
 import { compileFunction } from "./codegen/function.ts";
+import { type IntVariables, intVariables } from "./codegen/intproof.ts";
 import { finishModule } from "./codegen/module.ts";
 import type { CompilerCode } from "./diagnostics/catalog.ts";
 import { type DiagArgs, Reporter } from "./diagnostics/report.ts";
@@ -68,9 +69,15 @@ export interface CompileProjectOptions {
   fold?: boolean;
   /**
    * Emit the int-specialised ADDII/SUBII/MULII/CMPJII where both operands are proved int (codegen/intproof.ts).
-   * Default off until contracts/opcodes.json promotes 51-54 from reserved and WS2's VM runs them.
+   * compileProject and `dsdude compile` turn it on (opcodes 0.4.0); default off.
    */
   intOps?: boolean;
+  /**
+   * A release build (ADR-0008): the DSDB header's release flag is set, so the runtime wraps int32 and Q20.12
+   * overflow instead of raising R520/R521, and constant folding wraps an overflow too. Absent means debug (Play
+   * and the IDE's Run always build debug).
+   */
+  release?: boolean;
 }
 
 /** compileProject's result plus the symbolic module (for goldens and `dsdb-dis`), null on errors. */
@@ -78,11 +85,14 @@ export interface CompileProjectResult extends CompileOutput {
   module: DsdbModule | null;
 }
 
-/** C4 `CompileFn`: compiles a loaded project, as a game (constant folding on). */
+/** C4 `CompileFn`: compiles a loaded project, as a game (constant folding and the int-specialised opcodes on). */
 export function compileProject(project: Project, manifest: AssetManifest): CompileOutput {
-  const { dsdb, roomSets, diagnostics } = compileProjectModule(project, manifest, { fold: true });
+  const { dsdb, roomSets, diagnostics } = compileProjectModule(project, manifest, GAME_OPTIONS);
   return { dsdb, roomSets, diagnostics };
 }
+
+/** The options compileProject and `dsdude compile` use for games. */
+export const GAME_OPTIONS: Readonly<CompileProjectOptions> = { fold: true, intOps: true };
 
 /** compileProject with options, also returning the symbolic module. */
 export function compileProjectModule(
@@ -116,6 +126,8 @@ class ProjectCompiler {
   private readonly dynamicNames = new Set<string>();
   /** Every slot name of every object, plus dynamicNames. */
   private readonly instanceNames = new Set<string>();
+  /** The int variables the int-specialised opcodes may rely on (empty unless `intOps`). */
+  private intVars: IntVariables = { instance: new Set(), global: new Set() };
 
   constructor(project: Project, manifest: AssetManifest, options: CompileProjectOptions) {
     this.project = project;
@@ -149,6 +161,7 @@ class ProjectCompiler {
     this.index();
     if (this.hasErrors()) return this.failed();
     this.projectLints();
+    if (this.options.intOps === true) this.intVars = this.findIntVariables();
     const functions = this.units.map((u) => this.generate(u));
     const fromCodegen = this.units.flatMap((u) => u.source.reporter.diagnostics);
     this.diagnostics.push(...dedupe(fromCodegen));
@@ -476,6 +489,22 @@ class ProjectCompiler {
     return null;
   }
 
+  /** The project's int variables (codegen/intproof.ts), over every unit's code with its callable functions. */
+  private findIntVariables(): IntVariables {
+    const units = this.units.map((u) => ({
+      params: u.params,
+      body: u.body,
+      isUserFunction: (name: string) =>
+        (u.owner === null ? null : this.lookupObjectFunction(u.owner, name)) !== null || this.scripts.has(name),
+    }));
+    return intVariables(units, (name) => this.assetKinds.has(name) || this.isFunctionName(name));
+  }
+
+  /** True when some script or object function has this name. */
+  private isFunctionName(name: string): boolean {
+    return this.scripts.has(name) || [...this.objects.values()].some((o) => o.functions.has(name));
+  }
+
   private generate(u: CodeUnit): Func {
     const owner = u.owner === null ? null : (this.objects.get(u.owner) ?? null);
     const collisionTarget = u.stem?.startsWith(COLLISION_PREFIX)
@@ -507,6 +536,8 @@ class ProjectCompiler {
       overridesOf: (name) => this.overridesOf(owner, name),
       fold: this.options.fold === true,
       intOps: this.options.intOps === true,
+      release: this.options.release === true,
+      isIntVariable: (kind, name) => this.intVars[kind].has(name),
     };
     return compileFunction(env, { name: u.funcName, params: u.params, body: u.body });
   }
@@ -537,6 +568,7 @@ class ProjectCompiler {
   private assemble(functions: Func[]): DsdbModule {
     const m = emptyModule();
     m.seed = this.options.seed ?? 0;
+    if (this.options.release === true) m.release = true;
     m.assets = this.assetDefs();
     m.functions = this.orderFunctions(functions);
     const objectIndex = new Map(this.project.objects.map((o, i) => [o.name, i]));

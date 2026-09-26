@@ -19,6 +19,10 @@ export const EXTENSION_ENTRY_BYTES = 12;
 export const SPRG = "SPRG";
 /** Bytes per SPRG record: u32 asset index, u16 x2 size, s16 x2 origin, s16 x4 bbox. */
 export const SPRG_RECORD_BYTES = 20;
+/** Header flags bit 0 (offset 22, ADR-0008): set in a release build, where int32 and Q20.12 overflow wrap. */
+export const FLAG_RELEASE = 0x0001;
+/** Every flag bit this format defines; the others are reserved, must be 0, and a loader refuses them (R581). */
+export const FLAGS_KNOWN = FLAG_RELEASE;
 export const HEADER_BYTES = 32;
 export const SECTION_ENTRY_BYTES = 12;
 /** Section tags in file order. Every DSDB has all ten, possibly empty. */
@@ -153,6 +157,11 @@ export interface AssetDef {
 
 export interface DsdbModule {
   seed: number;
+  /**
+   * A release build (header flags bit 0, ADR-0008): overflow wraps instead of raising R520/R521. Absent or false
+   * means a debug build, so every debug module (and file) stays byte-identical to one written before the flag.
+   */
+  release?: boolean;
   /** Stamped by encode() from the builtins environment; decode() fills it from the file. */
   abiHash?: number;
   globals: string[];

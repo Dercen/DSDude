@@ -66,6 +66,10 @@ export interface CodegenEnv {
    * Absent means off.
    */
   intOps?: boolean;
+  /** A release build (ADR-0008): constant folding wraps an overflow instead of leaving it to the runtime. */
+  release?: boolean;
+  /** The project's int variables (codegen/intproof.ts intVariables); absent means none. */
+  isIntVariable?(kind: "instance" | "global", name: string): boolean;
   /** The object whose functions.dss defines `name` when this code can't call it (E205), or null. */
   helperOwner?(name: string): string | null;
   /**
