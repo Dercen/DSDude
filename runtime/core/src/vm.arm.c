@@ -494,6 +494,11 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     const DsdValue *const kons = prog->kons;
     const uint32_t entry_depth = vm->depth;
     const uint32_t *ip = code + prog->funcs[func].code_start;
+    // The word at ip, fetched one dispatch early (software pipelining: its load overlaps the jump to the current
+    // handler instead of stalling the next dispatch). Every assignment to ip reloads it. At a function's last
+    // instruction this reads one word past it, which is still inside the DSDB (CODE is never the last section);
+    // that word is never executed.
+    uint32_t next = *ip;
     DsdValue *R = vm->regs + base; // the running frame's r0
     // self's slot cells (NULL without a self): GETSLOT/SETSLOT index it directly instead of reloading vm->self and
     // locating the instance block each time. vm->self changes inside run() only through the `with` opcodes (which
@@ -509,7 +514,8 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
 // Fetch the next instruction and jump to its handler. No per-step work: the step is charged at the next transfer.
 #define DISPATCH()                                                                                                     \
     do {                                                                                                               \
-        ins = *ip++;                                                                                                   \
+        ins = next;                                                                                                    \
+        next = *++ip;                                                                                                  \
         goto *dispatch_base[DSD_OP(ins)];                                                                              \
     } while (0)
 // Charge the steps of the straight run that ends here (the running instruction included); R510 when the frame's
@@ -526,6 +532,7 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     do {                                                                                                               \
         SETTLE();                                                                                                      \
         ip = (target);                                                                                                 \
+        next = *ip;                                                                                                    \
         seg = ip;                                                                                                      \
     } while (0)
 // Record the running instruction's code index for errors and builtins (ip already points past it).
@@ -704,6 +711,7 @@ op_RET:
         func = f->func;
         R = vm->regs + f->base;
         ip = code + f->ret_pc;
+        next = *ip;
         seg = ip;
         vm->top = f->base + prog->funcs[func].regs;
     }
