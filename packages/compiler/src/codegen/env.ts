@@ -61,6 +61,11 @@ export interface CodegenEnv {
    * which exist to test the VM's own arithmetic. Absent means off.
    */
   fold?: boolean;
+  /**
+   * Emit the int-specialised ADDII/SUBII/MULII/CMPJII where both operands are proved int (codegen/intproof.ts).
+   * Absent means off.
+   */
+  intOps?: boolean;
   /** The object whose functions.dss defines `name` when this code can't call it (E205), or null. */
   helperOwner?(name: string): string | null;
   /**

@@ -28,6 +28,8 @@ export interface ProgramOptions {
    * conformance corpus, whose programs test the VM's arithmetic.
    */
   fold?: boolean;
+  /** Emit the int-specialised opcodes where both operands are proved int (codegen/intproof.ts). Default off. */
+  intOps?: boolean;
 }
 
 export interface ProgramResult {
@@ -66,6 +68,7 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
     objectInfo: () => null,
     isInstanceVariableName: () => false,
     fold: options.fold === true,
+    intOps: options.intOps === true,
   };
   const module = emptyModule();
   module.seed = options.seed ?? 0;
