@@ -185,6 +185,7 @@ static int32_t load_dbg(DsdProgram *p, DsdLoadError *err) {
 #define V_BIVARX 8 // a built-in array variable (alarm, view_x, view_y; 8 bits)
 #define V_BIVARW 9 // a built-in variable that is not an array, in Bx (GETBI/SETBI)
 #define V_SLOT 10 // a user slot index (< C13 userSlotsPerObject)
+#define DSD_CMPJ_REL_MAX 5u // CMPJ relations: 0 ==, 1 !=, 2 <, 3 <=, 4 >, 5 >= (WS2's proposal, provisional)
 
 // Operand checks per implemented opcode: A, then B (or Bx/sBx), then C. `impl` = 0 for opcodes this runtime does
 // not implement yet (R582). Wide-field opcodes put their Bx/sBx check in b and leave c at V_NONE.
@@ -250,6 +251,7 @@ static const OpCheck OP_CHECKS[DSD_OPCODE_COUNT] = {
     [DSD_OP_WITHBEGIN] = {1, V_REG, V_LABEL, V_NONE},
     [DSD_OP_WITHNEXT] = {1, V_REG, V_LABEL, V_NONE},
     [DSD_OP_WITHEND] = {1, V_REG, V_NONE, V_NONE},
+    [DSD_OP_CMPJ] = {1, V_REG, V_REG, V_NONE}, // relation and the JMP after it checked below
 };
 
 // Array length of each built-in variable (0 = not an array), from the generated table.
@@ -311,6 +313,10 @@ static int32_t verify_function(const DsdProgram *p, uint32_t index, DsdLoadError
         if (ok && op == DSD_OP_CALL) {
             // The callee's parameters are the caller's rA..rA+params-1 (its frame starts at rA).
             ok = DSD_A(ins) + p->funcs[DSD_BX(ins)].params <= fn->regs;
+        }
+        if (ok && op == DSD_OP_CMPJ) {
+            // Relation 0-5 (== != < <= > >=), and the next word, inside the function, is the JMP it guards.
+            ok = DSD_C(ins) <= DSD_CMPJ_REL_MAX && pc + 1 < end && DSD_OP(p->code[pc + 1]) == DSD_OP_JMP;
         }
         if (ok && op == DSD_OP_NEWARR) ok = DSD_A(ins) + DSD_B(ins) <= fn->regs; // elements rA..rA+B-1
         if (ok && (op == DSD_OP_RET || op == DSD_OP_LOADB)) ok = DSD_B(ins) <= 1;

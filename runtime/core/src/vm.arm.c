@@ -187,6 +187,25 @@ static void watchdog(DsdVm *vm) {
     dsd_text_str(&t, " never finished: a loop there seems to run forever");
 }
 
+// CMPJ relations (provisional, proposed by WS2): C = 0 ==, 1 !=, 2 <, 3 <=, 4 >, 5 >=.
+#define REL_EQ 0u
+#define REL_NE 1u
+#define REL_LT 2u
+#define REL_LE 3u
+#define REL_GT 4u
+
+// CMPJ beyond the int fast path: equality by the language's `==`, orderings as LT..GE (R541 when unordered).
+static bool relation_holds(DsdVm *vm, uint32_t rel, DsdValue a, DsdValue b, bool *holds) {
+    if (rel == REL_EQ || rel == REL_NE) {
+        *holds = dsd_values_equal(vm, a, b) == (rel == REL_EQ);
+        return true;
+    }
+    DsdValue r;
+    if (!ordered(vm, DSD_OP_LT + (rel - REL_LT), a, b, &r)) return false;
+    *holds = r.payload != 0;
+    return true;
+}
+
 // ---- Lists and conversions (slow paths of NEWARR GETIDX SETIDX LEN TOINT TOFIXED) -------------------------------
 
 // Raises R551: `what` ("[]", "a list length") used on a value that is not a list.
@@ -451,6 +470,7 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
         [DSD_OP_GETBI] = &&op_GETBI,     [DSD_OP_SETBI] = &&op_SETBI,     [DSD_OP_GETBIX] = &&op_GETBIX,
         [DSD_OP_SETBIX] = &&op_SETBIX,   [DSD_OP_GETBIO] = &&op_GETBIO,   [DSD_OP_SETBIO] = &&op_SETBIO,
         [DSD_OP_WITHBEGIN] = &&op_WITHBEGIN, [DSD_OP_WITHNEXT] = &&op_WITHNEXT, [DSD_OP_WITHEND] = &&op_WITHEND,
+        [DSD_OP_CMPJ] = &&op_CMPJ,
     };
     const DsdProgram *prog = vm->prog;
     const uint32_t *const code = prog->code;
@@ -732,6 +752,40 @@ op_TOFIXED:
     SYNC_PC();
     if (!convert(vm, true, RB, &RA)) goto failed;
     DISPATCH();
+
+// CMPJ rA, rB, rel; JMP L: when the relation holds, skip the JMP (fall into the guarded code); otherwise take it.
+op_CMPJ: {
+    bool holds;
+    a = RA;
+    b = RB;
+    if (a.tag == DSD_TAG_INT && b.tag == DSD_TAG_INT) {
+        switch (DSD_C(ins)) {
+        case REL_EQ:
+            holds = a.payload == b.payload;
+            break;
+        case REL_NE:
+            holds = a.payload != b.payload;
+            break;
+        case REL_LT:
+            holds = a.payload < b.payload;
+            break;
+        case REL_LE:
+            holds = a.payload <= b.payload;
+            break;
+        case REL_GT:
+            holds = a.payload > b.payload;
+            break;
+        default:
+            holds = a.payload >= b.payload;
+            break;
+        }
+    } else {
+        SYNC_PC();
+        if (!relation_holds(vm, DSD_C(ins), a, b, &holds)) goto failed;
+    }
+    if (holds) ip++; // the verifier guarantees the next word is a JMP inside the function
+    DISPATCH();
+}
 
 // User variables of self/other by slot: the hot path reads the cell straight from the instance block.
 op_GETSLOT:

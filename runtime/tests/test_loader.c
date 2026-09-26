@@ -84,7 +84,7 @@ void suite_loader(void) {
 
     // hello's code: LOADK r0, "hello" / CALLN r0, 1, show_debug_message / RET r0, 0.
     reset();
-    g_img[code_offset(0) + OP_BYTE] = DSD_OP_CMPJ; // provisional, encoding not settled yet
+    g_img[code_offset(0) + OP_BYTE] = DSD_OP_ADDII; // reserved (the int-specialised M1 fallback)
     EXPECT_CODE(DSD_R_UNSUPPORTED);
 
     reset();
