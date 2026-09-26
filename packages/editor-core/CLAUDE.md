@@ -27,7 +27,7 @@ npm test -w packages/editor-core   # plus -w apps/ide for view changes
 WS0 also runs it on Windows at integration.
 
 ## Layout
-- `color.ts` DS colours (rounding identical to the asset pipeline); `pixels.ts` frame tools (pencil, line, rect, fill, select/move, mirror); `sprite.ts` the sprite document (frames + DS palette, strip ops, onion skin, load from the C12 preview, save as a DS indexed PNG); `history.ts` immer-patch undo; `room.ts` room queries + immer-draft mutators (place, move, paint/erase walls, views, sprites per screen); `background.ts` a background as a one-frame doc plus its DS cost (padded size, unique tiles merged across flips, as the pipeline counts them).
+- `color.ts` DS colours (rounding identical to the asset pipeline); `pixels.ts` frame tools (pencil, line, rect, fill, select/move, mirror); `sprite.ts` the sprite document (frames + DS palette, strip ops, onion skin, load from the C12 preview, save as a DS indexed PNG); `history.ts` immer-patch undo; `room.ts` room queries + immer-draft mutators (place, move, paint/erase walls, views, sprites per screen); `background.ts` a background as a one-frame doc plus its DS cost (padded size, unique tiles merged across flips, as the pipeline counts them); `sound.ts` WAV info and the `smpl` loop (read/write/remove) plus the DS loop as the pipeline scales it; `budget.ts` live per-screen sprite slots, sprite memory and colour sets (as checkRoomBudgets computes them), merged with the last build's manifest figures.
 
 ## Isolation
 Editor cores are pure; views render in `fixtures/ide/mock-host` with `samples/flappy`, in headless Chromium (ports 5171-5179).

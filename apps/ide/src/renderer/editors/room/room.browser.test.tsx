@@ -115,6 +115,41 @@ describe("room editor", () => {
     expect(m.element.querySelector("[data-testid=room-canvas]")).not.toBeNull();
   });
 
+  it("shows live sprite memory and colour sets per screen, raised by the last build's figures", async () => {
+    host = await createMockHost();
+    const h = host;
+    const { m } = await mountGame(h);
+    const meter = (id: string) => m.element.querySelector(`[data-testid='${id}']`) as HTMLElement;
+    const kbOf = (id: string) => Number(/memory ([\d.]+) KB/.exec(meter(id).textContent ?? "")?.[1]);
+    // Only obj_bird has a sprite in rm_game; the bottom screen is empty.
+    await until(() => kbOf("room-meter:top:memory") > 0, "top memory");
+    expect(meter("room-meter:top:memory").textContent).toMatch(/^memory [\d.]+ KB\/128 KB$/);
+    expect(meter("room-meter:top:colours").textContent).toBe("colour sets 1/16");
+    expect(meter("room-meter:bottom:memory").textContent).toBe("memory 0 KB/128 KB");
+    // A pipe on the bottom screen loads spr_pipe there.
+    h.ide.actions.updateResource({ kind: "room", name: "rm_game" }, (d) => {
+      d.rooms.find((x) => x.name === "rm_game")?.instances.push({ object: "obj_pipe", x: 0, y: 0, screen: "bottom" });
+    });
+    await until(() => kbOf("room-meter:bottom:memory") > 0, "bottom memory");
+    expect(meter("room-meter:bottom:colours").textContent).toBe("colour sets 1/16");
+
+    // The last build counted sprites the room's code creates: past the limit, the meter is red.
+    host.dispose();
+    host = await createMockHost({
+      handlers: {
+        "build.manifest": () => ({
+          manifest: { rooms: { rm_game: { top: { objVramBytes: 140_000, obj16Palettes: 17, obj256Palettes: 0 } } } },
+        }),
+      },
+    });
+    const again = await mountGame(host);
+    const meter2 = (id: string) => again.m.element.querySelector(`[data-testid='${id}']`) as HTMLElement;
+    await until(() => meter2("room-meter:top:memory").className.includes("meter-over"), "memory over");
+    expect(meter2("room-meter:top:memory").textContent).toBe("memory 137 KB/128 KB");
+    expect(meter2("room-meter:top:colours").textContent).toBe("colour sets 17/16");
+    expect(meter2("room-meter:top:colours").className).toContain("meter-over");
+  });
+
   it("builds rm_game from scratch with the mouse: the saved room.json round-trips, and a fixture is kept", async () => {
     host = await createMockHost();
     const h = host;

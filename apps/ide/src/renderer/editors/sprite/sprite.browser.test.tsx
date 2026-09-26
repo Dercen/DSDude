@@ -62,8 +62,14 @@ describe("sprite editor", () => {
     pointer(canvas(), "pointerup", 15, 15, zoom);
     await until(() => m.host.undo.peek().undo === "Line", "line");
 
+    // The memory meter is live: a fourth frame costs a fourth more.
+    const memory = () => m.element.querySelector("[data-testid='sprite-meter:memory']")?.textContent ?? "";
+    expect(memory()).toMatch(/^Memory: [\d.]+ KB of 128 KB$/);
+    const kbOf = () => Number(/Memory: ([\d.]+) KB/.exec(memory())?.[1]);
+    const three = kbOf();
     (m.element.querySelector("[data-testid=frame-add]") as HTMLButtonElement).click();
     await until(() => m.element.querySelectorAll("[data-testid^='frame:']").length === 4, "4 frames");
+    await until(() => kbOf() > three, "more memory with 4 frames");
     await page.screenshot({ path: "../../../../test-results/browser/sprite-editor.png" });
 
     await m.panel.save();

@@ -25,6 +25,15 @@ describe("meters", () => {
     expect(m[0]?.tooltip).toContain("OAM entries");
   });
 
+  it("does not count invisible objects (obj_gap has a sprite but is invisible)", async () => {
+    const project = await flappy();
+    const room = project.project.firstRoom;
+    const before = spritesPerScreen(project, room);
+    const r = project.rooms.find((x) => x.name === room);
+    r?.instances.push({ object: "obj_gap", x: 0, y: 0 }, { object: "obj_bird", x: 0, y: 0 });
+    expect(spritesPerScreen(project, room)).toEqual({ ...before, top: before.top + 1 });
+  });
+
   it("adds colour sets, sprite memory and sound memory from the manifest", async () => {
     const project = await flappy();
     const room = project.project.firstRoom;

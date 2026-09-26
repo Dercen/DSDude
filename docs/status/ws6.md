@@ -298,10 +298,24 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
     - Playwright 14: the import test opens the imported sound in the panel; the full suite passes; room 60 fps.
     - Screenshots checked.
 
+- **Task 7, batch D, live meters inside the editors: done. Task 7 is complete.**
+  - `packages/editor-core/src/budget.ts` computes each screen's budget from the placed instances, the way the pipeline's checkRoomBudgets does:
+    - visible sprite slots (OAM);
+    - sprite memory: every sprite used on the screen loads once, frames x the padded OBJ frame, 128-byte aligned, via the pipeline's `spriteVramBytes`;
+    - 16- and 256-colour sets.
+    - `withLastBuild` takes the larger of these and the last build's `assets.manifest.json` room figures, which also count sprites the room's code creates.
+    - The figures match `checkRoomBudgets` for the same sprites. The C13 values are test-pinned to `contracts/runtime-limits.json`.
+  - `editors/shared/budget.ts`:
+    - `useManifest` reads `build.manifest` on open and again after every build (`build.progress` running/done/failed);
+    - `spriteCosts` resolves each sprite's colour mode from its setting, the last build, or the room editor's preview of the picture.
+  - The room editor has a meter bar per screen: "Top: n/128 sprites", "memory x KB/128 KB" and "colour sets n/16". Each turns amber at 90% and red past the limit. The OAM, OBJ VRAM and palette terms, the placed-vs-last-build figures, and the limit of 32 rotated sprites (known only while the game runs) are in the tooltips.
+  - The sprite editor shows a live "Memory: x KB of 128 KB" and, when a frame pads to a bigger OBJ size, "Each frame is stored as 32x32 on the DS". The background editor has had its tile and size meters since batch C.
+  - Fix: the status bar counted invisible sprite-bearing objects (such as walls) as sprites. It now counts only visible ones, like the room editor (`meters.ts`, with a test).
+  - Tests: editor-core 30; node 95; browser 25 (the room meters placed and from a last build past the limits; the sprite memory rising with a frame); Playwright 14 (full suite passes; room 60 fps). Screenshots checked.
+
 ## Next
-- Task 6: done.
-- CP-A (2026-09-28): the C12 panel API and mock host freeze; WS0 runs the e2e suite locally.
-- Task 7 continues: batch D, the live meters inside the editors (C13 + `assets.manifest.json`).
+- Task 6: done. Task 7: done (batches A-D).
+- CP-A (2026-09-28): the C12 panel API and mock host freeze; WS0 runs the e2e suite locally. Until then: small fixes only, then stop for the checkpoint merge.
 - Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 

@@ -6,8 +6,10 @@
  * CSP has no blob:), and `pixi.js/unsafe-eval` keeps Pixi working without 'unsafe-eval'. Renders on demand.
  */
 import "pixi.js/unsafe-eval";
-import { decodePng } from "@dsdude/asset-pipeline/browser";
+import { decodePng, previewSprite } from "@dsdude/asset-pipeline/browser";
 import {
+  BUDGET_LIMITS,
+  budgetLevel,
   DS_SCREEN,
   deleteInstances,
   drawOrder,
@@ -21,11 +23,12 @@ import {
   paintCells,
   placeInstance,
   type RoomLike,
+  roomBudgets,
   type Screen,
   type SpriteInfo,
   setView,
   snap,
-  spritesPerScreen,
+  withLastBuild,
 } from "@dsdude/editor-core";
 import type { Project } from "@dsdude/project-format";
 import { Application, Container, Graphics, Sprite, Text, Texture } from "pixi.js";
@@ -34,6 +37,7 @@ import { createRoot } from "react-dom/client";
 import { LIMITS } from "../../meters.ts";
 import type { EditorPanel, EditorPanelFactory, PanelHost, ResourceRef } from "../../panels/api.ts";
 import { updateWithUndo } from "../../panels/kit.ts";
+import { kb, spriteCosts, useManifest } from "../shared/budget.ts";
 
 type Tool = "select" | "place" | "paint" | "erase" | "view";
 const TOOLS: [Tool, string, string][] = [
@@ -87,14 +91,21 @@ function textureFrom(rgba: Uint8Array, width: number, height: number, sx = 0, sw
   return t;
 }
 
-/** Loads frame 0 of every sprite and every background as Pixi textures (missing files are skipped). */
+/**
+ * Loads frame 0 of every sprite and every background as Pixi textures (missing files are skipped), and each
+ * sprite's colour mode as the pipeline will build it (for the meters).
+ */
 async function loadTextures(host: PanelHost, project: Project) {
   const sprites = new Map<string, Texture>();
   const backgrounds = new Map<string, Texture>();
+  const modes = new Map<string, "16" | "256">();
   await Promise.all([
     ...project.sprites.map(async (s) => {
       try {
-        const img = decodePng(await host.files.read(`sprites/${s.name}/sheet.png`));
+        const png = await host.files.read(`sprites/${s.name}/sheet.png`);
+        const img = decodePng(png);
+        const opts = { frameWidth: s.frameWidth, frameHeight: s.frameHeight, colorMode: s.colorMode };
+        modes.set(s.name, previewSprite(png, { ...opts, transparent: s.transparent as "alpha" }).colorMode);
         sprites.set(s.name, textureFrom(img.rgba, img.width, img.height, 0, Math.min(s.frameWidth, img.width)));
       } catch {
         // drawn as a marker
@@ -109,7 +120,7 @@ async function loadTextures(host: PanelHost, project: Project) {
       }
     }),
   ]);
-  return { sprites, backgrounds };
+  return { sprites, backgrounds, modes };
 }
 
 function RoomEditor({ host, name }: { host: PanelHost; name: string }) {
@@ -136,6 +147,8 @@ function RoomEditor({ host, name }: { host: PanelHost; name: string }) {
     frames: number;
   } | null>(null);
   const [ready, setReady] = useState(false);
+  const [modes, setModes] = useState<ReadonlyMap<string, "16" | "256">>(new Map());
+  const manifest = useManifest(host);
   const [fps, setFps] = useState(0);
   const state = useRef({ tool, objectName, grid, snapOn, zoom, selected, pan: { x: 16, y: 16 } });
   state.current = { ...state.current, tool, objectName, grid, snapOn, zoom, selected };
@@ -184,6 +197,7 @@ function RoomEditor({ host, name }: { host: PanelHost; name: string }) {
       };
       pixi.current = handle;
       new ResizeObserver(() => handle.request()).observe(el);
+      setModes(textures.modes);
       setReady(true);
     })();
     // Frames rendered per second, for the 60 fps check (data-fps on the canvas box).
@@ -519,8 +533,8 @@ function RoomEditor({ host, name }: { host: PanelHost; name: string }) {
   }, [ready]);
 
   if (!project || !room || !scene) return <div className="panel-empty">{name} is not in this project.</div>;
-  const counts = spritesPerScreen(room, scene.objects);
-  const max = LIMITS.spritesPerScreen ?? 128;
+  const live = roomBudgets(room, scene.objects, spriteCosts(project, manifest, modes));
+  const built = manifest?.rooms?.[name] ?? null;
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.ctrlKey || e.altKey) return;
@@ -597,17 +611,42 @@ function RoomEditor({ host, name }: { host: PanelHost; name: string }) {
         >
           +
         </button>
-        <span className="se-gap" />
-        {(["top", "bottom"] as const).map((sc) => (
-          <span
-            key={sc}
-            className={`meter meter-${counts[sc] > max ? "over" : counts[sc] >= max * 0.9 ? "warn" : "ok"}`}
-            data-testid={`room-meter:${sc}`}
-            title={`OAM: the DS draws at most ${max} sprites on a screen. Invisible objects (walls) do not count.`}
-          >
-            {sc === "top" ? "Top" : "Bottom"}: {counts[sc]}/{max} sprites
-          </span>
-        ))}
+      </div>
+      <div className="room-meters" data-testid="room-meters">
+        {(["top", "bottom"] as const).map((sc) => {
+          const L = BUDGET_LIMITS;
+          const b = withLastBuild(live[sc], built?.[sc]);
+          const sets = Math.max(b.obj16Palettes, b.obj256Palettes);
+          const setsMax = Math.min(L.obj16PalettesPerScreen, L.obj256PalettesPerScreen);
+          const lastBuild = built?.[sc]
+            ? ` The last build (which also counts sprites the room's code creates) found ${kb(built[sc]?.objVramBytes ?? 0)}.`
+            : " Build once to include sprites the room's code creates.";
+          return (
+            <span key={sc} className="room-meter-group">
+              <span
+                className={`meter meter-${budgetLevel(b.sprites, L.spritesPerScreen)}`}
+                data-testid={`room-meter:${sc}`}
+                title={`OAM: the DS draws at most ${L.spritesPerScreen} sprites on a screen. Invisible objects (walls) do not count. Rotated or scaled sprites (at most ${LIMITS.affinePerScreen ?? 32} per screen) are counted while the game runs.`}
+              >
+                {sc === "top" ? "Top" : "Bottom"}: {b.sprites}/{L.spritesPerScreen} sprites
+              </span>
+              <span
+                className={`meter meter-${budgetLevel(b.objVramBytes, L.objVramBytesPerScreen)}`}
+                data-testid={`room-meter:${sc}:memory`}
+                title={`OBJ VRAM: every sprite used on this screen is loaded once, each frame padded to an OBJ size and aligned to 128 bytes. Placed here: ${kb(live[sc].objVramBytes)}.${lastBuild}`}
+              >
+                memory {kb(b.objVramBytes)}/{kb(L.objVramBytesPerScreen)}
+              </span>
+              <span
+                className={`meter meter-${budgetLevel(sets, setsMax)}`}
+                data-testid={`room-meter:${sc}:colours`}
+                title={`OBJ palettes: each 16-colour sprite takes one of ${L.obj16PalettesPerScreen} palette banks (${b.obj16Palettes} used), each 256-colour sprite one of ${L.obj256PalettesPerScreen} extended palettes (${b.obj256Palettes} used).`}
+              >
+                colour sets {sets}/{setsMax}
+              </span>
+            </span>
+          );
+        })}
       </div>
       <div className="room-canvas" ref={box} data-fps={fps} data-testid="room-canvas-box" />
     </div>

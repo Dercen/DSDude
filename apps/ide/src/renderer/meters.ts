@@ -43,7 +43,10 @@ const kb = (bytes: number) => {
   return k < 10 && k % 1 !== 0 ? k.toFixed(1) : String(Math.round(k));
 };
 
-/** Sprite-bearing instances placed on each screen of the room (an instance's screen defaults to its object's). */
+/**
+ * Visible sprite-bearing instances placed on each screen of the room (an instance's screen defaults to its object's):
+ * an invisible object, such as a wall, takes no sprite slot. The room editor counts the same (editor-core).
+ */
 export function spritesPerScreen(project: Project, room: string): { top: number; bottom: number } {
   const r = project.rooms.find((x) => x.name === room);
   const out = { top: 0, bottom: 0 };
@@ -51,7 +54,7 @@ export function spritesPerScreen(project: Project, room: string): { top: number;
   const objects = new Map(project.objects.map((o) => [o.name, o]));
   for (const inst of r.instances) {
     const obj = objects.get(inst.object);
-    if (!obj?.sprite) continue;
+    if (!obj?.sprite || !obj.visible) continue;
     out[inst.screen ?? obj.screen]++;
   }
   return out;
@@ -80,7 +83,7 @@ export function computeMeters(input: MeterInput): Meter[] {
     const parts = [`${Screen}: ${sprites}/${maxSprites} sprites`];
     const tips = [
       `${Screen} screen, ${room}${live ? " (running game)" : ""}:`,
-      `${sprites} of ${maxSprites} OAM entries (${live ? "visible instances this second" : "sprite-bearing instances placed"})`,
+      `${sprites} of ${maxSprites} OAM entries (${live ? "visible instances this second" : "visible sprite-bearing instances placed"})`,
     ];
     if (pal16 !== null) {
       const max16 = L.obj16PalettesPerScreen ?? 16;
