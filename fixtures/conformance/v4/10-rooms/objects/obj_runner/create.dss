@@ -1,0 +1,1 @@
+show_debug_message("create in " + (room == rm_a ? "a" : "b"));

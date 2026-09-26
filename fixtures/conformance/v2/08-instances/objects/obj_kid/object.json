@@ -1,0 +1,7 @@
+{
+  "sprite": null,
+  "parent": "obj_base",
+  "visible": true,
+  "depth": 0,
+  "screen": "top"
+}

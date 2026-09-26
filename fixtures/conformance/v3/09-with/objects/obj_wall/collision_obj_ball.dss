@@ -1,0 +1,2 @@
+show_debug_message("hit " + string(other.n));
+instance_destroy();

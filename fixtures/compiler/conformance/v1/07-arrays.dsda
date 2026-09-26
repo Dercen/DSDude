@@ -1,0 +1,124 @@
+.dsda 0.1
+.seed 0
+
+.func __main 0 11
+    .loc "v1/07-arrays.dss" 4
+    LOADI r6, 10
+    LOADI r7, 20
+    LOADI r8, 30
+    NEWARR r6, 3
+    MOV r0, r6
+    .loc "v1/07-arrays.dss" 5
+    MOV r6, r0
+    CALLN r6, 1, array_length
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 6
+    LOADI r6, 5
+    LOADI r7, 60
+    SETIDX r0, r6, r7
+    .loc "v1/07-arrays.dss" 7
+    MOV r6, r0
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 8
+    MOV r1, r0
+    .loc "v1/07-arrays.dss" 9
+    LOADI r6, 0
+    LOADI r7, 11
+    SETIDX r1, r6, r7
+    .loc "v1/07-arrays.dss" 10
+    LOADI r7, 0
+    GETIDX r6, r0, r7
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 11
+    LOADI r6, 1
+    LOADI r7, 2
+    NEWARR r6, 2
+    LOADI r7, 3
+    LOADI r8, 4
+    NEWARR r7, 2
+    NEWARR r6, 2
+    MOV r2, r6
+    .loc "v1/07-arrays.dss" 12
+    LOADI r6, 1
+    GETIDX r7, r2, r6
+    LOADI r8, 0
+    GETIDX r9, r7, r8
+    LOADI r10, 30
+    ADD r9, r9, r10
+    SETIDX r7, r8, r9
+    SETIDX r2, r6, r7
+    .loc "v1/07-arrays.dss" 13
+    MOV r6, r2
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 14
+    LOADK r7, 1.75
+    GETIDX r6, r0, r7
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 15
+    MOV r6, r0
+    LOADI r7, 70
+    LOADI r8, 80
+    CALLN r6, 3, array_push
+    .loc "v1/07-arrays.dss" 16
+    MOV r6, r0
+    CALLN r6, 1, array_length
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 17
+    MOV r6, r0
+    CALLN r6, 1, array_pop
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 18
+    LOADI r6, 3
+    LOADI r7, 7
+    CALLN r6, 2, array_create
+    MOV r3, r6
+    .loc "v1/07-arrays.dss" 19
+    MOV r6, r3
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 20
+    MOV r6, r0
+    LOADI r7, 0
+    LOADI r8, 5
+    CALLN r6, 3, array_delete
+    .loc "v1/07-arrays.dss" 21
+    MOV r6, r0
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 22
+    LOADI r6, 5
+    LOADI r7, 3
+    LOADI r8, 9
+    LOADI r9, 1
+    LOADI r10, 7
+    CALLN r6, 5, min
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 23
+    LOADK r6, 2.5
+    LOADI r7, 2
+    CALLN r6, 2, max
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 24
+    LOADI r6, 42
+    CALLN r6, 1, choose
+    CALLN r6, 1, show_debug_message
+    .loc "v1/07-arrays.dss" 25
+    LOADI r4, 0
+    .loc "v1/07-arrays.dss" 26
+    LOADI r5, 0
+  L0:
+    MOV r7, r2
+    CALLN r7, 1, array_length
+    LT r6, r5, r7
+    JMPF r6, L1
+    GETIDX r7, r2, r5
+    LOADI r8, 1
+    GETIDX r6, r7, r8
+    ADD r4, r4, r6
+    LOADI r6, 1
+    ADD r5, r5, r6
+    JMP L0
+  L1:
+    .loc "v1/07-arrays.dss" 27
+    MOV r6, r4
+    CALLN r6, 1, show_debug_message
+    RET r0, 0
+.end

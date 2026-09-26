@@ -6,6 +6,9 @@ import { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
 import { goldenText, REPO_ROOT, readBytes, UPDATING_GOLDENS } from "./golden.ts";
 import { compileProgram, MAIN_FUNCTION } from "./program.ts";
 
+/** Lints a conformance program triggers on purpose (the rule it pins). */
+const EXPECTED_WARNINGS: Readonly<Record<string, string[]>> = { "v1/07-arrays.dss": ["W041"] };
+
 /** Program-form conformance tiers (language.md section 1); v2+ are projects. */
 const PROGRAM_TIERS = ["v0", "v1"];
 
@@ -44,7 +47,9 @@ describe("program form: the conformance corpus", () => {
     it(`compiles ${tier}/${name} to its golden and round-trips through the disassembler`, () => {
       const text = readFileSync(join(REPO_ROOT, "fixtures", "conformance", tier, name), "utf8").replace(/\r/g, "");
       const r = compileProgram(text, { file: `${tier}/${name}` });
-      expect(r.diagnostics).toEqual([]);
+      // Programs may exercise a lint on purpose (v1/07's fractional index is W041), never an error.
+      expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+      expect(r.diagnostics.map((d) => d.code)).toEqual(EXPECTED_WARNINGS[`${tier}/${name}`] ?? []);
       const module = r.module as NonNullable<typeof r.module>;
       expect(module.functions[0]?.name).toBe(MAIN_FUNCTION);
       const dsda = disassemble(module);
