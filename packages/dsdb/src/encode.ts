@@ -10,16 +10,20 @@ import {
   type AssetKind,
   type Const,
   type DsdbModule,
+  EXTENSION_ENTRY_BYTES,
+  EXTENSION_OFFSET_AT,
   eventId,
   eventStem,
   FORMAT_MAJOR,
   FORMAT_MINOR,
+  FORMAT_MINOR_EXTENSIONS,
   type Func,
   type Instr,
   MAGIC,
   type Operand,
   SECTION_ENTRY_BYTES,
   SECTIONS,
+  SPRG,
   TAG,
 } from "./model.ts";
 
@@ -359,8 +363,60 @@ export function encode(m: DsdbModule, env: BuiltinsEnv): Uint8Array {
     for (const b of sec[t].bytes) out.u8(b);
   });
   out.align4();
+  const sprg = spriteGeometry(m);
+  if (sprg !== null) {
+    // ADR-pending ADR-0006: the extension table follows the ten sections; its offset takes the reserved word.
+    out.patch32(EXTENSION_OFFSET_AT, out.length);
+    out.bytes[6] = FORMAT_MINOR_EXTENSIONS & 0xff;
+    out.bytes[7] = FORMAT_MINOR_EXTENSIONS >>> 8;
+    const extensions = [{ tag: SPRG, body: sprg }];
+    out.u32(extensions.length);
+    const entriesAt = out.length;
+    for (let i = 0; i < extensions.length * EXTENSION_ENTRY_BYTES; i++) out.u8(0);
+    extensions.forEach((x, i) => {
+      out.align4();
+      const at = entriesAt + i * EXTENSION_ENTRY_BYTES;
+      for (let c = 0; c < 4; c++) out.bytes[at + c] = x.tag.charCodeAt(c);
+      out.patch32(at + 4, out.length);
+      out.patch32(at + 8, x.body.length);
+      for (const b of x.body.bytes) out.u8(b);
+    });
+    out.align4();
+  }
   out.patch32(sizeAt, out.length);
   return Uint8Array.from(out.bytes);
+}
+
+/**
+ * The SPRG extension body (ADR-0006): `u32 count` then one 20-byte record per ASET sprite, by asset index.
+ * Null when no sprite carries geometry; an error when only some do.
+ */
+function spriteGeometry(m: DsdbModule): Writer | null {
+  const sprites = m.assets.map((a, index) => ({ a, index })).filter(({ a }) => a.kind === "sprite");
+  for (const a of m.assets)
+    if (a.kind !== "sprite" && a.geometry !== undefined) fail(`${a.name}: only sprites have geometry`);
+  const withGeometry = sprites.filter(({ a }) => a.geometry !== undefined);
+  if (withGeometry.length === 0) return null;
+  if (withGeometry.length !== sprites.length)
+    fail("either every sprite has geometry (origin, size, bbox) or none does");
+  const w = new Writer();
+  w.u32(sprites.length);
+  for (const { a, index } of sprites) {
+    const g = a.geometry as NonNullable<typeof a.geometry>;
+    w.u32(index);
+    w.u16(range(g.width, 1, 0xffff, `${a.name}: width`));
+    w.u16(range(g.height, 1, 0xffff, `${a.name}: height`));
+    for (const [v, what] of [
+      [g.originX, "origin x"],
+      [g.originY, "origin y"],
+      [g.bboxLeft, "bbox left"],
+      [g.bboxTop, "bbox top"],
+      [g.bboxRight, "bbox right"],
+      [g.bboxBottom, "bbox bottom"],
+    ] as const)
+      w.u16(range(v, -0x8000, 0x7fff, `${a.name}: ${what}`) & 0xffff);
+  }
+  return w;
 }
 
 interface EncodeCtx {
@@ -438,7 +494,8 @@ export function decode(bytes: Uint8Array, env: BuiltinsEnv): DsdbModule {
   const magic = String.fromCharCode(r.u8(), r.u8(), r.u8(), r.u8());
   if (magic !== MAGIC) fail("not a DSDB file (bad magic)");
   const major = r.u16();
-  r.u16();
+  const minor = r.u16();
+  if (minor < FORMAT_MINOR) fail(`DSDB format ${major}.${minor} is older than ${FORMAT_MAJOR}.${FORMAT_MINOR}`);
   if (major !== FORMAT_MAJOR) fail(`DSDB format ${major}.x; this reader handles ${FORMAT_MAJOR}.x`);
   const hash = r.u32();
   if (hash !== env.abiHash)
@@ -449,7 +506,7 @@ export function decode(bytes: Uint8Array, env: BuiltinsEnv): DsdbModule {
   const nsec = r.u16();
   r.u16();
   const first = r.u32();
-  r.u32();
+  const extOffset = r.u32();
   const at: Record<string, number> = {};
   for (let i = 0; i < nsec; i++) {
     const tag = String.fromCharCode(r.u8(), r.u8(), r.u8(), r.u8());
@@ -502,6 +559,33 @@ export function decode(bytes: Uint8Array, env: BuiltinsEnv): DsdbModule {
         path: strs[s.u32()],
         aux: s.u32(),
       });
+    }
+    // Extensions (ADR-0006): unknown tags are skipped; SPRG gives sprites their geometry.
+    if (extOffset !== 0) {
+      const e = new Reader(bytes, extOffset);
+      const count = e.u32();
+      for (let i = 0; i < count; i++) {
+        const tag = String.fromCharCode(e.u8(), e.u8(), e.u8(), e.u8());
+        const offset = e.u32();
+        e.u32();
+        if (tag !== SPRG) continue;
+        const g = new Reader(bytes, offset);
+        const n = g.u32();
+        for (let k = 0; k < n; k++) {
+          const asset = assets[g.u32()] ?? fail("SPRG names a missing asset");
+          const s16 = () => (g.u16() << 16) >> 16;
+          asset.geometry = {
+            width: g.u16(),
+            height: g.u16(),
+            originX: s16(),
+            originY: s16(),
+            bboxLeft: s16(),
+            bboxTop: s16(),
+            bboxRight: s16(),
+            bboxBottom: s16(),
+          };
+        }
+      }
     }
   }
   const fheads: { name: string; start: number; len: number; params: number; regs: number }[] = [];

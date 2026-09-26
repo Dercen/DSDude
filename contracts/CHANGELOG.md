@@ -10,6 +10,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C2 DSDB container (`contracts/dsdb.md`, `packages/dsdb`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): header, ten sections (incl. KONS), 8-byte cells, instruction encoding, calling convention, event ids, OBJS/ROOM/ASET, program form, `.dsda` grammar and canonical form, ABI hash.
 - 0.2.0 (2026-09-26, WS4, T1, ADR-0003 pending WS2's co-signature): section 5 operand kinds `sym` and `bivar` (names in `.dsda`); packages/dsdb encodes, decodes and assembles them (`BuiltinsEnv.variables`).
+- 0.3.0 (2026-09-26, WS4, T1, ADR-0006 proposed by WS2, co-signed by WS4): header offset 28 becomes the extension-table offset; the `SPRG` sprite-geometry extension (frame size, origin, bbox per ASET sprite); `.dsda` `.asset sprite ... origin= size= bbox=`; format minor 2 only in files that carry extensions. packages/dsdb encodes, decodes and assembles it; the compiler writes SPRG from sprite.json; fixtures/compiler goldens with sprites regenerated.
 
 ## C2 opcodes (`contracts/opcodes.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): 29 stable opcodes (0-28), 22 provisional (29-50), 4 reserved int-specialised (51-54).

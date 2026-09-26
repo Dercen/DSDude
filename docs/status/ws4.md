@@ -87,6 +87,25 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Not yet: `alias`/`unsupported` builtins.json entries (the generated table has none yet; E207 is reserved for
     unsupported GameMaker names once WS0 adds entries and gen-builtins emits them).
 
+- **Checkpoint-3 relay (2026-09-26):** merged `origin/main` (no open IF entries); ADR-0003 references renumbered to
+  **ADR-0005** (markers, `contracts/dsdb.md`, `contracts/opcodes.json`, an appended CHANGELOG line).
+- **WS4 co-signs WS2's ADR-0006 (sprite geometry in the DSDB, option A), 2026-09-26**, and has implemented its side
+  (C2 `dsdb.md` 0.3.0, T1, marked `ADR-pending ADR-0006`):
+  - One clarification: the ADR both bumps the format minor to 2 and promises no byte change for files without SPRG.
+    WS4's writer sets minor 2 **only when the file carries an extension table**; files without one keep minor 1 and
+    their exact bytes (all 34 committed `.dsdb` fixtures without sprites are unchanged). Loaders accept minor >= 1.
+  - `packages/dsdb`: `AssetDef.geometry`, encode/decode of the extension table and `SPRG` (unknown tags skipped),
+    `.dsda` `.asset sprite NAME PATH FRAMES origin=X,Y size=W,H bbox=L,T,R,B` (all three or none; every sprite or
+    none), tests.
+  - Compiler: every project sprite gets its `sprite.json` geometry, so every project DSDB with sprites carries SPRG
+    (Flappy, minimal, v3/09 goldens regenerated). `make -f runtime/Makefile.host test` stays green on WS2's current
+    loader (115,719 checks).
+- **BLOCKER push.sh (for WS0, again):** `bash tools/cloud/push.sh` refuses any branch that merged `origin/main`,
+  because its range `origin/ws4-compiler..HEAD` contains main's own `chore(deps): regenerate lockfile` commits
+  (`b23a325`, `7fd898f`): "7fd898f changes package-lock.json: revert it". The relay asked for this merge, so the
+  batch is committed but could not go out through push.sh. Suggested fix in push.sh: `git rev-list --no-merges HEAD
+  ^"$B" ^origin/main`. WS4's own commits touch no lockfile and all carry the trailer.
+
 ## Next
 
 - Task 7 (formatter done): the peephole passes wait on purpose.
@@ -111,6 +130,9 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
 - Regenerate: `DSDUDE_UPDATE_GOLDENS=1 npx vitest run packages/compiler`, then `node tools/gen-dsdb.ts`.
 
 ## Open ADR-pending markers
+
+- `ADR-pending ADR-0006` in `packages/dsdb/src/encode.ts`, `packages/dsdb/src/model.ts` and
+  `packages/compiler/src/project.ts` (SPRG): until WS0 accepts ADR-0006.
 
 - `ADR-pending ADR-0005` in `packages/compiler/src/codegen/function.ts` (GETDYN/SETDYN, GETBI*, WITH*): WS2
   co-signed (docs/status/ws2.md); open until WS0 accepts ADR-0005 and both streams promote the opcodes (T1).

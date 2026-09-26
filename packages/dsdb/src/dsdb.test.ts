@@ -267,3 +267,63 @@ describe("ADR-0005 operand kinds: sym and bivar", () => {
     );
   });
 });
+
+describe("ADR-0006 sprite geometry (SPRG extension)", () => {
+  const TEXT = `.dsda 0.1
+.seed 0
+.asset sprite spr_bird "gfx/spr_bird.grf" 3 origin=8,8 size=16,16 bbox=2,3,15,13
+.asset sprite spr_pipe "gfx/spr_pipe.grf" 1 origin=0,-4 size=32,64 bbox=0,0,31,63
+.asset sound snd_flap "" 0
+
+.func f 0 1
+    RET r0, 0
+.end
+`;
+  const view = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset, b.byteLength);
+
+  it("round-trips origin, size and bbox", () => {
+    expect(roundTrip(TEXT)).toBe(TEXT);
+  });
+
+  it("writes the extension table after the sections, with format minor 2", () => {
+    const bytes = encode(assemble(TEXT), env);
+    const v = view(bytes);
+    expect(v.getUint16(6, true)).toBe(2);
+    const ext = v.getUint32(28, true);
+    expect(ext).toBeGreaterThan(32);
+    expect(ext % 4).toBe(0);
+    expect(v.getUint32(ext, true)).toBe(1);
+    expect(String.fromCharCode(...bytes.subarray(ext + 4, ext + 8))).toBe("SPRG");
+    const body = v.getUint32(ext + 8, true);
+    expect(v.getUint32(ext + 12, true)).toBe(4 + 2 * 20);
+    expect(v.getUint32(body, true)).toBe(2);
+    // Second record: asset 1 (spr_pipe), 32x64, origin (0,-4).
+    const rec = body + 4 + 20;
+    expect([
+      v.getUint32(rec, true),
+      v.getUint16(rec + 4, true),
+      v.getUint16(rec + 6, true),
+      v.getInt16(rec + 10, true),
+    ]).toEqual([1, 32, 64, -4]);
+    expect(v.getUint32(16, true)).toBe(bytes.length);
+  });
+
+  it("leaves files without geometry byte-identical (minor 1, reserved word 0)", () => {
+    const plain = encode(assemble(TEXT.replace(/ origin=[^\n]*/g, "")), env);
+    expect(view(plain).getUint16(6, true)).toBe(1);
+    expect(view(plain).getUint32(28, true)).toBe(0);
+  });
+
+  it("skips extension tags it does not know", () => {
+    const bytes = encode(assemble(TEXT), env);
+    const ext = view(bytes).getUint32(28, true);
+    bytes.set([88, 88, 88, 88], ext + 4);
+    expect(decode(bytes, env).assets[0]?.geometry).toBeUndefined();
+  });
+
+  it("refuses geometry on some sprites only, or on a sound", () => {
+    expect(() => encode(assemble(TEXT.replace(/ origin=0,-4[^\n]*/, "")), env)).toThrow(/every sprite/);
+    expect(() => assemble(TEXT.replace('"" 0', '"" 0 origin=0,0 size=1,1 bbox=0,0,0,0'))).toThrow(/only sprites/);
+    expect(() => assemble(TEXT.replace(" size=16,16", ""))).toThrow(/needs all of/);
+  });
+});
