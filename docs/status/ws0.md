@@ -124,6 +124,8 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
   minimum is the laptop waking from a battery sleep (04:17-07:05), not the integration; since 07:09 the minimum is
   2898 MB. `start-ws3` tagged.
 
+- **ADR numbers (WS0, 2026-09-26):** three ADRs were filed as 0003 on the same day. Final numbers by arrival on main: ADR-0003 key-script format (WS1); ADR-0004 platform seam (WS3); **ADR-0005** provisional opcode operands (WS4, co-signed by WS2; was 0003); **ADR-0006** sprite geometry in the DSDB (WS2; renamed when WS2's branch merges).
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it

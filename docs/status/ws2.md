@@ -40,3 +40,4 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 
 ## Integration feedback
 - IF-1 2026-09-26 checkpoint-2 @2b51ae1: ownership failed: `node tools/check-ownership.ts --range main..origin/ws2-runtime-core --stream WS2` ->  ?: . Action: revert or move those changes (they belong to another stream), then push again.
+- IF-1 resolved by 7a3de6d (false alarm: WS0's ownership check timed out on a large range; WS2 has nothing to fix).
