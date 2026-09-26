@@ -6,12 +6,13 @@ import { IdeContext, useActions, useIde } from "./ide-context.tsx";
 import { ipc } from "./ipc.ts";
 import { LearnPanel } from "./learn/LearnPanel.tsx";
 import { disposeAllModels, installLearnLinkOpener } from "./monaco/models.ts";
+import { createObjectEditorFactory } from "./object-editor/ObjectEditor.tsx";
 import { CodePanel } from "./panels/CodePanel.tsx";
 import { EditorHostPanel } from "./panels/EditorHostPanel.tsx";
 import { OutputPanel } from "./panels/OutputPanel.tsx";
 import { ProblemsPanel } from "./panels/ProblemsPanel.tsx";
 import { ProjectTree } from "./panels/ProjectTree.tsx";
-import { loadEditorModules, saveDirtyPanels } from "./panels/registry.ts";
+import { loadEditorModules, registerEditor, saveDirtyPanels } from "./panels/registry.ts";
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
 import { createIde } from "./store/ide.ts";
 import { DockWorkbench } from "./workbench.ts";
@@ -22,6 +23,7 @@ const ide = createIde(ipc, workbench, {
   savePanels: () => saveDirtyPanels((message) => ide.actions.showToast(message, "error")),
 });
 installLearnLinkOpener((target) => ide.actions.openLearn(target));
+registerEditor(createObjectEditorFactory(ide));
 let started = false;
 
 const components = {
