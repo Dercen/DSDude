@@ -20,6 +20,9 @@ typedef enum {
 // Reads the emulator ID and picks the protocol. Call once, before any other ds_log_* call.
 ds_log_protocol ds_log_init(void);
 
+// "raw" (0x04FFFA10) or "legacy" (the RAM stub): the protocol ds_log_init picked.
+const char *ds_log_protocol_name(void);
+
 // The emulator ID read at boot (up to 16 printable characters; empty on hardware).
 const char *ds_log_emulator_id(void);
 
