@@ -22,6 +22,10 @@ _Static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "DSDB records are read
 #define DSDB_NONE 0xFFFFFFFFu      // "none" in index fields (e.g. the first room of a program-form DSDB)
 #define DSDB_MAX_REGS 64u          // registers per function frame (C13 registersPerFrame)
 #define DSDB_MAIN_NAME "__main"    // FUNC 0 of a program-form DSDB
+// Header flags (offset 22). ADR-pending ADR-0008: bit 0 = release build (overflow wraps instead of raising R52x);
+// the other bits are reserved and must be 0 (the loader refuses a file that sets one, as made by a newer DSDude).
+#define DSDB_FLAG_RELEASE 0x0001u
+#define DSDB_FLAGS_KNOWN DSDB_FLAG_RELEASE
 
 // Section indices in the fixed section order.
 #define DSDB_SEC_STRS 0
@@ -82,6 +86,7 @@ typedef struct DsdProgram {
     uint32_t file_size;
     uint32_t seed;        // header RNG seed; 0 = ask the platform
     uint32_t first_room;  // DSDB_NONE for program form
+    uint16_t flags;       // header flags (DSDB_FLAG_*)
     DsdSection sec[DSDB_SECTION_COUNT];
 
     uint32_t str_count;

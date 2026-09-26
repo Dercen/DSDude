@@ -17,6 +17,7 @@
 #define OFF_SEED 12u
 #define OFF_SIZE 16u
 #define OFF_SECTIONS 20u
+#define OFF_FLAGS 22u
 #define OFF_FIRST_ROOM 24u
 #define OFF_EXTENSIONS 28u // extension table offset (ADR-0006), 0 = none
 #define EXT_ENTRY_BYTES 12u
@@ -80,6 +81,9 @@ static int32_t load_header(DsdProgram *p, const uint8_t *f, uint32_t size, DsdLo
     p->file_size = size;
     p->seed = rd32(f + OFF_SEED);
     p->first_room = rd32(f + OFF_FIRST_ROOM);
+    // ADR-pending ADR-0008: a flag this runtime does not know means a newer format, like an unknown major.
+    p->flags = rd16(f + OFF_FLAGS);
+    if ((p->flags & ~DSDB_FLAGS_KNOWN) != 0) return fail(err, DSD_R_ABI_MISMATCH, "header flags", p->flags);
     for (uint32_t i = 0; i < DSDB_SECTION_COUNT; i++) {
         const uint8_t *e = f + DSDB_HEADER_BYTES + i * DSDB_SECTION_ENTRY_BYTES;
         uint32_t off = rd32(e + TAG_BYTES);

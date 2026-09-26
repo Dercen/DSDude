@@ -181,6 +181,9 @@ static const ProgramCase CASES[] = {
     // Spike 12's numeric harness: the same lines from every host build (-O2, trap, -O0) and from the DS.
     {"fixtures/bytecode/runtime/numeric-hashes.dsdb", "fixtures/bytecode/runtime/numeric-hashes.out", false,
      DSD_GAME_EXITED, 0, NULL},
+    // Debug arithmetic (header flags 0): the first overflow stops the game with R520 (test_release_flag runs the
+    // same program as a release build).
+    {"fixtures/bytecode/runtime/wrap.dsdb", "fixtures/bytecode/runtime/wrap.out", false, DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-overflow.dsdb", "fixtures/bytecode/runtime/err-overflow.out", false,
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-recursion.dsdb", "fixtures/bytecode/runtime/err-recursion.out", false,
@@ -508,12 +511,51 @@ static void test_broadphase(void) {
     CHECK(check_candidates() > 0);
 }
 
+// ---- Debug and release builds (ADR-pending ADR-0008: DSDB header flags bit 0) --------------------------------------
+
+#define WRAP_DSDB "fixtures/bytecode/runtime/wrap.dsdb"
+#define WRAP_RELEASE_COPY "runtime/build-host/wrap-release.dsdb" // the build directory exists whenever tests run
+#define WRAP_BAD_COPY "runtime/build-host/wrap-bad-flags.dsdb"
+#define HEADER_FLAGS_OFFSET 22 // contracts/dsdb.md section 2: u16 flags
+#define FLAG_RELEASE 0x01u
+#define FLAG_UNKNOWN 0x02u     // a bit no runtime knows yet
+
+// Writes a copy of `src` with header flags `flags` (the low byte) to `dst`. False on an I/O error.
+static bool write_with_flags(const char *src, const char *dst, uint8_t flags) {
+    static char bytes[EXPECT_MAX];
+    int32_t n = dsd_test_read_file(src, bytes, sizeof bytes);
+    if (n <= HEADER_FLAGS_OFFSET) return false;
+    bytes[HEADER_FLAGS_OFFSET] = (char)flags;
+    FILE *f = fopen(dst, "wb");
+    if (f == NULL) return false;
+    bool ok = fwrite(bytes, 1, (size_t)n, f) == (size_t)n;
+    return fclose(f) == 0 && ok;
+}
+
+static void test_release_flag(void) {
+    // Release: every overflow wraps (int32 and Q20.12) and the program runs to the end.
+    if (CHECK(write_with_flags(WRAP_DSDB, WRAP_RELEASE_COPY, FLAG_RELEASE))) {
+        CHECK_EQ(run_program(WRAP_RELEASE_COPY), DSD_GAME_EXITED);
+        if (CHECK(read_expected("fixtures/bytecode/runtime/wrap-release.out"))) {
+            dsd_test_mask_abi(g_capture);
+            dsd_test_mask_abi(g_expected);
+            CHECK_STR(g_capture, g_expected);
+        }
+    }
+    // An unknown flag means a newer format: refused like a different runtime (R581).
+    if (CHECK(write_with_flags(WRAP_DSDB, WRAP_BAD_COPY, FLAG_UNKNOWN))) {
+        CHECK_EQ(run_program(WRAP_BAD_COPY), DSD_GAME_FAILED);
+        CHECK(strstr(g_capture, "DSD|ERR|R581|") != NULL);
+    }
+}
+
 void suite_programs(void) {
     test_cases();
     test_collector_ran();
     test_draw_oam();
     test_screens();
     test_broadphase();
+    test_release_flag();
     test_flappy_deterministic();
     test_missing_file();
     test_core_main();

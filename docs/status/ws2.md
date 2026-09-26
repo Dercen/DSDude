@@ -79,6 +79,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 - **Spike 12, host side: done, 2026-09-26.** `fixtures/bytecode/runtime/numeric-hashes` (DSS source compiled by WS4's `compileProgram`, header seed 20260926) hashes the raw results of the number builtins per category (trig, atan2, sqrt, div, mul, lengthdir, string, random) and logs one `<category> <a> <b>` line each. `make -f runtime/Makefile.host test` now builds and runs a third test binary at -O0, so -O2, the UBSan trap and -O0 all print the same lines (and pass every other golden, the Flappy trace included) on Linux gcc 13.3; WS0's MinGW run covers gcc 15.2. **For WS3 (DS side):** run `fixtures/bytecode/runtime/numeric-hashes.dsdb` on the ARM9 build (py-desmume via `conformance:ds`, and melonDS as PLAN 7.1 asks) and compare with `numeric-hashes.out`; a mismatching category names the area. The expected lines:
   `trig 2802 7574`, `atan2 33076 23775`, `sqrt 20444 21605`, `div 51 59715`, `mul 47882 38740`, `lengthdir 29239 47856`, `string 5784 62728`, `random 43187 48735`.
 
+- **ADR-0008 draft: debug and release arithmetic, 2026-09-26 (for WS0, WS4, WS1).** Nothing defined what a "release build" is (language.md 7: overflow raises R52x in debug, wraps in release), and one prebuilt `arm9.elf` serves every game, so the mode must travel in the DSDB. Proposal: header flags bit 0 = release (C2 T1); bits 1-15 reserved, and a file setting one is refused with R581; the compiler takes a `release` option and `dsdude compile/build --release` sets it (Play always builds debug, Export builds release); constant folding follows the flag (WS4's choice how). Runtime side implemented behind `ADR-pending ADR-0008` (`dsdb.h`, `loader.c`, `game.c`); every current file has flags = 0, so nothing changes until the compiler writes the bit. Fixture `runtime/wrap` runs in both modes (debug: R520; release: the wrapped values, checked by hand) and an unknown bit gives R581.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
@@ -129,7 +131,8 @@ WS3: move `ds_boot_stub.c` to `dsd_core_main` and drop the ADR-0004 markers; any
 - Open conformance rules without fixtures: rule 8 (music) and the RNG seed rule (WS4 programs; the expected values are WS2's).
 
 ## Open ADR-pending markers
-- none in WS2's code (no `ADR-pending ADR-0006` markers were ever in WS2's paths; WS4's are in `packages/`). ADRs WS2 is party to: ADR-0004 (WS3; WS2's answer is the "ADR-0004 answer" section above), ADR-0005 (WS4, co-signed), ADR-0006 (WS2; accepted by the user, option A with WS4's rule: format minor 2 only in files that carry the extension table, and the loader accepts both).
+- ADR-0008 (WS2, proposed: debug/release header flag): `runtime/core/include/dsdb.h` (DSDB_FLAG_RELEASE), `runtime/core/src/loader.c` (flags check), `runtime/core/src/game.c` (vm->debug from the flag).
+- ADRs WS2 is party to, all closed: ADR-0004 (resolved by C11 0.2.0/0.3.0), ADR-0005 (co-signed; opcodes promoted), ADR-0006 (accepted).
 
 ## Integration feedback
 - IF-1 2026-09-26 checkpoint-2 @2b51ae1: ownership failed: `node tools/check-ownership.ts --range main..origin/ws2-runtime-core --stream WS2` ->  ?: . Action: revert or move those changes (they belong to another stream), then push again.

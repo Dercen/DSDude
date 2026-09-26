@@ -49,6 +49,11 @@ the regenerated `.dsdb` together.
   whose CMPJ relation holds are skipped). CMPJ uses WS2's proposed encoding (C = relation 0-5 `== != < <= > >=`;
   the next word is a JMP taken when the relation fails), provisional until WS4 promotes it. WS3 times one Step event
   with its timer harness; on the Linux host (x86-64, 2.8 GHz) 100,000 frames take ~0.36 s (~320 M steps/s).
+- `runtime/wrap` (`.dsda`, `.dsdb`, `.out`, `wrap-release.out`): int32 and Q20.12 overflow (`2147483647 + 1`,
+  `65536 * 65536`, `500000.5 + 100000`, `-2147483648 - 1`). As written (header flags 0, a debug build) the first
+  line stops with R520 (`wrap.out`); the tests also run a copy with header flags bit 0 set (a release build,
+  ADR-0008), which prints the wrapped values `-2147483648`, `0`, `-448575.5`, `2147483647` (`wrap-release.out`),
+  and a copy with an unknown flag bit, which the loader refuses with R581.
 - `runtime/numeric-hashes` (`.dss` source, `.dsda`, `.dsdb`, `.out`): spike 12's numeric harness (PLAN.md 7.1,
   `docs/research/verification.md` claim 11). The `.dsda` is WS4's `compileProgram` output for the `.dss` (then
   `.seed 20260926` in the header, so every platform draws the same random numbers). It folds the raw Q20.12
