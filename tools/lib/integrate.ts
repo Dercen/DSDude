@@ -505,6 +505,23 @@ function main(argv: string[]): number {
       if (ws2) ws2.localOnly.push(line);
     } else localChecks.push("host goldens: skipped (no runtime/Makefile.host yet)");
 
+    // 7b. the IDE's browser tests (headless Chromium; kept out of the root npm test so the cloud stays node-only)
+    if (existsSync(join(root, "apps/ide/vitest.browser.config.ts"))) {
+      const bt = sh("npm run test:browser -w apps/ide", 10 * MIN);
+      const line = `npm run test:browser -w apps/ide (headless Chromium): ${bt.code === 0 ? "green" : `RED (exit ${bt.code}${bt.timedOut ? ", timed out" : ""}): ${failureExcerpt(bt.out)}`}`;
+      localChecks.push(line);
+      const ws6 = outcomes.find((o) => o.target.stream.ws === "WS6" && o.status === "merged");
+      if (bt.code !== 0 && ws6)
+        feedback.push({
+          ws: "WS6",
+          check: "IDE browser tests on Windows",
+          command: "npm run test:browser -w apps/ide",
+          error: failureExcerpt(bt.out),
+          action: "reproduce locally and fix",
+          sha: ws6.target.sha,
+        });
+    }
+
     // 8. dsdude screenshot of samples/hello
     const rom = "fixtures/build/hello/game.nds";
     if (noShot) localChecks.push("screenshot: skipped (--no-screenshot)");

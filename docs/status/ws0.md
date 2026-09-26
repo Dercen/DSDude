@@ -127,6 +127,14 @@ mode Auto. **Step 3 is green, so no fallback is needed.**
 
 - **ADR numbers (WS0, 2026-09-26):** three ADRs were filed as 0003 on the same day. Final numbers by arrival on main: ADR-0003 key-script format (WS1); ADR-0004 platform seam (WS3); **ADR-0005** provisional opcode operands (WS4, co-signed by WS2; was 0003); **ADR-0006** sprite geometry in the DSDB (WS2; renamed when WS2's branch merges).
 
+## For WS7's launch message (CP-A)
+
+- From WS6 (2026-09-26): Learn links are `dsdude-learn:/docs/<path>.md#<anchor>` with GitHub-style heading slugs;
+  Problems links go to `docs/reference/errors.md#<code lowercased>`; F1 goes to `docs/reference/functions.md#<name>`
+  (`variables.md` for variables and constants). Documented in `apps/ide/src/renderer/panels/api.ts`; another form
+  needs an ADR. The mock host is `@dsdude/ide/mock-host` (`fixtures/ide/mock-host`).
+- The c_* colour constants arrive in builtins.json once WS2's tests stop hard-coding the ABI hash (ADR-0004 notes).
+
 ## Open questions for the user
 
 - The memory gate failed over Day 1 (1095 MB at 22:33, during WS1's install with emulators open); since 23:30 it
