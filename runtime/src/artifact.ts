@@ -10,7 +10,7 @@ import * as path from "node:path";
 
 /** ITCM ceiling for the VM and hot builtins; libnds's vectors are already in ITCM (PLAN.md 6 WS3). */
 export const ITCM_CEILING_BYTES = 24 * 1024;
-/** The ARM9 static image budget in main RAM (PLAN.md 3.3: <= 0.7 MB). */
+/** The ARM9 image budget (PLAN.md 3.3: <= 0.7 MB): the binary's code and data, not the core's static pools. */
 export const IMAGE_BUDGET_BYTES = Math.floor(0.7 * 1024 * 1024);
 /** The ARM7 binary every runtime ROM is packed with (ndstool -7). */
 export const ARM7_ELF = "$BLOCKSDS/sys/arm7/main_core/arm7_maxmod.elf";
@@ -34,6 +34,13 @@ export function parseSizeA(text: string): SectionSizes {
   return out;
 }
 
+/** Parses `arm-none-eabi-size` (Berkeley format): the text, data and bss totals of the first file. */
+export function parseSizeBerkeley(text: string): { text: number; data: number; bss: number } {
+  const m = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+\d+\s+[0-9a-f]+\s/m.exec(text);
+  if (!m) throw new Error("arm-none-eabi-size printed no totals");
+  return { text: Number(m[1]), data: Number(m[2]), bss: Number(m[3]) };
+}
+
 /** Parses `arm-none-eabi-nm` output into symbol -> address (hex). */
 export function parseNm(text: string): Map<string, number> {
   const out = new Map<string, number>();
@@ -53,8 +60,10 @@ export interface MemoryReport {
   dtcmData: number;
   /** The C stack: __sp_usr - __dtcm_start. */
   cstack: number;
-  /** The ARM9 static image in main RAM (loaded sections plus .bss): __end__ - 0x02000000. */
+  /** Everything static in main RAM (loaded sections plus .bss, i.e. the core's pools): __end__ - 0x02000000. */
   image: number;
+  /** The binary itself, code and data (ITCM/DTCM copies included): `size` text + data. Budget 0.7 MB. */
+  loaded: number;
 }
 
 function need(symbols: Map<string, number>, name: string): number {
@@ -63,7 +72,11 @@ function need(symbols: Map<string, number>, name: string): number {
   return v;
 }
 
-export function memoryReport(sizes: SectionSizes, symbols: Map<string, number>): MemoryReport {
+export function memoryReport(
+  sizes: SectionSizes,
+  symbols: Map<string, number>,
+  totals: { text: number; data: number },
+): MemoryReport {
   const itcm = sizes[".itcm"]?.size ?? 0;
   const dtcm = (sizes[".dtcm"]?.size ?? 0) + (sizes[".sbss"]?.size ?? 0);
   const end = need(symbols, "__end__");
@@ -74,15 +87,17 @@ export function memoryReport(sizes: SectionSizes, symbols: Map<string, number>):
     dtcmData: need(symbols, "__dtcm_data_size"),
     cstack: need(symbols, "__sp_usr") - need(symbols, "__dtcm_start"),
     image: end - MAIN_RAM_START,
+    loaded: totals.text + totals.data,
   };
 }
 
-/** Problems that fail the build: ITCM over its ceiling, DTCM data over its reservation, the image over budget. */
+/** Problems that fail the build: ITCM over its ceiling, DTCM data over its reservation, the binary over budget. */
 export function reportProblems(r: MemoryReport): string[] {
   const out: string[] = [];
   if (r.itcm > ITCM_CEILING_BYTES) out.push(`ITCM ${r.itcm} B is over the ${ITCM_CEILING_BYTES} B ceiling`);
   if (r.dtcm > r.dtcmData) out.push(`DTCM data ${r.dtcm} B is over __dtcm_data_size ${r.dtcmData} B`);
-  if (r.image > IMAGE_BUDGET_BYTES) out.push(`the ARM9 image ${r.image} B is over the ${IMAGE_BUDGET_BYTES} B budget`);
+  if (r.loaded > IMAGE_BUDGET_BYTES)
+    out.push(`the ARM9 image ${r.loaded} B is over the ${IMAGE_BUDGET_BYTES} B budget`);
   return out;
 }
 
@@ -94,7 +109,8 @@ export function formatReport(r: MemoryReport): string {
     `itcm   ${r.itcm} B (${kb(r.itcm)} of ${kb(ITCM_CEILING_BYTES)})`,
     `dtcm   ${r.dtcm} B (${kb(r.dtcm)} of ${kb(r.dtcmData)} reserved)`,
     `cstack ${r.cstack} B (${kb(r.cstack)})`,
-    `image  ${r.image} B (${kb(r.image)} of ${kb(IMAGE_BUDGET_BYTES)})`,
+    `loaded ${r.loaded} B (${kb(r.loaded)} of ${kb(IMAGE_BUDGET_BYTES)}: code + data)`,
+    `image  ${r.image} B (${kb(r.image)}: everything static, the core's pools included)`,
   ].join("\n");
 }
 
@@ -123,6 +139,7 @@ export function formatVersion(v: VersionInfo): string {
     `dtcm_data=${v.report.dtcmData}`,
     `cstack=${v.report.cstack}`,
     `image=${v.report.image}`,
+    `loaded=${v.report.loaded}`,
   ];
   return `${lines.join("\n")}\n`;
 }

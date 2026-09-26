@@ -9,6 +9,7 @@ export {
   memoryReport,
   parseNm,
   parseSizeA,
+  parseSizeBerkeley,
   parseVersion,
   readAbiHash,
   reportProblems,

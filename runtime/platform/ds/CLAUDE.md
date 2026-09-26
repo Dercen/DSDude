@@ -14,8 +14,8 @@ Generated in Phase 0; edited by WS3 since (<= 60 lines). State and progress: `do
 ## Contracts
 | Contract | Files | Version | Role |
 |---|---|---|---|
-| C11 platform seam | `runtime/core/include/dsd_platform.h` | owed (WS2, CP-A); ADR-0004 | consumer |
-| C8 runtime artifact | `contracts/runtime-artifact.md` | 0.1.0 | owner |
+| C11 platform seam | `runtime/core/include/dsd_platform.h` | 0.2.0 (frozen at CP-A); ADR-0004 | consumer (`src/ds_plat.c`) |
+| C8 runtime artifact | `contracts/runtime-artifact.md` | 0.2.0 | owner |
 | C8 log protocol | `contracts/log-protocol.md` | 0.1.0 | consumer |
 | C13 runtime limits | `contracts/runtime-limits.json` | 0.1.0 | consumer |
 
@@ -25,14 +25,17 @@ Changes follow the tiers in `contracts/README.md` (T0 doc, T1 additive + CHANGEL
 ```
 npm test -w runtime
 npm run build:runtime -w runtime   # DSDUDE_MAKE_JOBS=4; commit dist/ with the sources it was built from
+npm run selftest -w runtime        # screenshot cases vs goldens
+npm run conformance:ds -w runtime  # WS2's fixtures on the DS core vs the host's .out
 ```
 
 ## Layout
-- `src/main.c` boot; `ds_platform.c` init (NitroFS -> soundEnable -> mmInitDefault), `ds_fatal`, error screen;
+- `src/main.c` calls `dsd_core_main` (C11 0.2.0), `ds_plat.c` implements every `dsd_plat_*`; `ds_platform.c`
+  one-time init (NitroFS -> soundEnable -> mmInitDefault) and the error screen (START: longjmp to main);
   `ds_log.c` + `ds_legacy_stub.s` the C8 writer (pads after READY/ERR/STAT itself); `ds_video.c` bank table,
   BG0/BG1, OAM, ext palettes (16-bit VRAM stores only); `ds_ui.c` BG0 UI layer (font `runtime/data/font8x8.bin`,
   16 colours, panel glyphs, error box, console); `ds_gfx.c` GRF load/free LIFO, OBJ VRAM allocator, `ds_bg_load`;
-  `ds_mem.c` C-stack paint/high-water, heap free; `ds_boot_stub.c` stands in for the core (ADR-0004).
+  `ds_mem.c` C-stack paint/high-water, heap free.
 - `runtime/selftest/` the selftest ROM (`make DSD_SELFTEST=1`), assets by `make_assets.py`.
 - `runtime/src/` `build:runtime` (C4 `buildRuntime`, size/nm report, `dist/VERSION`) and `selftest` (screenshot
   cases vs goldens in `fixtures/runtime/selftest/`).

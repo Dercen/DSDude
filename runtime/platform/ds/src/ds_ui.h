@@ -33,6 +33,9 @@ enum { DS_UI_PANEL_NONE, DS_UI_PANEL_MAROON, DS_UI_PANEL_NAVY };
 // ds_ui_text with every cell's background filled with a panel colour.
 void ds_ui_text_panel(int screen, int cx, int cy, const char *str, int colour, int panel);
 
+// ds_ui_text for the first `len` bytes of `str` (C11 dsd_plat_ui_text; the text need not be NUL-terminated).
+void ds_ui_textn(int screen, int cx, int cy, const char *str, uint32_t len, int colour);
+
 // A filled rectangle of cw x ch cells.
 void ds_ui_fill(int screen, int cx, int cy, int cw, int ch, int colour);
 

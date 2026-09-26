@@ -109,6 +109,17 @@ void ds_log_line(const char *line)
         ds_log_pad();
 }
 
+void ds_log_write(const char *line, uint32_t len)
+{
+    while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r'))
+        len--;
+    if (len > DSD_LOG_LINE_MAX - 1)
+        len = DSD_LOG_LINE_MAX - 1;
+    char *buf = ds_buffer();
+    memcpy(buf, line, len);
+    ds_emit(buf, len);
+}
+
 void ds_log_linef(const char *fmt, ...)
 {
     va_list ap;

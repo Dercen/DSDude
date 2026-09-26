@@ -28,14 +28,14 @@ INCLUDEDIRS	:= core/include gen
 # The built-in 8x8 UI font (runtime/data/*.bin, linked through bin2c). $(wildcard) keeps find quiet without it.
 BINDIRS		:= $(wildcard data)
 
-# The selftest ROM: the platform layer without the runtime's main and boot stub, plus runtime/selftest/source.
+# The selftest ROM: the platform layer without the runtime's main (so without the core), plus selftest/source.
 DSD_SELFTEST	?= 0
 ifeq ($(DSD_SELFTEST),1)
 NAME		:= dsdude_selftest
 GAME_TITLE	:= DSDude selftest
 SOURCEDIRS	:= selftest/source
-INCLUDEDIRS	:= gen platform/ds/src selftest/source
-SOURCES_C	:= $(filter-out platform/ds/src/main.c platform/ds/src/ds_boot_stub.c,$(wildcard platform/ds/src/*.c))
+INCLUDEDIRS	:= core/include gen platform/ds/src selftest/source
+SOURCES_C	:= $(filter-out platform/ds/src/main.c,$(wildcard platform/ds/src/*.c))
 SOURCES_S	:= $(wildcard platform/ds/src/*.s)
 NITROFSDIR	:= ../fixtures/runtime/selftest/nitrofs
 endif

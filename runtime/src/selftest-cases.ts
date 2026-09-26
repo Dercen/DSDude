@@ -1,8 +1,9 @@
 /**
  * The selftest ROM's checks (docs/kickoff/ws3.md task 3): one headless `dsdude screenshot` run per case, its PNGs
  * against goldens in fixtures/runtime/selftest/golden/, its DSD| log against the patterns below. Key scripts
- * (ADR-0003 format) live in fixtures/runtime/selftest/keys/<name>.txt. Boot takes about 30 frames, so input
- * starts at frame 50; every press lasts 2 frames so the ROM's once-per-frame scanKeys cannot miss it.
+ * (C8 format, contracts/log-protocol.md) live in fixtures/runtime/selftest/keys/<name>.txt. Boot takes about 30
+ * frames, so input starts at frame 49; every press lasts 2 frames so the ROM's once-per-frame scanKeys cannot miss
+ * it.
  */
 
 export interface SelftestCase {

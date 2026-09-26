@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 // Characters per line, the '\n' included (C8).
 #define DSD_LOG_LINE_MAX 1023
@@ -29,6 +30,10 @@ const char *ds_log_emulator_id(void);
 // Prints one whole DSD| line (no '\n'; cut to 1022 characters). A DSD|READY, DSD|ERR or DSD|STAT line is followed
 // by the flush pad, so callers never pad by hand.
 void ds_log_line(const char *line);
+
+// Prints one line the core formatted itself (C11 dsd_plat_log): `len` bytes ending in '\n'. No pad: the core
+// calls dsd_plat_log_flush after READY, ERR and STAT.
+void ds_log_write(const char *line, uint32_t len);
 
 // Prints `prefix` + `text` as C8 LOG text: '\n' in `text` starts a new line with the same prefix, '\r' is
 // dropped, and text beyond one line continues on further lines.
