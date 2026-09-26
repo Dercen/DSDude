@@ -75,7 +75,11 @@ Legend: todo / in progress / done (<sha>).
     frame count, so `ds_plat.c` infers the frame height (square when it divides the sheet, else the tallest OBJ
     height that does; `ADR-pending ADR-0004`); (2) the UI colour index order (PLAN 5.2 order, c_white 0 .. c_navy
     15) to be stated in `dsd_platform.h`.
-  - `DSD|MEM`'s `snd` is 0 on the DS for now: maxmod does not report resident sample sizes (leftover).
+  - **`DSD|MEM` `snd` on the DS: done** (see the next commit). `ds_snd.c` indexes `soundbank.bin` at start-up
+    (header counts + `*maxmod*`, entry sizes, each module's sample ids from its MAS sample info, msl_id at byte 10)
+    and `dsd_plat_mem_report` counts every distinct resident sample once plus each loaded module. Checked: the
+    selftest's blip + loop + module = 15,360 B, `snd=15/768`; `samples/flappy` on the DS reports `snd=27/768`
+    (its 27,012-byte bank, all loaded), with 3 sprites, 3 standard palettes and `fps=59/60`.
 - Task 2. M1 path: **in progress**.
   - Init, log writer, error box: **done** (ec80829, 237f847). `nitroFSInit` → `soundEnable` → `mmInitDefault`
     when `nitro:/soundbank.bin` exists, every result checked; a failure prints one `DSD|ERR` (R580-R582,
@@ -176,7 +180,6 @@ Legend: todo / in progress / done (<sha>).
 
 ## Leftovers
 
-- `DSD|MEM` `snd` on the DS (resident sample sizes from soundbank.bin).
 - v2-05 (key script) on the DS: needs a way to align host frame 0 with an emulated frame.
 
 ## Integration feedback

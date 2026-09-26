@@ -26,6 +26,7 @@
 #include "ds_log.h"
 #include "ds_mem.h"
 #include "ds_platform.h"
+#include "ds_snd.h"
 #include "ds_ui.h"
 #include "ds_video.h"
 #include "soundbank.h"
@@ -235,8 +236,13 @@ static void log_checks(void)
 
 static void log_mem(void)
 {
-    ds_log_linef("DSD|MEM|heapfree=%lu,objvram_top=%lu/128,objvram_bot=%lu/128,cstack=%lu/%lu",
-                 (unsigned long)(ds_heap_free() / 1024u), (unsigned long)((ds_obj_used(DS_TOP) + 1023u) / 1024u),
+    // The selftest loaded SFX_BLIP, SFX_LOOP and MOD_SELFTEST (start_sound).
+    static const uint16_t effects[] = {SFX_BLIP, SFX_LOOP};
+    static const uint16_t modules[] = {MOD_SELFTEST};
+    uint32_t snd = ds_sound_ready ? ds_snd_resident(effects, 2, modules, 1) : 0;
+    ds_log_linef("DSD|MEM|heapfree=%lu,snd=%lu/768,objvram_top=%lu/128,objvram_bot=%lu/128,cstack=%lu/%lu",
+                 (unsigned long)(ds_heap_free() / 1024u), (unsigned long)((snd + 1023u) / 1024u),
+                 (unsigned long)((ds_obj_used(DS_TOP) + 1023u) / 1024u),
                  (unsigned long)((ds_obj_used(DS_BOTTOM) + 1023u) / 1024u),
                  (unsigned long)((ds_cstack_used() + 1023u) / 1024u), (unsigned long)(ds_cstack_total() / 1024u));
 }

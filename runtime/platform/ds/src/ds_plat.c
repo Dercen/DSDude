@@ -16,6 +16,7 @@
 #include "ds_log.h"
 #include "ds_mem.h"
 #include "ds_platform.h"
+#include "ds_snd.h"
 #include "ds_ui.h"
 #include "ds_video.h"
 
@@ -213,7 +214,8 @@ void dsd_plat_mem_report(dsd_mem_report *out)
         out->pal16_used[s] = g_pal16[s];
         out->pal256_used[s] = g_pal256[s];
     }
-    // TODO(WS3): snd_used_kb needs the sample sizes from soundbank.bin (maxmod does not report them).
+    // Resident sound data from soundbank.bin's own sizes (ds_snd.c): maxmod does not report it.
+    out->snd_used_kb = (ds_snd_resident(g_sfx_loaded, g_sfx_loaded_n, g_mod_loaded, g_mod_loaded_n) + 1023u) / 1024u;
 }
 
 // ---- Graphics ---------------------------------------------------------------------------------------------------
