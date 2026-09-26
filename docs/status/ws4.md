@@ -177,8 +177,8 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     a host hover test; CHANGELOG C9 line for E207/W060. No golden moved.
   - **For WS0:** the prefix entries' messages in builtins.json read "ds_list functions are isn't available ..."
     (ids 189-202: "are isn't"); they surface verbatim in E207, so they need rewording (a T0 doc change on your file).
-  - Not covered: an alias inside a user function's default parameter value (`function f(k = vk_left)`) is still an
-    unknown name; rare, left until someone hits it.
+  - Default parameter values go through the same rewrite when the function is declared (`function f(k = vk_left)`:
+    one W060 in the declaring file; an unsupported name there is E207 without a following E307).
 
 - **Conformance programs 11-12 (the last two open rules), 2026-09-26:**
   - `fixtures/conformance/v1/11-random.dss` (the RNG seed rule), compiled with header seed 20260926. On

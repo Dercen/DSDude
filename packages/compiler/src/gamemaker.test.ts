@@ -45,6 +45,13 @@ describe("GameMaker aliases (W060)", () => {
     expect(body(alias.code)).toEqual(body(native.code));
   });
 
+  it("resolves an alias in a default parameter value once, where the function is declared", () => {
+    const scripts = { scr_input: "function held(k = vk_left) {\n    return button_check(k);\n}\n" };
+    const r = compileStep("if (held()) x -= 2;\n", scripts);
+    expect(r.codes).toEqual(["W060"]);
+    expect(r.diagnostics[0]?.file).toBe("scripts/scr_input.dss");
+  });
+
   it("leaves the project's own names alone", () => {
     expect(compileStep("var vk_left = 3;\nx = vk_left;\n").codes).toEqual([]);
     expect(

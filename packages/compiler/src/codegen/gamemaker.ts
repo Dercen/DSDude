@@ -30,6 +30,14 @@ export function resolveGameMakerNames(params: readonly string[], body: readonly 
   return new Resolver(localsOf(params, body), scope).stmts(body);
 }
 
+/**
+ * Rewrites GameMaker names in one value outside any function body: a parameter's default value, which the caller
+ * computes (so no locals apply).
+ */
+export function resolveGameMakerValue(e: Expr, scope: GameMakerScope): Expr {
+  return new Resolver(new Set(), scope).value(e);
+}
+
 class Resolver {
   private readonly locals: ReadonlySet<string>;
   private readonly scope: GameMakerScope;
@@ -113,6 +121,11 @@ class Resolver {
       default:
         return lv;
     }
+  }
+
+  /** Rewrites one value (see resolveGameMakerValue). */
+  value(e: Expr): Expr {
+    return this.expr(e);
   }
 
   private expr(e: Expr): Expr {
