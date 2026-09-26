@@ -1,5 +1,7 @@
 # WS4 DSS language + compiler status
 
+Cloud push target: `ws4-compiler`
+
 Mode: **hybrid**, cloud session (environment `dsdude-ws4`), launched 2026-09-26 from `start-ws4`.
 start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; lockfile guard green.
 
