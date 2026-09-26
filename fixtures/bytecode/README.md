@@ -62,6 +62,9 @@ the regenerated `.dsdb` together.
   494759; `--seed 2`: 253436 882057 951552 968815 966513); with header seed 1234 every `--seed` gives 584499
   940738 581632 355230 472505. The values were checked against an independent xorshift32 (13/17/5) with the
   runtime's rejection-sampled bounded draw.
+- `runtime/halt-create`, `runtime/halt-user`: HALT inside script code a builtin ran (the Create event of an
+  `instance_create`, a user event from `event_user`): the calling event stops at once ("after" never prints), the
+  game ends with `DSD|EXIT|0` and Game End does not run.
 - `runtime/numeric-hashes` (`.dss` source, `.dsda`, `.dsdb`, `.out`): spike 12's numeric harness (PLAN.md 7.1,
   `docs/research/verification.md` claim 11). The `.dsda` is WS4's `compileProgram` output for the `.dss` (then
   `.seed 20260926` in the header, so every platform draws the same random numbers). It folds the raw Q20.12

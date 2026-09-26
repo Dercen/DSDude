@@ -79,7 +79,7 @@ bool dsd_bi_instance_create(DsdVm *vm, DsdValue *args, uint32_t argc) {
     // The object's Screen property picks the screen (PLAN.md 3.3); other in its Create event is the creator.
     if (!dsd_engine_create(obj, x, y, vm->world->objects[obj].screen, vm->self, &idx)) return false;
     args[0] = dsd_inst(dsd_inst_at(idx)->id);
-    return true;
+    return !vm->halted; // the Create event may have run HALT (builtins.h)
 }
 
 bool dsd_bi_instance_destroy(DsdVm *vm, DsdValue *args, uint32_t argc) {
@@ -93,7 +93,7 @@ bool dsd_bi_instance_destroy(DsdVm *vm, DsdValue *args, uint32_t argc) {
         if (!dsd_engine_destroy(victims[i])) return false;
     }
     args[0] = dsd_undef();
-    return true;
+    return !vm->halted; // a Destroy event may have run HALT (builtins.h)
 }
 
 bool dsd_bi_instance_exists(DsdVm *vm, DsdValue *args, uint32_t argc) {
@@ -247,10 +247,9 @@ bool dsd_bi_distance_to_object(DsdVm *vm, DsdValue *args, uint32_t argc) {
 // ---- Events -------------------------------------------------------------------------------------------------------
 
 bool dsd_bi_event_inherited(DsdVm *vm, DsdValue *args, uint32_t argc) {
-    (void)vm;
     (void)argc;
     args[0] = dsd_undef();
-    return dsd_engine_event_inherited();
+    return dsd_engine_event_inherited() && !vm->halted; // the parent's event may have run HALT (builtins.h)
 }
 
 bool dsd_bi_event_user(DsdVm *vm, DsdValue *args, uint32_t argc) {
@@ -259,7 +258,7 @@ bool dsd_bi_event_user(DsdVm *vm, DsdValue *args, uint32_t argc) {
     if (!dsd_bi_arg_int(vm, DSD_BI_event_user, args, 0, &n)) return false;
     args[0] = dsd_undef();
     if (n < 0 || n >= USER_EVENTS || vm->self == DSD_VM_NO_INST) return true; // no such event: nothing runs
-    return dsd_engine_event(vm->self, DSD_EVENT_ID(DSD_EV_USER, n), vm->other);
+    return dsd_engine_event(vm->self, DSD_EVENT_ID(DSD_EV_USER, n), vm->other) && !vm->halted; // builtins.h
 }
 
 // ---- Rooms and the game (changes take effect at the end of the frame) ---------------------------------------------

@@ -24,6 +24,7 @@
 #define RUN_SEED 1u // every run passes a seed (CLAUDE.md: always --seed N)
 #define DRAW_FRAMES 60 // tier v4 runs: one DSD|STAT period
 #define CONFORMANCE_FRAMES 100 // upper bound for the room-game conformance programs (they exit sooner)
+#define HALT_FRAMES 3 // halt-create/halt-user end in their first frame; more would show they did not
 #define STRESS_FRAMES 180 // v4-03-stress: three DSD|STAT periods
 #define DSDB_ABI_OFFSET 8 // the ABI hash in a DSDB header (contracts/dsdb.md, header word 2)
 #define DSDB_ABI_BYTES 4
@@ -198,6 +199,11 @@ static const ProgramCase CASES[] = {
      DSD_GAME_EXITED, 0, NULL},
     {"fixtures/bytecode/runtime/rng-header.dsdb", "fixtures/bytecode/runtime/rng-header.out", false, DSD_GAME_EXITED,
      0, NULL},
+    // HALT inside script code a builtin ran (instance_create's Create event, event_user): the caller stops there.
+    {"fixtures/bytecode/runtime/halt-create.dsdb", "fixtures/bytecode/runtime/halt-create.out", false, DSD_GAME_EXITED,
+     HALT_FRAMES, NULL},
+    {"fixtures/bytecode/runtime/halt-user.dsdb", "fixtures/bytecode/runtime/halt-user.out", false, DSD_GAME_EXITED,
+     HALT_FRAMES, NULL},
     {"fixtures/bytecode/runtime/err-overflow.dsdb", "fixtures/bytecode/runtime/err-overflow.out", false,
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-recursion.dsdb", "fixtures/bytecode/runtime/err-recursion.out", false,

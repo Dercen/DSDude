@@ -1,0 +1,5 @@
+DSD|READY|0.1.0|f1d376bb
+DSD|MEM|inst=1/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0
+DSD|LOG|step
+DSD|LOG|user 0
+DSD|EXIT|0

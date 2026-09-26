@@ -698,9 +698,13 @@ op_CALLN: {
     // steps of the current straight run are not settled here (that cost WS3 ~5 cycles per CALLN): `seg` stays, and
     // the next transfer charges them, so the count stays exact; a nested event only sees them one run later.
     vm->budget = (uint32_t)budget;
-    if (!fn(vm, &RA, DSD_B(ins))) goto failed;
+    if (!fn(vm, &RA, DSD_B(ins))) {
+        // Stopped: an error, or HALT inside script code the builtin ran (builtins.h). Only this path looks.
+        budget = (int32_t)vm->budget;
+        if (vm->halted) goto halted_inside;
+        goto failed;
+    }
     budget = (int32_t)vm->budget;
-    if (vm->halted) goto halted_inside;
     DISPATCH();
 }
 
