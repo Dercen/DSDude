@@ -10,7 +10,8 @@
 // but settles the count only at control transfers: code between two transfers runs in sequence, so the steps it took
 // are `ip - seg`, where `seg` is where that straight run began (see TRANSFER below). An endless loop always
 // transfers, so it is still caught; only the moment of the stop moves, from the exact 200,001st step to the next
-// jump, call or return (at most one straight run later). DSD|STAT's and the traces' `ops` stay exact.
+// jump, call or return (at most one straight run later). DSD|STAT's and the traces' `ops` stay exact. CALLN
+// hands a builtin the budget unsettled (see op_CALLN).
 #pragma GCC optimize("no-gcse", "no-crossjumping")
 
 #include <string.h>
@@ -504,8 +505,8 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
         goto *dispatch_base[DSD_OP(ins)];                                                                              \
     } while (0)
 // Charge the steps of the straight run that ends here (the running instruction included); R510 when the frame's
-// budget is spent. Every non-sequential change of ip and every hand-over of the budget (to a builtin, to the caller)
-// goes through it.
+// budget is spent. Every non-sequential change of ip and every return of the budget to the caller goes through it
+// (a builtin gets it unsettled: see op_CALLN).
 #define SETTLE()                                                                                                       \
     do {                                                                                                               \
         budget -= (int32_t)(ip - seg);                                                                                 \
@@ -652,8 +653,10 @@ op_CALLN: {
     uint32_t bi = DSD_C(ins);
     DsdBuiltinFn fn = dsd_builtin_fn[bi]; // never NULL: the loader refuses unimplemented builtins (R582)
     SYNC_PC();
-    SETTLE();
-    vm->budget = (uint32_t)budget; // a builtin may run script code (events) that charges the same budget
+    // A builtin may run script code (events) that charges the same budget, so it gets the budget as it stands. The
+    // steps of the current straight run are not settled here (that cost WS3 ~5 cycles per CALLN): `seg` stays, and
+    // the next transfer charges them, so the count stays exact; a nested event only sees them one run later.
+    vm->budget = (uint32_t)budget;
     if (!fn(vm, &RA, DSD_B(ins))) goto failed;
     budget = (int32_t)vm->budget;
     if (vm->halted) goto halted_inside;

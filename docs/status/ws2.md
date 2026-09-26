@@ -95,6 +95,9 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 - **DSD|STAT fps excludes room loads (WS3's note), 2026-09-26.** The first STAT read fps=59 on Flappy because the one-second window started before the first room loaded. `load_room` now moves the window's start forward by the time the load took (assets, Create, Room Start), for the first room and every room change. Host output unchanged (host millis advance only per frame).
 - **For WS0/WS3:** the cheaper watchdog (WS3's lever 1) is already pushed as **f22071e** (M1 step 4 below); please re-bench from it.
 
+- **M1 after step 4 (WS3): 33.20 cycles/op = 33,744 ops/frame** (history 39.84 -> 35.06 -> 33.20; gate ~25.5). CALLN got 5 cycles slower (64.8 -> 69.7) because it settled the watchdog.
+  - Step 5 (this batch): CALLN no longer settles. It hands the builtin the budget as it stands and keeps `seg`, so the next transfer charges the straight run's steps and the count stays exact (every golden and trace unchanged); a nested event's watchdog just sees those steps one run later. **Please re-measure.**
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
