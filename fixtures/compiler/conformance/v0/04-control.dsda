@@ -41,9 +41,8 @@
     CMPJ r3, r5, 4
     JMP L5
     .loc "v0/04-control.dss" 10
-    LOADI r6, 2
-    IDIV r5, r3, r6
-    MOV r3, r5
+    LOADI r5, 2
+    IDIV r3, r3, r5
     JMP L4
   L5:
     .loc "v0/04-control.dss" 12

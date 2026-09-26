@@ -531,7 +531,15 @@ class FunctionCompiler {
 
   /** Computes `value` into the local register `reg`, going through a temporary when the value reads `name`. */
   private assignLocal(reg: number, name: string, value: Expr): void {
-    if (!readsName(value, name)) {
+    // `a = a <op> x` can target a's register directly: a binary operator reads its left operand in place and
+    // evaluates its right one into temporaries, and writes its destination only with its last instruction.
+    const selfLeft =
+      value.kind === "binary" &&
+      value.op !== "&&" &&
+      value.op !== "||" &&
+      value.left.kind === "name" &&
+      value.left.name === name;
+    if (selfLeft || !readsName(value, name)) {
       this.valueTo(value, reg);
       return;
     }

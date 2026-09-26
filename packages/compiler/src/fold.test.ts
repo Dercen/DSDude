@@ -110,7 +110,7 @@ describe("constant folding: code generation", () => {
   });
 
   it("uses folded constants as ADDI operands and drops constant conditions", () => {
-    expect(instructions("var a = 1\na = a + 2 * 3", true)).toContain("ADDI r1, r0, 6");
+    expect(instructions("var a = 1\na = a + 2 * 3", true)).toContain("ADDI r0, r0, 6");
     expect(instructions("var a = 1\nif (1 < 2) a = 5", true)).toEqual(["LOADI r0, 1", "LOADI r0, 5", "RET r0, 0"]);
   });
 

@@ -156,11 +156,13 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - Verified against WS2's VM: 6,800 random constant expressions compiled unfolded and folded, both run in
     `dsdude-host --seed 1`, printed identical `DSD|LOG` lines (0 mismatches); the folded build had no arithmetic left.
     Unit tests in `src/fold.test.ts`.
+  - Peephole: `a = a <op> x` for a local `a` now writes a's register directly (`a = a * 3` is one `MULI a, a, 3`,
+    not `MULI t` + `MOV`); the binary operator reads its left operand in place, evaluates the right into
+    temporaries and writes its destination last. Only v0/04's golden moved (`IDIV r3, r3, r5`); host tests green
+    (115,906 checks).
 
 ## Next
 
-- Possible further peepholes (not started): assigning straight into a local's register when the value reads that
-  local only as its first operand (`a = a * 3` is `MULI t, a, 3` + `MOV a, t` today, to stay safe with calls).
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).
 - Blocked on WS0: `alias`/`unsupported` builtins.json entries (E207 for unsupported GameMaker names).
 

@@ -101,6 +101,24 @@ describe("program form: code shape", () => {
     ]);
   });
 
+  it("writes `a = a <op> x` straight into a's register, even when x reads a", () => {
+    // The right side goes to temporaries and the destination is written last (checked on dsdude-host: -3).
+    expect(instructions("var a = 3\na = a - a * 2")).toEqual([
+      "LOADI r0, 3",
+      "MULI r1, r0, 2",
+      "SUB r0, r0, r1",
+      "RET r0, 0",
+    ]);
+    // Other reads of a still go through a temporary: `a = 1 - a` must not overwrite a before reading it.
+    expect(instructions("var a = 3\na = 1 - a")).toEqual([
+      "LOADI r0, 3",
+      "LOADI r1, 1",
+      "SUB r1, r1, r0",
+      "MOV r0, r1",
+      "RET r0, 0",
+    ]);
+  });
+
   it("branches on comparisons with CMPJ followed by JMP", () => {
     // if: jump past the body when the relation fails, so CMPJ tests the relation itself (3 is <=).
     expect(instructions("var a = 1\nif (a <= 5) a = 2")).toEqual([
