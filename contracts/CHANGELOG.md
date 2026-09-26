@@ -33,6 +33,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C5 IPC (`contracts/ipc.md`, `packages/ipc-contract`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): channel list and zod stubs.
 - 0.2.0 (2026-09-26, WS6, T1): completes the Phase-0 stubs: ProjectSchema (whole C1 Project), SpritePreviewSchema for assets.preview (request gains optional sourcePath/options; sprite now optional, exactly one required), typed SettingsSchema (settings.get/set keys narrowed to its keys, value checked per key), build.progress phase = C4 BuildPhase, PlayResult.emulator {kind,pid}; new channels settings.getAll and dialog.open; dispatchInvoke/validateEvent/createLocalBridge/parseIpcError helpers and the [code] error convention. No channel renamed or removed. Stub narrowings listed for WS0 review.
+- 0.3.0 (2026-09-26, WS6, T1): BuildRequestSchema gains optional `debug` (follows C4 0.3.0); the compile-time C1/C4/C12 links now also compare key sets, so an optional field added on one side only fails `tsc -b`.
 
 ## C6 Language, events, conformance (`contracts/language.md`, `contracts/events.md`, `fixtures/conformance/`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): language.md v0.1, events.md v0.1, conformance v0 (5 programs, hand-written expected logs).
