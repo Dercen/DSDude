@@ -50,3 +50,22 @@ describe("watch trigger", async () => {
     expect(due({ lastRun: t0, attempted: {}, seen: seen(t0) }, p, t0 + M, { ...o, force: true })).toEqual(p);
   });
 });
+
+describe("failure excerpts", async () => {
+  const { failureExcerpt } = await import("./lib/integrate.ts");
+  it("keeps the lines that say what failed", () => {
+    const out = [
+      " RUN  v5.0.1",
+      " ❯ |asset-pipeline| src/pack/pack.test.ts (7 tests | 1 failed)",
+      " FAIL  |asset-pipeline| src/pack/pack.test.ts > packAssets limits > names the asset",
+      "AssertionError: expected undefined to be 'spr_tiny and spr_Tiny differ'",
+      "- Expected:",
+      "    156|       file: x,",
+      " Test Files  1 failed | 11 passed (12)",
+    ].join("\r\n");
+    expect(failureExcerpt(out)).toBe(
+      "FAIL  |asset-pipeline| src/pack/pack.test.ts > packAssets limits > names the asset / AssertionError: expected undefined to be 'spr_tiny and spr_Tiny differ' / - Expected:",
+    );
+    expect(failureExcerpt("a\nb\nc", 2)).toBe("b / c");
+  });
+});
