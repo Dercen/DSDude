@@ -14,6 +14,8 @@ import {
   EXTENSION_OFFSET_AT,
   eventId,
   eventStem,
+  FLAG_RELEASE,
+  FLAGS_KNOWN,
   FORMAT_MAJOR,
   FORMAT_MINOR,
   FORMAT_MINOR_EXTENSIONS,
@@ -349,7 +351,7 @@ export function encode(m: DsdbModule, env: BuiltinsEnv): Uint8Array {
   const sizeAt = out.length;
   out.u32(0);
   out.u16(SECTIONS.length);
-  out.u16(0);
+  out.u16(m.release === true ? FLAG_RELEASE : 0); // flags (ADR-0008): only bit 0 is defined
   out.u32(m.firstRoom === null ? 0xffffffff : need(roomIndex, m.firstRoom, "room"));
   out.u32(0);
   const tableAt = out.length;
@@ -504,7 +506,10 @@ export function decode(bytes: Uint8Array, env: BuiltinsEnv): DsdbModule {
   const size = r.u32();
   if (size !== bytes.length) fail(`header size ${size} but file has ${bytes.length} bytes`);
   const nsec = r.u16();
-  r.u16();
+  const flags = r.u16();
+  // The runtime's rule (ADR-0008): a reserved flag bit means a newer format this reader must not guess at.
+  if ((flags & ~FLAGS_KNOWN) !== 0)
+    fail(`header flags 0x${flags.toString(16)} use reserved bits (made by a newer DSDude)`);
   const first = r.u32();
   const extOffset = r.u32();
   const at: Record<string, number> = {};
@@ -718,6 +723,7 @@ export function decode(bytes: Uint8Array, env: BuiltinsEnv): DsdbModule {
   const used = new Set(objects.flatMap((o) => o.slots.map((x) => x.symbol)));
   return {
     seed,
+    ...((flags & FLAG_RELEASE) !== 0 ? { release: true } : {}),
     abiHash: hash,
     globals,
     symbols: symbols.filter((x) => !used.has(x)),

@@ -31,6 +31,12 @@ export interface ProgramOptions {
   fold?: boolean;
   /** Emit the int-specialised opcodes where both operands are proved int (codegen/intproof.ts). Default off. */
   intOps?: boolean;
+  /**
+   * A release build (ADR-0008): the DSDB header's release flag is set, so the runtime wraps int32 and Q20.12
+   * overflow instead of raising R520/R521, and constant folding wraps an overflow too. Absent means debug (Play
+   * and the IDE's Run always build debug).
+   */
+  release?: boolean;
 }
 
 export interface ProgramResult {
@@ -84,10 +90,12 @@ export function compileProgram(text: string, options: ProgramOptions): ProgramRe
     isInstanceVariableName: () => false,
     fold: options.fold === true,
     intOps: options.intOps === true,
+    release: options.release === true,
     isIntVariable: (kind, name) => ints?.[kind].has(name) ?? false,
   };
   const module = emptyModule();
   module.seed = options.seed ?? 0;
+  if (options.release === true) module.release = true;
   module.functions.push(compileFunction(env, { name: MAIN_FUNCTION, params: [], body: statements }));
   for (const fn of decls)
     module.functions.push(

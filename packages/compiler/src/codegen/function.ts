@@ -845,7 +845,7 @@ class FunctionCompiler {
   /** Evaluates `e` into exactly `dst`. */
   private valueTo(e: Expr, dst: number): void {
     if (this.env.fold === true && FOLDABLE_KINDS.has(e.kind)) {
-      const k = fold(e, this.constantLookup);
+      const k = this.foldValue(e);
       if (k !== null) {
         this.loadFolded(k, dst);
         return;
@@ -968,7 +968,7 @@ class FunctionCompiler {
       this.jumpIf(e.operand, !when, label);
       return;
     }
-    const constant = this.env.fold === true ? fold(e, this.constantLookup) : e.kind === "bool" ? e : null;
+    const constant = this.env.fold === true ? this.foldValue(e) : e.kind === "bool" ? e : null;
     if (constant !== null && constant.kind === "bool") {
       // A condition known at compile time: an unconditional jump, or none.
       if (constant.value === when) this.jump("JMP", label);
@@ -1045,11 +1045,16 @@ class FunctionCompiler {
    * number literal (what the source spells out, so the conformance goldens still run every operation on the VM).
    */
   private constantOf(e: Expr): Folded | null {
-    if (this.env.fold === true) return fold(e, this.constantLookup);
+    if (this.env.fold === true) return this.foldValue(e);
     const literal = e.kind === "unary" && e.op === "-" ? e.operand : e;
     return literal.kind === "number" || literal.kind === "string" || literal.kind === "bool"
       ? fold(e, NO_CONSTANTS)
       : null;
+  }
+
+  /** Folds `e`, wrapping overflow in a release build (ADR-0008) and leaving it to the runtime in a debug one. */
+  private foldValue(e: Expr): Folded | null {
+    return fold(e, this.constantLookup, { wrap: this.env.release === true });
   }
 
   /** Builtin constants by name for folding, unless a local of the same name shadows one. */

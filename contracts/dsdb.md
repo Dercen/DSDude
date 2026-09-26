@@ -1,6 +1,6 @@
 # C2: DSDB bytecode container
 
-Version: 0.5.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
+Version: 0.6.0 · Owner: WS2 + WS4 · Changes: see the tiers in contracts/README.md
 
 DSDB is the compiled form of a DSS game: one file, `game.dsdb`, at the NitroFS root (C3), loaded by the runtime VM.
 Written by WS0 in Phase 0; from the `phase0` tag WS2 and WS4 co-own this file (either may commit; the other
@@ -32,9 +32,16 @@ T1 (`opcodes.json`).
 | 12 | u32 | RNG seed: 0 = the runtime calls `dsd_plat_rng_seed()`; non-zero always wins (`--seed N`, C11) |
 | 16 | u32 | file size in bytes |
 | 20 | u16 | section count = 10 |
-| 22 | u16 | flags = 0 (reserved) |
+| 22 | u16 | flags (ADR-0008): bit 0 = release; bits 1-15 are reserved and must be 0 (see below) |
 | 24 | u32 | first room index; 0xFFFFFFFF in a program-form DSDB |
 | 28 | u32 | extension table offset (ADR-0006): 0 = none; else the 4-aligned file offset of the table (section 4) |
+
+**Flags** (0.6.0, ADR-0008). Bit 0 clear is a **debug** build: int32 overflow in `+ - *` and Q20.12 results that do
+not fit raise R520/R521 (language.md section 4). Bit 0 set is a **release** build: those wrap to their low 32 bits
+(modulo 2^32, as `-fwrapv` and the DS do); every other runtime check (R50x-R56x, the watchdog) stays in both modes.
+The compiler sets it only when asked for a release build (its `release` option); Play and the IDE's Run always build
+debug. Bits 1-15 are reserved and must be 0: the loader refuses a file with any of them set with R581 ("made by a
+newer DSDude"), so a future flag is never silently ignored.
 
 At offset 32: 10 entries of 12 bytes, `{u8[4] tag; u32 offset; u32 size}`, with offsets from the start of the file,
 in this fixed order. Every DSDB has all ten sections, possibly with a count of 0.
@@ -237,7 +244,7 @@ strings are JSON-escaped in double quotes. It **names builtins, functions and gl
 or numeric builtin ids**: the assembler stamps them from `contracts/builtins.json` and `contracts/opcodes.json`.
 
 ```
-file      := ".dsda 0.1" NL [".seed" INT NL] { toplevel }
+file      := ".dsda 0.1" NL [".seed" INT NL] [".release" NL] { toplevel }   (* .release: header flags bit 0 *)
 toplevel  := ".global" NAME | ".symbol" NAME
            | ".asset" ("sprite"|"background"|"sound"|"music") NAME STRING INT [GEOMETRY]
            | func | object | room | ".first" NAME
@@ -255,7 +262,8 @@ GEOMETRY  := "origin="X","Y "size="W","H "bbox="L","T","R","B     (* sprites onl
 Operands are written as in the table in section 5. Fixed-point constants are written as exact decimals with a point
 (`1.5`, `0.199951171875`); an inexact decimal such as `0.2` is rounded half away from zero to the nearest 1/4096.
 
-**Canonical form** (what `dsdb-dis` prints; `dis(asm(x)) == x` for canonical `x`): the header, `.seed`, `.global`
+**Canonical form** (what `dsdb-dis` prints; `dis(asm(x)) == x` for canonical `x`): the header, `.seed`, `.release`
+(release builds only), `.global`
 and `.symbol` lines sorted by UTF-8 bytes (`.symbol` only for symbols no slot table names), `.asset` lines in ASET
 order, then a blank line before each `.func` (FUNC order), `.object` (OBJS order), `.room` (ROOM order) and
 `.first`. Instructions are indented 4 spaces, labels 2 (`  L0:`), labels are numbered `L0, L1, ...` by target

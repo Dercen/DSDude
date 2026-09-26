@@ -180,6 +180,23 @@ describe("errors", () => {
     expect(() => assemble(fn("    JMP nowhere"))).toThrow(/unknown label/);
     expect(() => assemble(".dsda 9.9\n")).toThrow(/starts with/);
   });
+  it("writes .release as header flags bit 0 and round-trips it (ADR-0008)", () => {
+    /** Header offset of the u16 flags. */
+    const FLAGS_AT = 22;
+    const debug = fn("    RET r0, 0");
+    const release = debug.replace(".seed 0\n", ".seed 0\n.release\n");
+    const flags = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset).getUint16(FLAGS_AT, true);
+    expect(flags(encode(assemble(debug), env))).toBe(0);
+    const bytes = encode(assemble(release), env);
+    expect(flags(bytes)).toBe(1);
+    expect(disassemble(decode(bytes, env))).toBe(release);
+    expect(disassemble(assemble(debug))).toBe(debug);
+    // Bits 1-15 are reserved: a reader refuses them, like the runtime's loader (R581).
+    const future = bytes.slice();
+    new DataView(future.buffer).setUint16(FLAGS_AT, 0x3, true);
+    expect(() => decode(future, env)).toThrow(/reserved bits/);
+    expect(() => assemble(release.replace(".release", ".release 1"))).toThrow(/takes nothing/);
+  });
   it("refuses a DSDB with another ABI hash", () => {
     const bytes = encode(assemble(fn("    RET r0, 0")), env);
     expect(() => decode(bytes, { ...env, abiHash: env.abiHash ^ 1 })).toThrow(/ABI hash/);

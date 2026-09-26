@@ -71,6 +71,33 @@ describe("program form: the conformance corpus", () => {
   }
 });
 
+describe("release builds (ADR-0008)", () => {
+  /** The release golden: compiled as a game would be for release (folding and the int opcodes on). */
+  const golden = "fixtures/compiler/release/wrap.dsda";
+
+  it("sets the release flag, folds overflow wrapped, and round-trips", () => {
+    const text = readFileSync(join(REPO_ROOT, "fixtures/compiler/release/wrap.dss"), "utf8").replace(/\r/g, "");
+    const r = compileProgram(text, { file: "release/wrap.dss", release: true, fold: true, intOps: true });
+    expect(r.diagnostics).toEqual([]);
+    const dsda = disassemble(r.module as NonNullable<typeof r.module>);
+    expect(dsda).toBe(goldenText(golden, dsda));
+    expect(dsda).toContain(".release\n");
+    const bytes = r.dsdb as Uint8Array;
+    expect(disassemble(decode(bytes, COMPILER_BUILTINS_ENV))).toBe(dsda);
+    if (!UPDATING_GOLDENS) expect(bytes).toEqual(readBytes(golden.replace(/\.dsda$/, ".dsdb")));
+  });
+
+  it("leaves an overflowing constant unfolded in a debug build, so the runtime reports it on its line", () => {
+    const debug = disassemble(
+      compileProgram("show_debug_message(2147483647 + 1)", { file: "t.dss", fold: true }).module!,
+    );
+    expect(debug).not.toContain(".release");
+    expect(debug).toContain("ADDI r0, r0, 1");
+    const release = compileProgram("show_debug_message(2147483647 + 1)", { file: "t.dss", fold: true, release: true });
+    expect(disassemble(release.module!)).toContain("LOADK r0, -2147483648");
+  });
+});
+
 describe("program form: code shape", () => {
   it("puts locals in fixed registers and temporaries above them", () => {
     // 200 is outside ADDI's signed 8-bit range, so the literal goes through a temporary register.

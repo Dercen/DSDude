@@ -14,6 +14,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 - 0.3.0 T0 (2026-09-26, WS4): ADR-0006 accepted by the user (option A; format minor 2 only in files with extensions); dsdb.md says "accepted" and the ADR-pending markers are gone.
 - 0.4.0 (2026-09-26, WS4, T1, with WS2): section 5 lists the promoted stable opcodes (see opcodes.json 0.3.0), CMPJ's encoding, and WS2's runtime notes on ADR-0005 (never-assigned slots and globals, GETDYN/GETBIO on noone, the WITHBEGIN handle in rA).
 - 0.5.0 (2026-09-26, WS4, T1, co-signed by WS2 in docs/status/ws2.md, M1 step 7): section 5 adds the int-specialised ADDII/SUBII/MULII/CMPJII (51-54) to the stable list, with their meaning (ADD/SUB/MUL/CMPJ on proved ints, no tag checks, the same overflow rules).
+- 0.6.0 (2026-09-26, WS4, T1, ADR-0008 accepted by the user; proposed by WS2): header flags bit 0 = release (overflow wraps; clear = debug, R520/R521), bits 1-15 reserved and refused with R581; `.dsda` `.release` line after `.seed` (canonical, release files only). packages/dsdb writes, reads and refuses reserved bits; the compiler's `release` option sets it and makes constant folding wrap an overflow (debug leaves it unfolded, so the runtime reports it on its line); new golden fixtures/compiler/release/wrap; every debug file is byte-identical.
 
 ## C2 opcodes (`contracts/opcodes.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): 29 stable opcodes (0-28), 22 provisional (29-50), 4 reserved int-specialised (51-54).

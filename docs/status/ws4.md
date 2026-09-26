@@ -262,6 +262,23 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     runtime always returns ints (`bivars.c` `bbox_edge`). Typed int, collision code comparing bbox edges would get
     CMPJII. Nothing sound reaches `x`/`y`: they are fractional by design.
 
+- **ADR-0008 (debug and release arithmetic), WS4's part: dsdb.md 0.6.0 (T1), 2026-09-26** (accepted by the user,
+  WS0 relay, main 68ca7da).
+  - Header flags bit 0 = release; bits 1-15 reserved, must be 0 (the runtime refuses them with R581, and
+    packages/dsdb's decoder does too). `.dsda` has a `.release` line after `.seed`, only in release files.
+  - Compiler: a `release` option on `compileProgram` and `compileProjectModule` (absent = debug). `compileProject`
+    (C4, Play) stays debug; `dsdude compile --release` is C10, WS1's or WS8's.
+  - Folding, ADR point 4, WS4's choice: in debug an overflowing constant stays unfolded, so the runtime raises R52x
+    on its line (as before). In release it folds to the low 32 bits of the exact result, as the release runtime
+    computes it (`int_result`/`real_result`/`dsd_fx_mul`); division by zero stays a runtime error in both modes.
+    An int operand is now scaled to Q.12 in full as the runtime does, and only the result must fit.
+  - Checked against WS2's VM: 12,400 random constant expressions (311 overflowing) built as release, unfolded (the
+    VM wraps) and folded (the compiler wraps), printed identical lines on `dsdude-host`.
+    `fixtures/compiler/release/wrap.{dss,dsda,dsdb}` prints `-2147483648 -2147483648 0 -524287.5 2147483647` in
+    release; the same program built for debug stops at line 5 with R520.
+  - **For WS2:** the flag is written now, so the `ADR-pending ADR-0008` markers can go.
+    `fixtures/compiler/release/wrap.dsdb` is a ready release fixture (its intended output is in the .dss comments).
+
 ## Next
 
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).

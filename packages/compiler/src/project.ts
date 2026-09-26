@@ -72,6 +72,12 @@ export interface CompileProjectOptions {
    * compileProject and `dsdude compile` turn it on (opcodes 0.4.0); default off.
    */
   intOps?: boolean;
+  /**
+   * A release build (ADR-0008): the DSDB header's release flag is set, so the runtime wraps int32 and Q20.12
+   * overflow instead of raising R520/R521, and constant folding wraps an overflow too. Absent means debug (Play
+   * and the IDE's Run always build debug).
+   */
+  release?: boolean;
 }
 
 /** compileProject's result plus the symbolic module (for goldens and `dsdb-dis`), null on errors. */
@@ -530,6 +536,7 @@ class ProjectCompiler {
       overridesOf: (name) => this.overridesOf(owner, name),
       fold: this.options.fold === true,
       intOps: this.options.intOps === true,
+      release: this.options.release === true,
       isIntVariable: (kind, name) => this.intVars[kind].has(name),
     };
     return compileFunction(env, { name: u.funcName, params: u.params, body: u.body });
@@ -561,6 +568,7 @@ class ProjectCompiler {
   private assemble(functions: Func[]): DsdbModule {
     const m = emptyModule();
     m.seed = this.options.seed ?? 0;
+    if (this.options.release === true) m.release = true;
     m.assets = this.assetDefs();
     m.functions = this.orderFunctions(functions);
     const objectIndex = new Map(this.project.objects.map((o, i) => [o.name, i]));

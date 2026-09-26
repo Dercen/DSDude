@@ -1,0 +1,9 @@
+// Release builds (ADR-0008): int32 and Q20.12 overflow wrap instead of stopping. Compiled as a release game (folding
+// on) this prints the lines below; the same program built for debug stops at line 5 with R520.
+// Intended output (release): -2147483648 / -2147483648 / 0 / -524287.5 / 2147483647
+var big = 2147483647;
+show_debug_message(big + 1);            // wrapped by the VM
+show_debug_message(2147483647 + 1);     // wrapped by the compiler (folded)
+show_debug_message(65536 * 65536);      // 2^32 wraps to 0
+show_debug_message(524287.5 + 1);       // Q20.12 wraps to its low 32 bits
+show_debug_message(big + 1 - 1);        // wraps there and back
