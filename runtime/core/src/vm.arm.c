@@ -56,7 +56,7 @@ void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack) {
     vm->err_code = DSD_R_NONE;
     vm->err_pc = 0;
     vm->err_msg[0] = '\0';
-    vm->pc = 0;
+    dsd_vm_set_pc(vm, 0);
     dsd_heap_reset(&vm->heap);
     vm->mark_extra = 0;
 }
@@ -183,13 +183,13 @@ static void unset_global(DsdVm *vm, uint32_t index) {
 static void too_deep(DsdVm *vm) {
     DsdText t = dsd_vm_error_begin(vm, DSD_R_CALL_DEPTH);
     dsd_text_str(&t, "Too many functions were called inside each other in ");
-    dsd_describe_code(vm, vm->pc, &t);
+    dsd_describe_code(vm, dsd_vm_pc(vm), &t);
 }
 
 // The watchdog fired (R510).
 static void watchdog(DsdVm *vm) {
     DsdText t = dsd_vm_error_begin(vm, DSD_R_WATCHDOG);
-    dsd_describe_code(vm, vm->pc, &t);
+    dsd_describe_code(vm, dsd_vm_pc(vm), &t);
     dsd_text_str(&t, " never finished: a loop there seems to run forever");
 }
 
@@ -466,6 +466,13 @@ static bool enter_frame(DsdVm *vm, uint32_t func, uint32_t base) {
 static const void *g_dispatch[DSD_OPCODE_COUNT] DSD_DTCM_DATA;
 // run_threaded's label table, handed out by run_threaded(NULL, 0, 0) for the pre-decoder.
 static const void *const *g_thread_labels;
+// The interpreter's labels: one per opcode, then the handlers only pre-decoding selects (the plain path's table holds
+// the first DSD_OPCODE_COUNT).
+#define VM_LABEL_CALLN_QUICK DSD_OPCODE_COUNT // CALLN of a builtin that runs no script code (vm_run.h)
+#define VM_LABEL_COUNT (DSD_OPCODE_COUNT + 1u)
+// Host builds only: what vm->budget holds while a quick CALLN runs its builtin. A nested run (a builtin that runs
+// script code but is missing from dsd_builtin_runs_script) starts from it as -1 and stops at once with R510.
+#define VM_BUDGET_POISON UINT32_MAX
 
 // The slot cells of vm->self, or NULL when there is none (GETSLOT/SETSLOT's cached base).
 #define SELF_SLOTS(vm) ((vm)->self != DSD_VM_NO_INST ? dsd_instances.pool[(vm)->self].slots : (DsdValue *)0)
@@ -483,10 +490,11 @@ static const void *const *g_thread_labels;
 #undef VM_RUN_NAME
 #undef VM_RUN_ATTR
 
-// The plain interpreter: main RAM (the fallback for modules over the predecode budget; ITCM is 32 KB).
+// The plain interpreter: also ITCM (the fallback for modules over the predecode budget; WS3 measured 15.6 KB of the
+// 24 KB free with only the threaded one there, and one interpreter is ~8 KB).
 #define VM_RUN_THREADED 0
 #define VM_RUN_NAME run_plain
-#define VM_RUN_ATTR
+#define VM_RUN_ATTR DSD_ITCM_CODE
 #include "vm_run.h"
 #undef VM_RUN_THREADED
 #undef VM_RUN_NAME
@@ -517,8 +525,10 @@ static const DsdCell *predecode(const DsdProgram *prog) {
     if (cells == NULL) return NULL;
     if (g_thread_labels == NULL) run_threaded(NULL, 0, 0); // fetch the label table once
     for (uint32_t i = 0; i < prog->code_count; i++) {
-        cells[i].handler = g_thread_labels[DSD_OP(prog->code[i])];
-        cells[i].ins = prog->code[i];
+        uint32_t w = prog->code[i];
+        bool quick = DSD_OP(w) == DSD_OP_CALLN && !dsd_builtin_runs_script(DSD_C(w));
+        cells[i].handler = g_thread_labels[quick ? VM_LABEL_CALLN_QUICK : DSD_OP(w)];
+        cells[i].ins = w;
     }
     g_cells = cells;
     g_cells_count = need;
@@ -529,6 +539,23 @@ void dsd_vm_predecode_limit(uint32_t cells) {
     g_predecode_limit = cells < DSD_PREDECODE_CELLS_MAX ? cells : DSD_PREDECODE_CELLS_MAX;
 }
 
+uint32_t dsd_vm_pc(const DsdVm *vm) {
+    if (vm->pc_at == NULL) return DSD_VM_NO_PC;
+    // pc_at is one past the running instruction (the interpreter's ip after its fetch).
+    if (vm->cells != NULL) return (uint32_t)((const DsdCell *)vm->pc_at - vm->cells) - 1u;
+    return (uint32_t)((const uint32_t *)vm->pc_at - vm->prog->code) - 1u;
+}
+
+void dsd_vm_set_pc(DsdVm *vm, uint32_t pc) {
+    if (pc == DSD_VM_NO_PC) {
+        vm->pc_at = NULL;
+    } else if (vm->cells != NULL) {
+        vm->pc_at = vm->cells + pc + 1u;
+    } else {
+        vm->pc_at = vm->prog->code + pc + 1u;
+    }
+}
+
 uint32_t dsd_vm_predecode_bytes(const DsdVm *vm) {
     return vm->cells != NULL ? g_cells_count * DSD_PREDECODE_CELL_BYTES : 0u;
 }
@@ -537,7 +564,7 @@ int32_t dsd_vm_call(DsdVm *vm, uint32_t func, const DsdValue *args, uint32_t arg
     uint32_t saved_top = vm->top;
     uint32_t base = vm->top;
     vm->err_code = DSD_R_NONE;
-    vm->pc = vm->prog->funcs[func].code_start;
+    dsd_vm_set_pc(vm, vm->prog->funcs[func].code_start);
     if (base + argc > DSD_RT_REG_STACK_CELLS) {
         too_deep(vm);
         return vm->err_code;

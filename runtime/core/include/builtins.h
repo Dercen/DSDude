@@ -34,5 +34,9 @@ typedef struct DsdBuiltinInfo {
 extern const DsdBuiltinInfo dsd_builtin_info[DSD_BUILTIN_FUNC_COUNT];
 // Implementations by dense index; NULL for a builtin this runtime build does not implement yet (a call raises R582).
 extern const DsdBuiltinFn dsd_builtin_fn[DSD_BUILTIN_FUNC_COUNT];
+// True for the builtins that run script code (the four named above). Pre-decoding gives every other CALLN a quicker
+// handler that keeps the watchdog budget out of vm->budget, so a new builtin that runs script code MUST be added here
+// (host builds poison vm->budget around the quick call, so a missing entry fails the tests with R510).
+bool dsd_builtin_runs_script(uint32_t bi);
 
 #endif // DSD_BUILTINS_H

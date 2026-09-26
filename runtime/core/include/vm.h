@@ -72,7 +72,10 @@ struct DsdVm {
     int32_t err_code;
     uint32_t err_pc;
     char err_msg[DSD_ERR_MSG_MAX];
-    uint32_t pc;              // code index of the running instruction, kept current around builtin calls
+    // Where the running instruction is, kept current around builtin calls and slow paths: the interpreter's ip, one
+    // past it, in whichever array it walks (vm->cells or prog->code), or NULL for "no instruction" (DSD_VM_NO_PC).
+    // Storing the raw pointer is one store per sync; dsd_vm_pc turns it into a code index only when read (errors).
+    const void *pc_at;
 
     DsdHeap heap;             // dynamic strings and arrays (heap.h)
     void (*mark_extra)(DsdVm *vm); // the engine's extra collector roots (instance variables); NULL in program form
@@ -86,6 +89,10 @@ void dsd_vm_init(DsdVm *vm, const DsdProgram *prog, DsdValue *reg_stack);
 // Caps the cells dsd_vm_init may pre-decode into (from the next init on): DSD_PREDECODE_CELLS_MAX by default, 0
 // forces the plain dispatch (dsdude-host's DSD_PLAIN_DISPATCH=1; the tests run every golden on both paths).
 void dsd_vm_predecode_limit(uint32_t cells);
+// The code index of the running instruction (dsd_vm_error_begin's err_pc), or DSD_VM_NO_PC.
+uint32_t dsd_vm_pc(const DsdVm *vm);
+// Sets the running instruction to code index `pc`, or to none with DSD_VM_NO_PC (errors outside script code).
+void dsd_vm_set_pc(DsdVm *vm, uint32_t pc);
 // The pre-decoded code's size in contract bytes (cells x DSD_PREDECODE_CELL_BYTES), 0 on the plain path: the
 // DSD|MEM `predecode` key reports it in KB.
 uint32_t dsd_vm_predecode_bytes(const DsdVm *vm);

@@ -93,3 +93,8 @@ bool dsd_bi_status(DsdVm *vm, uint32_t bi, int32_t status, DsdValue result) {
     dsd_text_str(&t, " needs numbers here");
     return false;
 }
+
+bool dsd_builtin_runs_script(uint32_t bi) {
+    return bi == DSD_BI_instance_create || bi == DSD_BI_instance_destroy || bi == DSD_BI_event_inherited ||
+           bi == DSD_BI_event_user;
+}

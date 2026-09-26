@@ -6,7 +6,9 @@
 //     ITCM on the DS.
 //   - plain (VM_RUN_THREADED 0, run_plain): ip walks the CODE words; dispatch indexes the DTCM handler table by
 //     opcode. It runs a module whose code does not fit C13 predecodeBytes, or when the allocation failed or the
-//     host forced it (dsd_vm_predecode_limit(0)). It lives in main RAM: it is the rare path, and ITCM is small.
+//     host forced it (dsd_vm_predecode_limit(0)). Also in ITCM.
+// Pre-decoding can also pick a handler no opcode number maps to (VM_LABEL_CALLN_QUICK): only the threaded path uses
+// those.
 //
 // The includer defines, before each inclusion:
 //   VM_RUN_THREADED  1 or 0 (above)
@@ -67,7 +69,7 @@
     } while (0)
 // Fill the DTCM table on the first run, and keep its base in a register for the whole run.
 #define VM_RUN_PROLOGUE(labels)                                                                                        \
-    if (g_dispatch[DSD_OP_HALT] == NULL) memcpy(g_dispatch, (labels), sizeof(labels));                                 \
+    if (g_dispatch[DSD_OP_HALT] == NULL) memcpy(g_dispatch, (labels), sizeof g_dispatch);                              \
     const void *const *dispatch_base = g_dispatch;                                                                     \
     DSD_OPAQUE(dispatch_base)
 #endif
@@ -76,7 +78,7 @@ VM_RUN_ATTR static int32_t VM_RUN_NAME(DsdVm *vm, uint32_t func, uint32_t base) 
     // One label per opcode number; unimplemented numbers never reach dispatch (the loader refuses them). Plain: the
     // initialiser of g_dispatch, copied on the first run (HALT's slot is never empty once filled). Threaded: what
     // pre-decoding writes into each cell, handed out by a call with vm == NULL (see VM_RUN_PROLOGUE).
-    static const void *const labels[DSD_OPCODE_COUNT] = {
+    static const void *const labels[VM_LABEL_COUNT] = {
         [DSD_OP_HALT] = &&op_HALT,       [DSD_OP_MOV] = &&op_MOV,         [DSD_OP_LOADK] = &&op_LOADK,
         [DSD_OP_LOADI] = &&op_LOADI,     [DSD_OP_LOADB] = &&op_LOADB,     [DSD_OP_LOADUNDEF] = &&op_LOADUNDEF,
         [DSD_OP_ADD] = &&op_ADD,         [DSD_OP_SUB] = &&op_SUB,         [DSD_OP_MUL] = &&op_MUL,
@@ -97,6 +99,7 @@ VM_RUN_ATTR static int32_t VM_RUN_NAME(DsdVm *vm, uint32_t func, uint32_t base) 
         [DSD_OP_WITHBEGIN] = &&op_WITHBEGIN, [DSD_OP_WITHNEXT] = &&op_WITHNEXT, [DSD_OP_WITHEND] = &&op_WITHEND,
         [DSD_OP_CMPJ] = &&op_CMPJ,         [DSD_OP_ADDII] = &&op_ADDII,     [DSD_OP_SUBII] = &&op_SUBII,
         [DSD_OP_MULII] = &&op_MULII,       [DSD_OP_CMPJII] = &&op_CMPJII,
+        [VM_LABEL_CALLN_QUICK] = &&op_CALLN_QUICK,
     };
     VM_RUN_PROLOGUE(labels);
     const DsdProgram *prog = vm->prog;
@@ -160,8 +163,9 @@ VM_RUN_ATTR static int32_t VM_RUN_NAME(DsdVm *vm, uint32_t func, uint32_t base) 
             JUMP_BY(DSD_SBX(jmp_));                                                                                    \
         }                                                                                                              \
     } while (0)
-// Record the running instruction's code index for errors and builtins (ip already points past it).
-#define SYNC_PC() (vm->pc = (uint32_t)(ip - 1 - ip_base))
+// Record where the running instruction is, for errors and builtins (ip already points past it): one store of the
+// raw pointer; dsd_vm_pc turns it into a code index only when an error reads it.
+#define SYNC_PC() (vm->pc_at = ip)
 #define RA R[DSD_A(ins)]
 #define RB R[DSD_B(ins)]
 #define RC R[DSD_C(ins)]
@@ -304,6 +308,19 @@ op_CALLN: {
         goto failed;
     }
     budget = (int32_t)vm->budget;
+    DISPATCH();
+}
+
+// CALLN of a builtin that runs no script code (pre-decoding picks this handler; the plain path always runs op_CALLN):
+// nothing but script code reads vm->budget, so the budget stays in its register (no store before the call, no
+// reload after), and a false return can only be an error, so vm->halted is never read.
+op_CALLN_QUICK: {
+    DsdBuiltinFn fn = dsd_builtin_fn[DSD_C(ins)];
+    SYNC_PC();
+#ifdef DSD_HOST
+    vm->budget = VM_BUDGET_POISON; // catches a script-running builtin missing from dsd_builtin_runs_script
+#endif
+    if (!fn(vm, &RA, DSD_B(ins))) goto failed;
     DISPATCH();
 }
 
@@ -627,7 +644,7 @@ op_WITHEND:
 
 watchdog_fired:
     budget = 0;                         // the frame's budget is spent
-    vm->pc = (uint32_t)(ip - 1 - ip_base); // the transfer that settled past the budget
+    vm->pc_at = ip; // the transfer that settled past the budget
     watchdog(vm);
     goto failed;
 
