@@ -1,5 +1,7 @@
 # WS2 runtime core status
 
+Cloud push target: `ws2-runtime-core`
+
 Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-core`.
 
 ## Environment
