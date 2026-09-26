@@ -122,15 +122,30 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   green. WS2 listed these as implemented in docs/status/ws2.md ("With WS4: promote ...").
   - The compiler does not emit ADDI/SUBI/MULI or CMPJ yet: that is task 7's peephole pass, now unblocked.
 
+- **Task 7 peephole code generation, 2026-09-26** (after the checkpoint-6/7 relay: merged `origin/main` 91fc4c9,
+  no open IF entries).
+  - ADDI/SUBI/MULI: `x + k`, `x - k`, `x * k`, `+= -= *=`, `++`/`--` and the `repeat` counter use the immediate form
+    when the right side is an int literal (or a negated one) in -128..127. Fixed-point literals and anything else keep
+    ADD/SUB/MUL with a register.
+  - CMPJ: a comparison in a jump context (`if`, loops, `&&`/`||`, `?:`) becomes `CMPJ l, r, rel` + `JMP`, testing
+    the relation when the jump is taken on false and its negation (== !=, < >=, <= >) when taken on true; `repeat`
+    tests `counter > 0` the same way. Comparisons used as values still produce EQ/LT/... results.
+  - Effect: a counted `for` loop runs 5 VM steps per iteration instead of 7 (v0/04); Flappy 139 -> 136
+    instructions, minimal 43 -> 37. The compiled shapes now match WS2's M1 bench mix (ADD/SUB/MUL, CMPJ + JMP).
+  - Goldens regenerated: every conformance program except v0/01 (still byte-identical to the hand-assembled
+    `fixtures/bytecode/conformance/v0-01.dsda`), and the Flappy and minimal samples. New code-shape tests in
+    `program.test.ts`. `make -f runtime/Makefile.host test` green on the new bytecode (115,876 checks).
+  - **For WS2:** `flappy.dsdb` changed again: dsdb fingerprint `0xf4c83269`, trace `0x84a71faf` over 165,966 steps
+    (from the host test's note), so `fixtures/runtime-core/flappy-trace.fnv` needs refreshing.
+
 ## Next
 
-- Task 7 (formatter done): the peephole passes wait on purpose.
-  - ADDI/SUBI/MULI and CMPJ are stable now (opcodes 0.3.0) and WS2's VM runs them: the pass can go ahead, measured
-    against WS2's M1 bench.
-  - Constant folding must not apply to the conformance programs, which exist to test the VM's arithmetic (v0/02's
-    `0.25 + 0.25`); it will be an option of `compileProject` (on for games), with folding that matches the runtime's
-    int32/Q20.12 rules exactly.
-- Leftovers: constant folding (task 7).
+- Task 7 leftover: constant folding, deliberately not done yet. It must not apply to the conformance programs, which
+  exist to test the VM's arithmetic (v0/02's `0.25 + 0.25`); it will be an option of `compileProject` (on for
+  games), with folding that matches the runtime's int32/Q20.12 rules exactly.
+- Possible further peepholes (not started): assigning straight into a local's register when the value reads that
+  local only as its first operand (`a = a * 3` is `MULI t, a, 3` + `MOV a, t` today, to stay safe with calls).
+- Blocked on WS0: `alias`/`unsupported` builtins.json entries (E207 for unsupported GameMaker names).
 
 ## Goldens (tier status)
 

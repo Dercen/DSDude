@@ -57,8 +57,8 @@
     .loc "objects/obj_ctrl/create.dss" 9
     GETBIO r2, r1, object_index
     LOADK r3, @obj_leaf
-    EQ r2, r2, r3
-    JMPF r2, L0
+    CMPJ r2, r3, 0
+    JMP L0
     LOADK r2, "leaf"
     CALLN r2, 1, show_debug_message
   L0:
@@ -76,8 +76,7 @@
     CALLN r0, 0, event_inherited
     .loc "objects/obj_kid/create.dss" 2
     GETSLOT r0, 0
-    LOADI r1, 5
-    ADD r0, r0, r1
+    ADDI r0, r0, 5
     SETSLOT r0, 0
     .loc "objects/obj_kid/create.dss" 3
     LOADK r0, "kid create "

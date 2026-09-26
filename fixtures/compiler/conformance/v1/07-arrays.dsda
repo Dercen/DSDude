@@ -43,8 +43,7 @@
     GETIDX r7, r2, r6
     LOADI r8, 0
     GETIDX r9, r7, r8
-    LOADI r10, 30
-    ADD r9, r9, r10
+    ADDI r9, r9, 30
     SETIDX r7, r8, r9
     SETIDX r2, r6, r7
     .loc "v1/07-arrays.dss" 13
@@ -105,16 +104,15 @@
     .loc "v1/07-arrays.dss" 26
     LOADI r5, 0
   L0:
-    MOV r7, r2
-    CALLN r7, 1, array_length
-    LT r6, r5, r7
-    JMPF r6, L1
+    MOV r6, r2
+    CALLN r6, 1, array_length
+    CMPJ r5, r6, 2
+    JMP L1
     GETIDX r7, r2, r5
     LOADI r8, 1
     GETIDX r6, r7, r8
     ADD r4, r4, r6
-    LOADI r6, 1
-    ADD r5, r5, r6
+    ADDI r5, r5, 1
     JMP L0
   L1:
     .loc "v1/07-arrays.dss" 27

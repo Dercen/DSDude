@@ -51,8 +51,7 @@
     .loc "v1/06-strings.dss" 15
     LOADK r2, "12"
     CALLN r2, 1, real
-    LOADI r3, 1
-    ADD r2, r2, r3
+    ADDI r2, r2, 1
     CALLN r2, 1, show_debug_message
     .loc "v1/06-strings.dss" 16
     LOADK r2, "a\"b\\c"

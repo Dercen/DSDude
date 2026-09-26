@@ -67,6 +67,16 @@ const BINARY_OPCODE: Readonly<Partial<Record<BinaryOp, string>>> = {
   ">=": "GE",
 };
 
+/** CMPJ's relation operand for each comparison (contracts/dsdb.md section 5): 0 ==, 1 !=, 2 <, 3 <=, 4 >, 5 >=. */
+const RELATION: Readonly<Partial<Record<string, number>>> = { "==": 0, "!=": 1, "<": 2, "<=": 3, ">": 4, ">=": 5 };
+/** The relation that holds exactly when relation i does not (== and !=, < and >=, <= and >). */
+const NEGATED_RELATION: readonly number[] = [1, 0, 5, 4, 3, 2];
+/** The immediate form of each arithmetic opcode (C = signed 8-bit int). */
+const IMMEDIATE_OPCODE: Readonly<Partial<Record<string, string>>> = { ADD: "ADDI", SUB: "SUBI", MUL: "MULI" };
+/** The range of ADDI/SUBI/MULI's signed 8-bit operand. */
+const IMMEDIATE_MIN = -128;
+const IMMEDIATE_MAX = 127;
+
 /** Opcode for each compound assignment. */
 const COMPOUND_OPCODE: Readonly<Record<string, string>> = { "+=": "ADD", "-=": "SUB", "*=": "MUL", "/=": "DIV" };
 
@@ -387,20 +397,17 @@ class FunctionCompiler {
     this.valueTo(count, counter);
     this.emit("CALLN", counter, 1, "floor");
     const zero = this.alloc();
-    const one = this.alloc();
     this.emit("LOADI", zero, 0);
-    this.emit("LOADI", one, 1);
     const top = this.newLabel();
     const next = this.newLabel();
     const end = this.newLabel();
     this.place(top);
-    const test = this.alloc();
-    this.emit("GT", test, counter, zero);
-    this.jump("JMPF", end, test);
-    this.release(test);
+    // Run the body while counter > 0: CMPJ skips the JMP out when the relation holds.
+    this.emit("CMPJ", counter, zero, RELATION[">"] as number);
+    this.jump("JMP", end);
     this.loop(body, end, next);
     this.place(next);
-    this.emit("SUB", counter, counter, one);
+    this.emit("SUBI", counter, counter, 1);
     this.jump("JMP", top);
     this.place(end);
   }
@@ -543,30 +550,26 @@ class FunctionCompiler {
     const ref = this.ref(s.target, true);
     if (ref === null) return;
     if (ref.localReg !== null) {
-      const v = this.valueAny(s.value);
-      this.emit(op, ref.localReg, ref.localReg, v);
+      this.arith(op, ref.localReg, ref.localReg, s.value);
       return;
     }
     const t = this.alloc();
     ref.load(t);
-    const v = this.valueAny(s.value);
-    this.emit(op, t, t, v);
+    this.arith(op, t, t, s.value);
     ref.store(t);
   }
 
   private incdec(s: IncDecStmt): void {
-    const op = s.op === "++" ? "ADD" : "SUB";
+    const op = s.op === "++" ? "ADDI" : "SUBI";
     const ref = this.ref(s.target, true);
     if (ref === null) return;
-    const one = this.alloc();
-    this.emit("LOADI", one, 1);
     if (ref.localReg !== null) {
-      this.emit(op, ref.localReg, ref.localReg, one);
+      this.emit(op, ref.localReg, ref.localReg, 1);
       return;
     }
     const t = this.alloc();
     ref.load(t);
-    this.emit(op, t, t, one);
+    this.emit(op, t, t, 1);
     ref.store(t);
   }
 
@@ -853,9 +856,8 @@ class FunctionCompiler {
         else {
           this.checkBinary(e);
           const left = this.valuePrefer(e.left, dst);
-          const right = this.valueAny(e.right);
           const op = e.op === "+" && isString(e.left) && isString(e.right) ? "CONCAT" : (BINARY_OPCODE[e.op] as string);
-          this.emit(op, dst, left, right);
+          this.arith(op, dst, left, e.right);
         }
         break;
       case "ternary": {
@@ -947,9 +949,35 @@ class FunctionCompiler {
       return;
     }
     const mark = this.top;
+    if (e.kind === "binary" && RELATION[e.op] !== undefined) {
+      // CMPJ skips the following JMP when its relation holds (contracts/dsdb.md section 5). To jump when the
+      // comparison is false, test the relation itself; to jump when it is true, test its negation.
+      this.checkBinary(e);
+      const left = this.valueAny(e.left);
+      const right = this.valueAny(e.right);
+      const relation = RELATION[e.op] as number;
+      this.emit("CMPJ", left, right, when ? (NEGATED_RELATION[relation] as number) : relation);
+      this.jump("JMP", label);
+      this.release(mark);
+      return;
+    }
     const r = this.valueAny(e);
     this.jump(when ? "JMPT" : "JMPF", label, r);
     this.release(mark);
+  }
+
+  /**
+   * `dst = left <op> right` for an arithmetic opcode, using ADDI/SUBI/MULI when `right` is a small int literal
+   * (the same meaning as ADD/SUB/MUL with that int, one register and one instruction fewer).
+   */
+  private arith(op: string, dst: number, left: number, right: Expr): void {
+    const k = smallIntLiteral(right);
+    const immediate = IMMEDIATE_OPCODE[op];
+    if (k !== null && immediate !== undefined) {
+      this.emit(immediate, dst, left, k);
+      return;
+    }
+    this.emit(op, dst, left, this.valueAny(right));
   }
 
   // ---- Checks (the beginner-mistake checker, PLAN.md 6 WS4) ------------------------------------------------------
@@ -1174,6 +1202,15 @@ class FunctionCompiler {
     });
     this.place(end);
   }
+}
+
+/** The value of an int literal (possibly negated) that fits ADDI/SUBI/MULI's operand, or null. */
+function smallIntLiteral(e: Expr): number | null {
+  const negated = e.kind === "unary" && e.op === "-";
+  const n = negated ? e.operand : e;
+  if (n.kind !== "number" || n.repr !== "int") return null;
+  const v = negated ? -n.value : n.value;
+  return v >= IMMEDIATE_MIN && v <= IMMEDIATE_MAX ? v : null;
 }
 
 /** A number literal with a fraction (possibly negated), e.g. `1.5` or `-0.25`. */
