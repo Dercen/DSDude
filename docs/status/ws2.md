@@ -107,6 +107,8 @@ Cloud session (hybrid mode), environment `dsdude-ws2`, stream line `ws2-runtime-
 - **Opcodes 0.4.0 (WS4's T1, 02cfb06): ADDII/SUBII/MULII/CMPJII stable and emitted; WS2 co-signs, 2026-09-26.** The encoding is the one WS2 implemented (ABC regs; CMPJII with CMPJ's relation byte and following JMP); merged `origin/ws4-compiler` and every test passes with WS4's recompiled fixtures, which now use them. New fixture `bench-ii` (from `gen_bench.mjs`): **WS3 can time it directly** instead of a byte-patched copy; it is in the case table, so `conformance:ds` runs it on the DS too.
 - **ADR-0008 accepted by the user (main 68ca7da).** WS2's `ADR-pending ADR-0008` markers stay until WS4's `.release` / dsdb.md flags T1 is on `origin/ws4-compiler`; then WS2 merges it, drops the markers and assembles the release wrap fixture with `.release`.
 
+- **C13 0.2.0 (T1), 2026-09-26: scanlineObjCycles 1200 -> 2048**, WS3's proposal from 3DS hardware (2,178 OBJ line cycles drew, 2,208 dropped; ~6% margin). No code hard-codes the value: `packages/asset-pipeline/src/limits.ts` and `apps/ide/src/renderer/meters.ts` read the JSON, and `dsd_limits.h` does not carry this key, so WS5 and WS6 pick it up with no change (their tests do not pin 1200). **WS0:** `contracts/README.md`'s C13 row and PLAN.md's C13 list still say 0.1.0 / 1200.
+
 ## Decisions and notes (for WS0/WS3/WS4 review)
 - **Degrees to libnds angles** (`dsd_deg_to_brad`): brad = deg_fx / 45 rounded half away from zero, reduced mod 32768. dsin(30) is exactly 0.5.
 - **libnds sin is not exactly odd:** `sinLerp`'s final `>> 3` floors, so dsin(-30) = -2049/4096 (prints `-0.5`). Kept as the DS computes it and pinned in the tests.
