@@ -133,8 +133,18 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - `contracts/README.md` (yours) still lists the C12 panel API as owed.
   - To run the browser tests at integration: `npm run test:browser -w apps/ide` (needs Playwright chromium 1243).
 
+- **2026-09-26: merged `main` (`e66001c`; WS0 integrated task 4 at checkpoint-4 and runs `npm run test:browser -w apps/ide` at every integration). Task 6 started.**
+- **Task 6a, the object editor: done.** It is a C12 EditorPanel for `object` resources, registered by the shell; clicking an object in the tree opens it.
+  - Properties bar: sprite, parent (cycles excluded), screen, depth, visible. Changes are undoable through the panel's undo stack (immer patches).
+  - Every event is stacked in one scrollable panel, one auto-height Monaco per event file, under collapsible headers like 'Step - runs every frame (60 per second)'.
+  - The event list is the jump bar. '+ Add Event' offers every C6 event the object lacks, grouped, and creates the file with a one-line comment saying when it runs. 'Functions' is fixed at the bottom and creates functions.dss on first click.
+  - Model sync and Problems markers moved into `monaco/sync.ts`, one per store for every `dsdude:` model. A code tab and the object editor share one model per file.
+  - Ctrl+Z inside Monaco stays Monaco's own; everywhere else in the panel it goes to the panel's undo stack.
+  - Tests: node 64, browser 10 (4 new: stacking and headings, Add Event and Functions, undoable properties and parent cycles, typed text reaching the store document), Playwright 8, all green. Screenshot checked.
+
 ## Next
-- CP-A: stop and wait for WS0's merge (checkpoint ritual). Then task 5 at CP-B (real BuildService), and task 6 (object editor, import dialogs, meters, Controls card, wizards, Help menu, Debug, smoke test).
+- Task 6 continues: Controls card + rebinding, meters, import dialogs, New Project and first-run wizards, Help menu, Debug, and the fake-toolchain smoke test.
+- CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
 ## Leftovers / ADR-pending
 - None open.

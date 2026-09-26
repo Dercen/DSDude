@@ -61,6 +61,7 @@ function Section({ title, children, count }: { title: string; children: ReactNod
 
 function ObjectNode({ obj, dirty }: { obj: Project["objects"][number]; dirty: Record<string, true> }) {
   const [open, setOpen] = useState(false);
+  const actions = useActions();
   return (
     <div>
       <button
@@ -68,7 +69,11 @@ function ObjectNode({ obj, dirty }: { obj: Project["objects"][number]; dirty: Re
         className="tree-item"
         style={{ paddingLeft: 22 }}
         data-testid={`tree:object:${obj.name}`}
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          // Opening an object shows its editor (every event stacked) and its events in the tree.
+          if (!open) actions.openResource({ kind: "object", name: obj.name });
+          setOpen(!open);
+        }}
       >
         {open ? "▾" : "▸"} {obj.name}
       </button>

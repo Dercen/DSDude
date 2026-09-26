@@ -19,6 +19,8 @@ export function resourceTitle(r: ResourceRef): string {
 /** Undo/redo keys for an editor (Monaco keeps its own). Returns true when the key was handled. */
 export function handleUndoKey(e: KeyboardEvent, undo: { undo(): boolean; redo(): boolean }): boolean {
   if (!e.ctrlKey || e.altKey) return false;
+  // Text in a Monaco editor inside the panel has its own undo history.
+  if (e.target instanceof Element && e.target.closest(".monaco-editor")) return false;
   const k = e.key.toLowerCase();
   if (k === "z" && !e.shiftKey) return undo.undo() || true;
   if (k === "y" || (k === "z" && e.shiftKey)) return undo.redo() || true;
@@ -42,7 +44,7 @@ export function EditorHostPanel({ params, api }: IDockviewPanelProps<{ resource:
     const undo = createUndoStack();
     const panel = factory.create({ element, host: createPanelHost(ide, ipc, undo) });
     const entry = { panel, undo, dirty: false };
-    const untrack = trackPanel(entry);
+    const untrack = trackPanel(resourceId(resource), entry);
     const title = resourceTitle(resource);
     const offDirty = panel.onDirty((dirty) => {
       entry.dirty = dirty;

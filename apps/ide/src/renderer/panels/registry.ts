@@ -47,10 +47,11 @@ export interface MountedPanel {
 
 const mounted = new Map<string, MountedPanel>();
 
-export function trackPanel(entry: MountedPanel): () => void {
-  mounted.set(entry.panel.id, entry);
+/** Tracks an open panel under `key` (its resource id; the panel's own id may only be known after open). */
+export function trackPanel(key: string, entry: MountedPanel): () => void {
+  mounted.set(key, entry);
   return () => {
-    if (mounted.get(entry.panel.id) === entry) mounted.delete(entry.panel.id);
+    if (mounted.get(key) === entry) mounted.delete(key);
   };
 }
 
