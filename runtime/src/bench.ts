@@ -41,10 +41,20 @@ async function main(): Promise<number> {
   }
 
   let failed = 0;
-  for (const bl of [false, true]) {
+  // Tag-checked (the gate mix as bench.dsdb has it) with long calls and with BL, then the int-specialised forms.
+  const runs = [
+    { bl: false, ii: false },
+    { bl: true, ii: false },
+    { bl: false, ii: true },
+  ];
+  for (const { bl, ii } of runs) {
     const elf = await buildBenchElf(status.paths, bl);
-    const name = path.basename(elf, ".elf");
-    const rom = await packBench(name, elf, { "game.dsdb": w.full, "base.dsdb": w.base, "loop.dsdb": w.loop });
+    const name = `${path.basename(elf, ".elf")}${ii ? "_ii" : ""}`;
+    const rom = await packBench(name, elf, {
+      "game.dsdb": ii ? w.fullII : w.full,
+      "base.dsdb": w.base,
+      "loop.dsdb": ii ? w.loopII : w.loop,
+    });
     const log = await runRom(rom, emulator, status.paths.python);
     for (const l of log.filter((x) => x.startsWith("DSD|LOG|bench: "))) console.log(`${name}: ${l.slice(15)}`);
     const s = log.map(parseSummaryLine).find((x) => x);

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { assembleToBytes } from "@dsdude/dsdb";
 import { loadBuiltinsEnv } from "@dsdude/dsdb/node";
 import { describe, expect, it } from "vitest";
-import { baselineDsda, loopDsda, parseBenchLine, parseSummaryLine } from "./bench-line.ts";
+import { baselineDsda, loopDsda, parseBenchLine, parseSummaryLine, rewriteToII } from "./bench-line.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -71,6 +71,16 @@ describe("baseline workload", () => {
     expect(step).toContain("    CMPJ r16, r17, 2\n    JMP LEND\n    JMP LOOP\n  LEND:\n    RET r0, 0");
     const env = loadBuiltinsEnv(repoRoot);
     expect(assembleToBytes(loop, env).length).toBeLessThan(assembleToBytes(bench, env).length / 3);
+  });
+
+  it("rewrites every ADD/SUB/MUL/CMPJ to its int-specialised opcode, as WS2's tests do", () => {
+    const dsdb = readFileSync(path.join(repoRoot, "fixtures", "bytecode", "bench.dsdb"));
+    const { bytes, changed } = rewriteToII(dsdb);
+    expect(changed).toBe(120 * 5); // 120 units x (ADD, SUB, MUL, ADD, CMPJ)
+    let diff = 0;
+    for (let i = 0; i < dsdb.length; i++) if (dsdb[i] !== bytes[i]) diff++;
+    expect(diff).toBe(changed); // one opcode byte each, nothing else
+    expect(dsdb[0]).toBe(bytes[0]);
   });
 
   it("refuses a file without bench_step", () => {
