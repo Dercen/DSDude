@@ -25,7 +25,9 @@ State and next steps: `docs/status/ws5.md`.
 - `src/sound/`: pure WAV reader/writer, effect decode/resample, soundbank.h/.bin readers, tracker checks.
 - `src/preview-sprite.ts`, `src/budgets.ts`, `src/manifest.ts`, `src/diagnostics/catalog.ts`: pure.
 - `src/pack/` (Node): `packAssets`, cache, grit/mmutil wrappers. `src/cli.ts` (Node): `dsdude assets`.
-- `src/browser.ts` = the `./browser` subpath: everything pure (a test forbids Node imports below it).
+- `src/browser.ts` = the `./browser` subpath: everything pure (a test forbids Node imports below it). **Browser
+  consumers (editor-core, the IDE renderer, WS6b's editors) import `@dsdude/asset-pipeline/browser`**, never the
+  root, which also exports the Node-only `packAssets` and `cliCommands` (for packages/cli and the build worker).
 - `scripts/make-fixtures.ts` regenerates `fixtures/assets/tune.xm` and `loop-stereo-44k.wav`.
 
 ## Test before each commit

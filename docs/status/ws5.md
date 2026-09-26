@@ -5,8 +5,8 @@ Cloud push target: `ws5-assets`
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
-- start.sh (2026-09-26): node v24.16.0, npm 11.13.0; push target: none yet; behind origin/main by 0; latest
-  checkpoint: docs/status/checkpoint-1.md; open IF entries: 0. Lockfile guard passed; npm did not rewrite the lockfile.
+- start.sh (2026-09-26, after checkpoint-3): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind origin/main
+  by 37 (then merged); latest checkpoint: docs/status/checkpoint-3.md; open IF entries: 0. Lockfile guard passed.
 
 ## Progress
 - [x] Task 1 (day 1): `contracts/assetpack.md` C3 0.1.0 written, CHANGELOG line appended.
@@ -26,8 +26,8 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   `checkRoomBudgets` in the package root automatically. Cloud check: `npx dsdude assets samples/flappy --json` exits
   2 with two E605 (no grit/mmutil) and writes the manifest. Fake-tool second run of samples/flappy: all cache hits
   (no tool call), identical manifest bytes; measured 2.0-2.8 ms per warm run on the cloud VM (in-process, project
-  already loaded; the DoD's < 50 ms on Windows is WS0's to confirm). `wavefile` stays in package.json but is unused
-  (the pipeline writes its own fmt/data/smpl WAVs); drop it at the next lockfile regeneration.
+  already loaded; the DoD's < 50 ms on Windows is WS0's to confirm). `wavefile` is removed from package.json (unused:
+  the pipeline writes its own fmt/data/smpl WAVs); WS0 picks that up with the fflate lockfile regeneration.
 - [x] Task 5: `previewSprite` (C12 types unchanged; freezes at CP-B) + `previewSpriteDetails` (original vs converted
   RGBA, E401/E407, dither) + `spriteDefaults` (C1 import defaults).
 - [x] Task 6 (part): cache, `checkRoomBudgets` (C4; hand-written room sets in tests; works on the compileOnly
@@ -37,14 +37,8 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
 - [ ] Next: WS0's Windows run of the real-tool test; then refine the MSL/MAS reading if its figures disagree.
 
 ## Blockers
-- **push.sh refuses a merge of origin/main (2026-09-26).** The daily `git merge origin/main` brings in WS0's
-  `7fd898f chore(deps): regenerate lockfile`; `tools/cloud/push.sh` checks every non-merge commit in
-  `origin/ws5-assets..HEAD`, which includes main's own commits, and stops at "7fd898f changes package-lock.json".
-  WS5 therefore undid its local (unpushed) merge and keeps working on top of `c0d8649`; the merge itself was clean
-  apart from a CHANGELOG conflict (keep both sides: main's C9 lines, then WS5's). Proposed fix (WS0 owns
-  `tools/cloud/`): exclude main's commits from the check, e.g.
-  `for c in $(git rev-list --no-merges "$B..HEAD" --not origin/main); do`. Alternatively WS0 fast-forwards
-  `ws5-assets` to a merge of main at integration.
+- None. The push.sh lockfile-range blocker (2026-09-26) was fixed by WS0 in 5b09e6c; the daily merge of origin/main
+  (checkpoint-3, CHANGELOG conflict resolved by keeping both sides) is pushed as 5fd6fa7.
 
 ## For WS0 at integration (Windows-only checks)
 - `npm test -w packages/asset-pipeline` runs `src/pack/real-tools.test.ts` with the real grit/mmutil: flappy + the XM
@@ -61,8 +55,8 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
 - WS1/WS8 (C10): `dsdude assets --json` prints `{ok, diagnostics, buildDir, manifestPath, manifest}`; please add
   that row to the `--json` fields table of contracts/cli.md. Exporting `runTool`/`toolRunDiagnostics` from
   `@dsdude/toolchain` would let `src/pack/tools.ts` drop its small copy of them.
-- `@dsdude/asset-pipeline/browser` is the pure subpath for renderer code (WS6/WS6b); the root also exports the
-  Node-only `packAssets` and `cliCommands`.
+- Browser consumers (editor-core, the IDE renderer, WS6b) import `@dsdude/asset-pipeline/browser` (WS0 decision,
+  checkpoint-3 relay); the root also exports the Node-only `packAssets` and `cliCommands`.
 - Dependency: `fflate` 0.8.3 added to `packages/asset-pipeline/package.json` (already in the lockfile via
   `@vitest/ui`; pure-JS zlib so the preview and PNG code need no `node:zlib`). WS0: regenerate the lockfile.
 - samples/flappy `spr_bird/sprite.json` bbox says left 2, but the wing reaches column 1 (the C1 opaque-bounds default
