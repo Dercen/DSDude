@@ -7,6 +7,8 @@
 import { encodeDsIndexedPng, previewSprite } from "@dsdude/asset-pipeline/browser";
 import {
   addFrame,
+  BUDGET_LIMITS,
+  budgetLevel,
   clip,
   colorsUsed,
   deleteFrame,
@@ -19,6 +21,7 @@ import {
   mirror,
   moveFrame,
   moveRegion,
+  paddedFrame,
   paletteIndex,
   pencil,
   type Rect,
@@ -29,12 +32,14 @@ import {
   sameSprite,
   setFrame,
   sheetIndices,
+  spriteBytes,
   spriteDocFromPreview,
 } from "@dsdude/editor-core";
 import type { Project } from "@dsdude/project-format";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { EditorPanel, EditorPanelFactory, PanelHost, ResourceRef } from "../../panels/api.ts";
+import { kb } from "../shared/budget.ts";
 
 type Tool = "pencil" | "eraser" | "line" | "rect" | "rectFill" | "fill" | "select";
 
@@ -596,6 +601,41 @@ function FrameThumb({
   );
 }
 
+/**
+ * The sprite's memory on its screen, live: frames x the padded OBJ frame, as the pipeline stores it (C13
+ * objVramBytesPerScreen). Plain words; the OBJ size and colour depth are in the tooltip.
+ */
+export function SpriteMeters({ doc, colorMode }: { doc: SpriteDoc; colorMode: SpriteJson["colorMode"] }) {
+  const mode = colorMode !== "auto" ? colorMode : colorsUsed(doc) <= 15 ? "16" : "256";
+  const padded = paddedFrame(doc.frameWidth, doc.frameHeight);
+  if (!padded)
+    return (
+      <p className="meter meter-over sprite-meter" data-testid="sprite-meter:memory">
+        Frames bigger than 64x64 cannot be DS sprites
+      </p>
+    );
+  const frames = doc.frames.length;
+  const bytes = spriteBytes({ frames, frameWidth: doc.frameWidth, frameHeight: doc.frameHeight, colorMode: mode });
+  const max = BUDGET_LIMITS.objVramBytesPerScreen;
+  const pads = padded.width !== doc.frameWidth || padded.height !== doc.frameHeight;
+  return (
+    <>
+      <p
+        className={`meter meter-${budgetLevel(bytes, max)} sprite-meter`}
+        data-testid="sprite-meter:memory"
+        title={`OBJ VRAM: ${frames} frame${frames === 1 ? "" : "s"} of ${padded.width}x${padded.height} at ${mode === "16" ? "4" : "8"} bits per pixel, 128-byte aligned, out of ${kb(max)} per screen.`}
+      >
+        Memory: {kb(bytes)} of {kb(max)}
+      </p>
+      {pads ? (
+        <p className="sprite-meter-hint" data-testid="sprite-meter:padding">
+          Each frame is stored as {padded.width}x{padded.height} on the DS.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 /** The sprite editor's C12 factory (default export: the shell loads editors/<name>/index.tsx). */
 const spriteEditorFactory: EditorPanelFactory = {
   kind: "sprite",
@@ -633,6 +673,7 @@ const spriteEditorFactory: EditorPanelFactory = {
             host={host}
             name={r.name}
             initial={saved}
+            aside={(d) => <SpriteMeters doc={d} colorMode={json.colorMode} />}
             onChange={(d) => {
               doc = d;
               report();

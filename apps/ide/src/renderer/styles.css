@@ -1065,6 +1065,18 @@ canvas.pixelated {
   margin: 4px 0 0;
 }
 
+.sprite-meter {
+  display: inline-block;
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+.sprite-meter-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
 .bg-meters {
   width: 100%;
   margin-top: 10px;
@@ -1147,6 +1159,20 @@ canvas.pixelated {
   height: 100%;
   font-size: 13px;
   outline: none;
+}
+
+.room-meters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  padding: 4px 8px;
+  border-bottom: 1px solid #333;
+  font-size: 12px;
+}
+
+.room-meter-group {
+  display: inline-flex;
+  gap: 10px;
 }
 
 .room-editor select,

@@ -3,6 +3,7 @@
  * Node: views in apps/ide/src/renderer/editors/ render them, and node Vitest covers every core.
  */
 export * from "./background.ts";
+export * from "./budget.ts";
 export * from "./color.ts";
 export * from "./history.ts";
 export * from "./pixels.ts";
