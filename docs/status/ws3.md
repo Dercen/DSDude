@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `c9b11b1`, checkpoint-19; dist rebuilt, conformance:ds 46/46; selftest scanline page names C13 0.2.0 scanlineObjCycles 2048). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `9ff97c1`, checkpoint-23; dist rebuilt for WS2's direct threading, conformance:ds 46/46). After WS2's `ad59008` (core: release builds wrap on overflow) `check:dist` reported `dist/` stale as designed; rebuilt, `conformance:ds` 39/39 and selftest 5/5 still pass. Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -135,6 +135,14 @@ Legend: todo / in progress / done (<sha>).
     cycles/op** (equal within 1 %: melonDS does not model the data cache); py-desmume **47.71 vs 57.62** (the loop
     17 % cheaper there). What the D-cache is worth on hardware needs spike 15 (a flashcart run). `npm run bench`
     now reports it every run (`LOOP` lines).
+  - **Re-run after WS2's 837fe60 (pre-decoded code, direct threading), main 9ff97c1:** `DSD|MEM predecode=10/256` in
+    the bench room (1 in the baseline's), so the threaded path is in use. melonDS VM, gate mix tag-checked **29.94
+    cycles/op = 37,419 ops/frame**; II **26.06 = 42,990**: both still FAIL 44,000, the II mix 0.60 cycles/op above
+    the 25.46 target. Loop 29.78 / 26.05; BL = long. Per-opcode: CMPJ+JMP 34.4 -> 29.9, **CMPJII+JMP 30.5 -> 25.2**,
+    **CALLN 62.8 -> 51.8**; ADD 31.9, ADDII 24.0, MUL 32.9, MULII 27.0, GETSLOT 27.0, SETSLOT 24.0, MOV 18.0, LOADI
+    15.0 (unchanged). **ITCM 8,344 B** (run_plain moved to main RAM): ~15.6 KB of the 24 KB ceiling free. Hardware set
+    3 built (not handed out) at `<DSDUDE_HOME>/hardware-set3/` (`npm run hardware -w runtime -- --out
+    hardware-set3`); its 2-bench.nds gives 29.94 / 26.06 on melonDS.
   - **Re-run after WS2's 82488bc (CALLN budget), c29babf (cached slot pointer), ae8daf7 (ADDII/SUBII/MULII/CMPJII),
     main d50546c:** melonDS, gate mix as bench.dsdb has it (tag-checked): VM **31.76 cycles/op = 35,266 ops/frame**;
     the same mix with ADD/SUB/MUL/CMPJ as the II forms (opcode bytes rewritten as WS2's tests do, `rewriteToII`):
