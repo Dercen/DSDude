@@ -1,12 +1,20 @@
 # DSDude checkpoint / daily integration (docs/kickoff/ws0.md tasks 3 and 8). ASCII only.
 #   tools\checkpoint.ps1 -MemoryOnly [-Since '2026-09-25T09:00']   memory gate summary (restarts a stale sampler)
 #   tools\checkpoint.ps1 -AdrOnly                                   ADR-pending inventory
-#   tools\checkpoint.ps1                                            full integration (task 8; Day-1 part: checks only)
+#   tools\checkpoint.ps1 [-DryRun] [-NoPush] [-NoScreenshot] [-Local WS2,WS4] [-Only WS1,WS4]
+#                                                                   daily integration (task 8; tools/lib/integrate.ts):
+#     fetch, per-commit ownership, merges on a throwaway branch, check+test on Windows, lockfile, host goldens,
+#     screenshot, checkpoint-N.md, IF entries, push. -DryRun never moves main, writes files or pushes.
 [CmdletBinding()]
 param(
   [switch]$MemoryOnly,
   [switch]$AdrOnly,
-  [string]$Since = ''
+  [string]$Since = '',
+  [switch]$DryRun,
+  [switch]$NoPush,
+  [switch]$NoScreenshot,
+  [string]$Local = '',
+  [string]$Only = ''
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
@@ -79,7 +87,18 @@ Write-OneDriveWarning
 if ($MemoryOnly) { Show-Memory; exit 0 }
 if ($AdrOnly) { Show-Adr; exit 0 }
 
-Write-Host 'Full integration (task 8) is not implemented yet: run -MemoryOnly or -AdrOnly.'
-Show-Memory
-Show-Adr
-exit 0
+Show-Memory   # restarts a stale sampler before the report reads the log
+$argv = @()
+if ($DryRun) { $argv += '--dry-run' }
+if ($NoPush) { $argv += '--no-push' }
+if ($NoScreenshot) { $argv += '--no-screenshot' }
+if ($Local) { $argv += @('--local', $Local) }
+if ($Only) { $argv += @('--only', $Only) }
+Push-Location $repo
+try {
+  & node (Join-Path $repo 'tools\lib\integrate.ts') @argv
+  $code = $LASTEXITCODE
+} finally {
+  Pop-Location
+}
+exit $code
