@@ -1,6 +1,6 @@
 # C5: IPC channel map
 
-Version: 0.5.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
+Version: 0.7.0 · Owner: WS6 · Changes: see the tiers in contracts/README.md
 
 The typed channels between the IDE's renderer and its main process. Source: PLAN.md section 5.2 C5. The Phase-0
 channel list and zod stubs were written by WS0; WS6 completed them in 0.2.0. The schemas live in
@@ -18,6 +18,7 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 | `SettingsSchema` (+ `ControlsSchema`) | `settings.json` under userData | Every key has a default. `controls` defaults to the PLAN 6 WS6 Controls mapping. `learnOpened` (0.4.0): the Learn panel has opened once. |
 | `DiagnosticSchema` | C9 | Used in every `diagnostics` field. |
 | `AssetPathSchema` (0.4.0) | - | A project-relative path (`isSafeRelativePath`: `/` separators, no leading `/`, drive, `:`, `.`/`..` segment or backslash) ending in `.png`, `.wav`, `.mp3`, `.xm`, `.mod`, `.it` or `.s3m`. |
+| `TemplateIndexSchema` (0.7.0) | `templates/index.json` (WS7's file) | `{templates: [{id: /^[a-z0-9-]+$/, title, description = "", dir}]}`, at least one; `dir` is a safe folder under `templates/` holding a complete C1 project; listed in wizard order. |
 | `LearnPathSchema`, `LearnDocSchema` (0.4.0) | - | `docs/tutorial/...md`, `docs/manual/...md` or `docs/reference/...md`; a document is `{path, title, section}`. |
 
 ## Invoke channels (renderer -> main)
@@ -26,12 +27,15 @@ below), and the Electron-free validation helpers in `packages/ipc-contract/src/d
 |---|---|---|
 | `project.open` | `{dir}` | `{project: Project \| null, diagnostics}` (C1 `LoadResult`; null only when project.json is unusable) |
 | `project.save` | `{dir, project: Project}` | `{ok: true}` (C1 `save`: writes every JSON/DSS file, never deletes) |
-| `project.create` | `{dir, name, template?}` | `{dir}` |
+| `project.create` | `{dir, name, template?}` | `{dir}`: creates `<dir>/<name>` from the template (default `empty`), refusing an existing non-empty folder, and sets project.json's `name` and `title` (0.7.0 pins these semantics); returns the new folder |
+| `project.templates` (0.7.0) | `{}` | `{templates: [{id, title, description}]}` from `templates/index.json` (`TemplateIndexSchema`); without it a built-in Empty template (plus, in development only, the repo's `samples/*`) |
+| `app.info` (0.7.0) | `{}` | `{version, packaged, defaultProjectsDir, oneDriveDirs}` |
 | `assets.import` | `{projectDir, kind: sprite\|background\|sound, sourcePath, name}` | `{name, diagnostics}` |
 | `assets.preview` | `{projectDir, sprite?, sourcePath?, options?}`: exactly one of `sprite`/`sourcePath`; `sourcePath` needs `options` | `SpritePreview` (C12) |
 | `build.play` | C4 `BuildRequest` (incl. `debug`, 0.3.0) | `PlayResult` (`BuildResult` + `emulator`) |
 | `build.build`, `build.compileOnly` | C4 `BuildRequest` | C4 `BuildResult` |
 | `build.cancel` | `{}` | `{ok: true}` |
+| `build.manifest` (0.6.0) | `{projectDir}` | `{manifest}`: the project's `<DSDUDE_HOME>\build\<project-hash>\assets.manifest.json` (C3) through `ManifestSummarySchema` (the fields the meters read, all optional, unknown fields kept), or null before the first build or when unreadable |
 | `emulator.stop` | `{}` | `{ok: true}` |
 | `emulator.status` | `{}` | `{running, kind, pid}` |
 | `emulator.install` | `{kind: melonds\|desmume}` | `{exe}` |
