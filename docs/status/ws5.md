@@ -5,7 +5,7 @@ Cloud push target: `ws5-assets`
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
-- start.sh (2026-09-26, after checkpoint-8 relay): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
+- start.sh (2026-09-26, after checkpoint-8 relay; main 80fb430 merged after checkpoint-9, where WS0 merged ws5-assets@037001c green on Windows): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
   origin/main by 17 (then merged, main 5b8d0cc+); latest checkpoint: docs/status/checkpoint-8.md; open IF entries: 1
   by start.sh's count (see Blockers). Lockfile guard passed. WS0 merged ws5-assets@3bbe1f8 at checkpoint-8, green on
   Windows.
