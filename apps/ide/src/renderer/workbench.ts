@@ -5,14 +5,21 @@
  */
 import type { DockviewApi, IDockviewPanel } from "dockview-react";
 import type { StoreApi } from "zustand";
+import { type ResourceRef, resourceFile, resourceId } from "./panels/api.ts";
+import { resourceTitle } from "./panels/EditorHostPanel.tsx";
+import { editorFor } from "./panels/registry.ts";
 import { docTitle } from "./store/documents.ts";
 import type { IdeState, Workbench } from "./store/ide.ts";
 
 export const DOC_PREFIX = "doc:";
+/** Editor tabs: `res:<resourceId>` (component "editor"). */
+export const RES_PREFIX = "res:";
+const isEditorArea = (id: string) =>
+  id.startsWith(DOC_PREFIX) || id.startsWith(RES_PREFIX) || id === "welcome" || id === "learn";
 
 export class DockWorkbench implements Workbench {
   #api: DockviewApi | null = null;
-  #pending: string[] = [];
+  #pending: (() => void)[] = [];
 
   attach(api: DockviewApi): void {
     this.#api = api;
@@ -34,13 +41,13 @@ export class DockWorkbench implements Workbench {
     welcome.api.setActive();
     api.getPanel("project")?.group.api.setSize({ width: 260 });
     api.getPanel("output")?.group.api.setSize({ height: 220 });
-    for (const id of this.#pending.splice(0)) this.openDocument(id);
+    for (const run of this.#pending.splice(0)) run();
   }
 
   openDocument(docId: string): void {
     const api = this.#api;
     if (!api) {
-      this.#pending.push(docId);
+      this.#pending.push(() => this.openDocument(docId));
       return;
     }
     const id = `${DOC_PREFIX}${docId}`;
@@ -60,6 +67,53 @@ export class DockWorkbench implements Workbench {
     api.getPanel("welcome")?.api.close();
   }
 
+  openResource(resource: ResourceRef): void {
+    const api = this.#api;
+    if (!api) {
+      this.#pending.push(() => this.openResource(resource));
+      return;
+    }
+    if (!editorFor(resource)) {
+      this.openDocument(resourceFile(resource));
+      return;
+    }
+    const id = `${RES_PREFIX}${resourceId(resource)}`;
+    const existing = api.getPanel(id);
+    if (existing) {
+      existing.api.setActive();
+      return;
+    }
+    const anchor = this.#editorAnchor(api);
+    api.addPanel({
+      id,
+      component: "editor",
+      title: resourceTitle(resource),
+      params: { resource },
+      position: anchor ? { referenceGroup: anchor.group } : { referencePanel: "project", direction: "right" },
+    });
+    api.getPanel("welcome")?.api.close();
+  }
+
+  showLearn(): void {
+    const api = this.#api;
+    if (!api) {
+      this.#pending.push(() => this.showLearn());
+      return;
+    }
+    const existing = api.getPanel("learn");
+    if (existing) {
+      existing.api.setActive();
+      return;
+    }
+    const anchor = this.#editorAnchor(api);
+    api.addPanel({
+      id: "learn",
+      component: "learn",
+      title: "Learn",
+      position: anchor ? { referenceGroup: anchor.group } : { referencePanel: "project", direction: "right" },
+    });
+  }
+
   focusPanel(id: "problems" | "output" | "project"): void {
     this.#api?.getPanel(id)?.api.setActive();
   }
@@ -74,9 +128,10 @@ export class DockWorkbench implements Workbench {
     }
   }
 
-  /** Closes every document tab (another project was opened). */
+  /** Closes every document and editor tab (another project was opened). */
   closeDocuments(): void {
-    for (const panel of [...(this.#api?.panels ?? [])]) if (panel.id.startsWith(DOC_PREFIX)) panel.api.close();
+    for (const panel of [...(this.#api?.panels ?? [])])
+      if (panel.id.startsWith(DOC_PREFIX) || panel.id.startsWith(RES_PREFIX)) panel.api.close();
   }
 
   bindStore(store: StoreApi<IdeState>): () => void {
@@ -88,7 +143,7 @@ export class DockWorkbench implements Workbench {
 
   #editorAnchor(api: DockviewApi): IDockviewPanel | undefined {
     const active = api.activePanel;
-    if (active?.id.startsWith(DOC_PREFIX) || active?.id === "welcome") return active;
-    return api.panels.find((p) => p.id.startsWith(DOC_PREFIX) || p.id === "welcome");
+    if (active && isEditorArea(active.id)) return active;
+    return api.panels.find((p) => isEditorArea(p.id));
   }
 }

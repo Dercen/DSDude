@@ -33,7 +33,9 @@ const compileError: Diagnostic = {
   source: "compiler",
 };
 
-function setup(opts: { diagnostics?: Diagnostic[]; emulatorLines?: string[] } = {}) {
+function setup(
+  opts: { diagnostics?: Diagnostic[]; emulatorLines?: string[]; savePanels?: () => Promise<boolean> } = {},
+) {
   const tmp = mkdtempSync(join(tmpdir(), "dsdude-store-"));
   dirs.push(tmp);
   const projectDir = join(tmp, "flappy");
@@ -55,6 +57,7 @@ function setup(opts: { diagnostics?: Diagnostic[]; emulatorLines?: string[] } = 
   service.onEvent(play.onBuildEvent);
   const local = createLocalBridge({
     ...createCoreHandlers({
+      learnRoot: tmp,
       settings,
       dialog: { showOpenDialog: async () => ({ canceled: false, filePaths: [projectDir] }) },
     }),
@@ -62,10 +65,16 @@ function setup(opts: { diagnostics?: Diagnostic[]; emulatorLines?: string[] } = 
   });
   emit = local.emit;
   const calls: string[] = [];
-  const ide = createIde(local.bridge, {
-    openDocument: (id) => calls.push(`open:${id}`),
-    focusPanel: (id) => calls.push(`focus:${id}`),
-  });
+  const ide = createIde(
+    local.bridge,
+    {
+      openDocument: (id) => calls.push(`open:${id}`),
+      openResource: (r) => calls.push(`resource:${r.kind}:${r.name}`),
+      showLearn: () => calls.push("learn"),
+      focusPanel: (id) => calls.push(`focus:${id}`),
+    },
+    { savePanels: opts.savePanels },
+  );
   const off = ide.actions.connect();
   return { ...ide, projectDir, calls, off, settings, emit: local.emit };
 }
@@ -89,11 +98,12 @@ describe("IDE store", () => {
     const b = createIde(
       createLocalBridge(
         createCoreHandlers({
+          learnRoot: a.projectDir,
           settings: a.settings,
           dialog: { showOpenDialog: async () => ({ canceled: true, filePaths: [] }) },
         }),
       ).bridge,
-      { openDocument: () => {}, focusPanel: () => {} },
+      { openDocument: () => {}, openResource: () => {}, showLearn: () => {}, focusPanel: () => {} },
     );
     await b.actions.boot();
     expect(b.store.getState().projectDir).toBe(a.projectDir);
@@ -175,6 +185,58 @@ describe("IDE store", () => {
     const out = store.getState().output;
     expect(out).toHaveLength(OUTPUT_LIMIT);
     expect(out.at(-1)?.text).toBe(`line ${OUTPUT_LIMIT + 999}`);
+  });
+
+  it("updates a resource through the C12 path and marks its file dirty", async () => {
+    const { store, actions, projectDir } = setup();
+    await actions.openProject(projectDir);
+    const before = store.getState().project;
+    const next = actions.updateResource({ kind: "object", name: "obj_bird" }, (d) => {
+      const o = d.objects.find((x) => x.name === "obj_bird");
+      if (o) o.depth = -5;
+    });
+    expect(next).not.toBe(before);
+    expect(store.getState().dirty).toEqual({ "objects/obj_bird/object.json": true });
+    // A no-op recipe changes nothing.
+    actions.updateResource({ kind: "object", name: "obj_bird" }, () => {});
+    expect(store.getState().project).toBe(next);
+    await actions.save();
+    expect(JSON.parse(readFileSync(join(projectDir, "objects/obj_bird/object.json"), "utf8")).depth).toBe(-5);
+  });
+
+  it("opens Learn on the first launch only, and from targets or URIs", async () => {
+    const a = setup();
+    await a.actions.boot();
+    expect(a.calls).toContain("learn");
+    expect(await a.settings.get("learnOpened")).toBe(true);
+    expect(a.store.getState().learn.target).toBeNull();
+    a.actions.openLearn("dsdude-learn:/docs/reference/errors.md#e101");
+    expect(a.store.getState().learn.target).toEqual({ path: "docs/reference/errors.md", anchor: "e101" });
+    const seq = a.store.getState().learn.seq;
+    a.actions.openLearn({ path: "docs/manual/sprites.md" });
+    expect(a.store.getState().learn.seq).toBe(seq + 1);
+    a.calls.length = 0;
+    await a.actions.boot();
+    expect(a.calls).not.toContain("learn");
+  });
+
+  it("saves dirty editor panels before project.save, and stops when they fail", async () => {
+    let panelSaves = 0;
+    let ok = true;
+    const { actions, projectDir } = setup({
+      savePanels: async () => {
+        panelSaves++;
+        return ok;
+      },
+    });
+    await actions.openProject(projectDir);
+    actions.editDocument(eventDocId("obj_bird", "step"), "// a\n");
+    expect(await actions.save()).toBe(true);
+    expect(panelSaves).toBe(1);
+    ok = false;
+    actions.editDocument(eventDocId("obj_bird", "step"), "// b\n");
+    expect(await actions.save()).toBe(false);
+    expect(readFileSync(join(projectDir, "objects/obj_bird/step.dss"), "utf8")).toBe("// a\n");
   });
 
   it("asks for a project before Play", async () => {

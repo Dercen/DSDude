@@ -91,14 +91,57 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
       - the spike 13 checks, updated to open a document first.
     - Screenshots checked. `electron-vite dev` starts cleanly with the worker entry. No `electron` process was left after any run.
 
+- **2026-09-26: merged `main` again (WS0 had integrated task 3 as `5a00398`; the lockfile was regenerated at `7fd898f`). No `IF-` entries.**
+- **Task 4: C12 panel API, mock host, Learn panel host: done (2026-09-26), ahead of CP-A.**
+  - **C5 0.4.0 (T1)**, for the editors and Learn:
+    - `project.readFile` / `project.writeFile`: asset files (png/wav/mp3/xm/mod/it/s3m) at safe project-relative paths, as Uint8Array. Main confines them to the project folder and writes through a temp file + rename.
+    - `learn.list` / `learn.read`: `docs/tutorial|manual|reference` markdown; local images come back as data: URLs, never remote and never from outside `docs/`. Docs root: the repo in dev, `resources/` when packaged (WS8), or `DSDUDE_DOCS_DIR`.
+    - Setting `learnOpened`.
+  - **C12 panel API 0.1.0**: `apps/ide/src/renderer/panels/api.ts`, imported as `@dsdude/ide/panels`.
+    - `EditorPanel {id, kind, open(resource), save(), dispose(), onDirty}`.
+    - `EditorPanelFactory {kind, canOpen, create({element, host})}`; editors mount into a plain element, so any framework works.
+    - `PanelHost`: project store (get/dir/subscribe/update with immer/isDirty/save), files, ipc, a per-panel undo stack, toast, openLearn, openResource.
+    - Editor-module convention: the default export of `editors/<name>/index.ts(x)`, auto-registered by the shell.
+    - Learn link form for WS7: `dsdude-learn:/docs/...md#anchor`, GitHub-style heading slugs, errors.md#<code>, functions.md / variables.md#<name>.
+    - Helpers in `kit.ts`: `createUndoStack` (limit 200) and `updateWithUndo` (immer patches).
+  - Shell:
+    - `EditorHostPanel` hosts factories in dockview tabs: dirty dot, Ctrl+Z/Y routing, dispose on close.
+    - Save/Play save dirty panels first; the tree opens resources in their editor, else as read-only JSON.
+    - Problems codes link to Learn; F1 in Monaco opens functions.md#<word>, and F1 elsewhere or the toolbar Learn button opens the contents.
+    - `dsdude-learn:` links in Monaco hovers open Learn (registerLinkOpener).
+    - Learn opens on first launch.
+    - Main now grants `clipboard-sanitized-write` (Learn's Copy buttons) and still denies every other permission.
+  - **Markdown choice:**
+    - marked 14.0.0 (MIT, no dependencies) with DOMPurify 3.4.15 (MPL-2.0 OR Apache-2.0, no dependencies), in `apps/ide/package.json` only. These are exactly the versions monaco-editor 0.57 already pins, so the bundle holds one copy and nothing new is downloaded.
+    - It renders in the renderer with no eval: headings get slug ids, and `<img>` keeps only data: images from main (anything else becomes its alt text).
+    - Scripts, event handlers, `javascript:` URLs, style, forms, iframes and media are stripped.
+    - Links never navigate: Learn and relative .md links open in the panel, `#` scrolls, web links show a toast.
+  - **Mock host:** `apps/ide/src/renderer/mock-host` = `@dsdude/ide/mock-host`, re-exported by `fixtures/ide/mock-host/index.ts` with a README.
+    - `createMockHost({project, settings, buildDiagnostics, emulatorLines, docs, handlers})` loads `samples/*` through C1 `load` from Vite globs (no fs) and serves the repo's docs.
+    - In-memory C5 handlers sit behind `createLocalBridge` (same zod validation), with a fake build and emulator.
+    - `mountEditor`, `mountLearn`, `mountShell` (the whole IDE), plus `calls`, `layout`, `files` and `saved` for assertions.
+  - **Browser tests:** `apps/ide/vitest.browser.config.ts` runs `src/**/*.browser.test.{ts,tsx}` in headless Chromium (port base+1).
+    - `npm test -w apps/ide` runs node, then browser. Root `npm test` stays node-only, so WS2/WS4 clouds without Chromium are unaffected.
+    - Installed Playwright's chromium 1243 here (`npx playwright install chromium`); the cached 1234 was too old for 1.63.
+  - Tests (all green):
+    - node: 61 in apps/ide (C12 helpers, undo kit, store: updateResource/openLearn/first-launch/savePanels, learn/files) and 64 in ipc-contract.
+    - browser: 6 (flappy loads in the browser; an EditorPanel built only on C12 edits, undoes and saves a PNG + JSON; unsafe paths refused; Learn sanitising: no script, no remote image, no `javascript:`, heading ids, copy buttons, link routing; the repo docs list; the whole shell plays the fake game).
+    - Playwright `_electron`: 8 (new learn.spec: first-launch Learn under the real CSP, Problems code link and F1 routing).
+    - Screenshots checked: the mock-host shell, Learn in the browser and in Electron.
+- **For WS0:**
+  - `apps/ide/package.json` adds marked + dompurify and the `./panels` + `./mock-host` exports: the lockfile needs regenerating.
+  - `contracts/README.md` (yours) still lists the C12 panel API as owed.
+  - To run the browser tests at integration: `npm run test:browser -w apps/ide` (needs Playwright chromium 1243).
+
 ## Next
-- Task 4 (before CP-A): C12 `apps/ide/src/renderer/panels/api.ts` (EditorPanel + host services), `fixtures/ide/mock-host` (headless Chromium, no Electron), and the Learn panel host (markdown renderer + sanitiser).
+- CP-A: stop and wait for WS0's merge (checkpoint ritual). Then task 5 at CP-B (real BuildService), and task 6 (object editor, import dialogs, meters, Controls card, wizards, Help menu, Debug, smoke test).
 
 ## Leftovers / ADR-pending
 - None open.
 - Deferred:
   - chokidar `project.changed` watcher (with the object editor).
   - `assets.*`, `toolchain.*` and `doctor.run` handlers (tasks 5-6).
+  - Help menu (Flappy Bird tutorial, Differences from GameMaker, Controls, Tutorial assets) waits for WS7's docs (task 6).
   - dockview layout persistence.
   - Unsaved-changes prompt on close.
 

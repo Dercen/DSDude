@@ -4,8 +4,10 @@
  */
 import { type DsdudeBridge, type EventPayload, parseIpcError, type Settings } from "@dsdude/ipc-contract";
 import type { Diagnostic, Project } from "@dsdude/project-format";
+import { type Draft, produce } from "immer";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { type OutputLine, parseLogLine, type Stats, type Usage } from "../log.ts";
+import { type LearnTarget, parseLearnUri, type ResourceRef, resourceFile } from "../panels/api.ts";
 import { getDocText, setDocText } from "./documents.ts";
 
 export type BuildStatus = "idle" | "building" | "running";
@@ -40,12 +42,23 @@ export interface IdeState {
   toast: Toast | null;
   /** A request for the editor showing `docId` to reveal a position (Problems click-to-line). */
   reveal: { docId: string; line: number; col: number; seq: number } | null;
+  /** What the Learn panel shows: a document (and anchor), or the contents when `target` is null. */
+  learn: { target: LearnTarget | null; seq: number };
 }
 
 /** What the store needs from the dockview layout. */
 export interface Workbench {
   openDocument(docId: string): void;
+  /** Opens the resource in its C12 editor, or its file as text when no editor handles it. */
+  openResource(resource: ResourceRef): void;
+  /** Shows (and activates) the Learn panel; it reads `learn` from the store. */
+  showLearn(): void;
   focusPanel(id: "problems" | "output" | "project"): void;
+}
+
+export interface IdeOptions {
+  /** Saves the dirty C12 editor panels; Save and Play call it before project.save. False stops the save. */
+  savePanels?: () => Promise<boolean>;
 }
 
 export interface IdeActions {
@@ -56,7 +69,12 @@ export interface IdeActions {
   play(): Promise<void>;
   stop(): Promise<void>;
   editDocument(docId: string, text: string): void;
+  /** C12 ProjectStore.update: applies an immer recipe and marks the resource's file dirty. */
+  updateResource(resource: ResourceRef, recipe: (draft: Draft<Project>) => void): Project;
   openDocument(docId: string): void;
+  openResource(resource: ResourceRef): void;
+  /** Opens Learn at a target or `dsdude-learn:` URI; null or no argument shows the contents. */
+  openLearn(target?: LearnTarget | string | null): void;
   revealDiagnostic(d: Diagnostic): void;
   clearOutput(): void;
   showToast(message: string, kind?: Toast["kind"]): void;
@@ -84,6 +102,7 @@ const initial = (): IdeState => ({
   settings: null,
   toast: null,
   reveal: null,
+  learn: { target: null, seq: 0 },
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -102,7 +121,7 @@ export function problemsOf(s: Pick<IdeState, "loadDiagnostics" | "buildDiagnosti
   return out;
 }
 
-export function createIde(ipc: DsdudeBridge, workbench: Workbench): Ide {
+export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeOptions = {}): Ide {
   const store = createStore<IdeState>()(initial);
   const set = store.setState;
   const get = store.getState;
@@ -123,6 +142,12 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench): Ide {
         set({ settings });
         const recent = settings.recentProjects[0];
         if (recent) await actions.openProject(recent);
+        // The Learn panel opens on first launch (PLAN.md 6 WS6).
+        if (!settings.learnOpened) {
+          actions.openLearn(null);
+          set({ settings: { ...settings, learnOpened: true } });
+          await ipc.invoke("settings.set", { key: "learnOpened", value: true });
+        }
       } catch (err) {
         actions.showToast(`Could not read the settings: ${parseIpcError(err).message}`, "error");
       }
@@ -163,6 +188,8 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench): Ide {
     },
 
     async save() {
+      if (!get().projectDir || !get().project) return false;
+      if (options.savePanels && !(await options.savePanels())) return false;
       const { projectDir, project } = get();
       if (!projectDir || !project) return false;
       try {
@@ -182,7 +209,7 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench): Ide {
         return;
       }
       if (build.status === "building") return;
-      if (Object.keys(dirty).length > 0 && !(await actions.save())) return;
+      if ((Object.keys(dirty).length > 0 || options.savePanels) && !(await actions.save())) return;
       const seq = exitSeq;
       set({ build: { status: "building", phase: "load", progress: 0 }, runtimeDiagnostics: [], stats: null });
       append({ kind: "info", text: `Play ${project.project.title}` });
@@ -223,8 +250,26 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench): Ide {
       set({ project: setDocText(project, docId, text), dirty: { ...get().dirty, [docId]: true } });
     },
 
+    updateResource(resource, recipe) {
+      const { project } = get();
+      if (!project) throw new Error("no project is open");
+      const next = produce(project, recipe);
+      if (next !== project) set({ project: next, dirty: { ...get().dirty, [resourceFile(resource)]: true } });
+      return next;
+    },
+
     openDocument(docId) {
       workbench.openDocument(docId);
+    },
+
+    openResource(resource) {
+      workbench.openResource(resource);
+    },
+
+    openLearn(target = null) {
+      const t = typeof target === "string" ? parseLearnUri(target) : target;
+      set({ learn: { target: t, seq: get().learn.seq + 1 } });
+      workbench.showLearn();
     },
 
     revealDiagnostic(d) {
