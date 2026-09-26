@@ -3,6 +3,7 @@
  * through TWiLight Menu++). Hardware has no stdout, so every ROM shows its result on screen:
  *   1-selftest.nds  runtime/selftest (page 4: boot figures; page 2: the scanline limit)
  *   2-bench.nds     the M1 timer harness: VM cycles/op and ops/frame, loop variant, memory probe (top screen)
+ *   2b-bench-ii.nds the same with the mix's ADD/SUB/MUL/CMPJ as ADDII/SUBII/MULII/CMPJII (the M1 fallback)
  *   3-hello.nds     fixtures/bytecode/hello.dsdb on the screen-log runtime (DSD_SCREENLOG: the log on screen)
  *   4-numeric.nds   spike 12's numeric-hashes.dsdb on the screen-log runtime
  *   5-flappy.nds    samples/flappy built end to end with the shipped runtime/dist/arm9.elf
@@ -68,6 +69,19 @@ async function main(): Promise<number> {
       "bench",
       benchElf,
       { "game.dsdb": w.full, "base.dsdb": w.base, "loop.dsdb": w.loop },
+      "hardware-work",
+    ),
+    frames: 400,
+    check: (log) => (log.map(parseSummaryLine).some((s) => s && s.vmOpsPerFrame > 0) ? null : "no summary line"),
+  });
+
+  // 2b. The same bench with the gate mix's ADD/SUB/MUL/CMPJ as the int-specialised forms (the M1 fallback).
+  roms.push({
+    file: "2b-bench-ii.nds",
+    packed: await packBench(
+      "bench-ii",
+      benchElf,
+      { "game.dsdb": w.fullII, "base.dsdb": w.base, "loop.dsdb": w.loopII },
       "hardware-work",
     ),
     frames: 400,

@@ -27,6 +27,7 @@
 #include "ds_log.h"
 #include "ds_mem.h"
 #include "ds_platform.h"
+#include "ds_sys.h"
 #include "ds_snd.h"
 #include "ds_ui.h"
 #include "ds_video.h"
@@ -440,8 +441,8 @@ static void draw_ui(void)
         snprintf(text, sizeof(text), "scanline: n=%d %s", scan_n, scan_mode_names[scan_mode]);
         info(DS_TOP, 0, 3, text, DS_C_AQUA);
         snprintf(text, sizeof(text), "OBJ line cycles: %d", scan_cycles());
-        info(DS_BOTTOM, 0, 0, text, scan_cycles() > 2124 ? DS_C_RED : DS_C_WHITE);
-        info(DS_BOTTOM, 0, 1, "budget ~2124 (1530 w/ bit 23)", DS_C_LTGRAY);
+        info(DS_BOTTOM, 0, 0, text, scan_cycles() > 2178 ? DS_C_RED : DS_C_WHITE);
+        info(DS_BOTTOM, 0, 1, "3DS: 2178 ok, 2208 drops", DS_C_LTGRAY);
         info(DS_BOTTOM, 0, 2, "warning at 1200 (C13)", DS_C_LTGRAY);
         info(DS_BOTTOM, 0, 4, "UP/DOWN n+-1  LEFT/RIGHT n+-8", DS_C_GRAY);
         info(DS_BOTTOM, 0, 5, "A: normal/affine/affine2x", DS_C_GRAY);
@@ -460,6 +461,7 @@ static void draw_ui(void)
         info(DS_BOTTOM, 0, 2, hex, DS_C_WHITE);
         snprintf(text, sizeof(text), "log protocol: %s", ds_log_protocol_name());
         info(DS_BOTTOM, 0, 3, text, DS_C_WHITE);
+        info(DS_BOTTOM, 0, 4, ds_sys_describe(), ds_sys_dsi_mode() ? DS_C_ORANGE : DS_C_WHITE);
         snprintf(text, sizeof(text), "1MB read: %lu ms %lu KB/s %s", (unsigned long)(read_us / 1000u),
                  (unsigned long)read_kbps, read_ok ? "ok" : "BAD");
         info(DS_BOTTOM, 0, 5, text, read_ok ? DS_C_LIME : DS_C_RED);

@@ -11,6 +11,10 @@
 // bus-clock ticks; x 2 = ARM9 cycles), with dsd_plat_frame_end skipping the VBlank wait and the log muted. The VM
 // alone costs (full - base) cycles over (full - base) ops. Every figure goes to the log (DSD|LOG|bench: lines) and
 // to the screen, because hardware has no stdout: the user reads the top screen (spike 15).
+//
+// Cycles are ARM9 cycles at 67 MHz: the timers tick at the 33.51 MHz bus clock, so cycles = ticks x 2. A DSi or 3DS
+// loader may start the ROM in DSi mode, where the ARM9 can run at 134 MHz; the bench then forces 67 MHz first
+// (setCpuClock) so the figure is a DS's, and prints the mode and both clocks.
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -22,6 +26,7 @@
 #include "ds_log.h"
 #include "ds_mem.h"
 #include "ds_platform.h"
+#include "ds_sys.h"
 #include "ds_ui.h"
 #include "ds_video.h"
 #include "engine.h"
@@ -153,6 +158,7 @@ int main(int argc, char **argv)
 
     ds_cstack_paint();
     ds_log_init();
+    uint32_t mhz_at_boot = ds_sys_force_67mhz();
 
     bool melonds = ds_log_emulator_id()[0] == 'm';
     uint32_t gate = melonds ? GATE_MELONDS : GATE;
@@ -196,6 +202,7 @@ int main(int argc, char **argv)
                  (unsigned long)(mem_main / 100u), (unsigned long)(mem_main % 100u), (unsigned long)(mem_dtcm / 100u),
                  (unsigned long)(mem_dtcm % 100u));
     ds_log_linef("DSD|LOG|bench: cstack=%lu/%lu B", (unsigned long)ds_cstack_used(), (unsigned long)ds_cstack_total());
+    ds_log_linef("DSD|LOG|bench: machine %s (ARM9 %lu MHz at boot)", ds_sys_describe(), (unsigned long)mhz_at_boot);
     ds_log_pad();
 
     // The result screen (hardware has no stdout): top screen, one figure per row, to read out or photograph.
@@ -203,6 +210,8 @@ int main(int argc, char **argv)
     ds_ui_clear(DS_BOTTOM);
     show(0, DS_C_YELLOW, "DSDude M1 bench %s", DSD_RUNTIME_VERSION);
     show(1, DS_C_LTGRAY, "calls=%s emu=%s", CALLS, ds_log_emulator_id()[0] ? ds_log_emulator_id() : "(none)");
+    show(2, ds_sys_dsi_mode() ? DS_C_ORANGE : DS_C_LTGRAY, "%s (boot %lu)", ds_sys_describe(),
+         (unsigned long)mhz_at_boot);
     show(3, DS_C_WHITE, "VM cycles/op   %lu.%02lu", (unsigned long)(vm_cpo / 100u), (unsigned long)(vm_cpo % 100u));
     show(4, DS_C_WHITE, "VM ops/frame   %lu", (unsigned long)vm_pf);
     show(5, vm_pf >= gate ? DS_C_LIME : DS_C_RED, "gate %lu: %s", (unsigned long)gate, vm_pf >= gate ? "PASS" : "FAIL");
