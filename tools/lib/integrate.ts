@@ -74,6 +74,21 @@ const firstLines = (s: string, n = 6) =>
     .slice(-n)
     .join(" / ")
     .slice(0, 600);
+/** The lines of a failed check or test run that say what failed (Vitest, tsc, Biome), else the last lines. */
+export const failureExcerpt = (s: string, n = 6): string => {
+  const lines = s
+    .replace(/\r/g, "")
+    .replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g"), "") // ANSI colours
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const key = lines.filter((l) =>
+    /^(FAIL |× |AssertionError|Error:|TypeError|ReferenceError|- Expected|\+ Received|.*error TS\d+|.*lint\/|.*format ━)/.test(
+      l,
+    ),
+  );
+  return (key.length ? key.slice(0, n) : lines.slice(-n)).join(" / ").slice(0, 700);
+};
 const today = () => new Date().toISOString().slice(0, 10);
 
 interface Target {
@@ -431,12 +446,12 @@ function main(argv: string[]): number {
         if (!ct.ok) {
           git(["restore", "package-lock.json"]);
           gitOk(["reset", "--hard", "HEAD~1"]);
-          outcomes.push({ ...base, status: "refused", detail: `${ct.step} red on Windows: ${firstLines(ct.out, 4)}` });
+          outcomes.push({ ...base, status: "refused", detail: `${ct.step} red on Windows: ${failureExcerpt(ct.out)}` });
           feedback.push({
             ws: s.ws,
             check: `${ct.step} on Windows after merging`,
             command: ct.command,
-            error: firstLines(ct.out, 4),
+            error: failureExcerpt(ct.out),
             action:
               "reproduce with the same command (Windows paths, CRLF and case are the usual causes), fix, and push again",
             sha: t.sha,
@@ -465,9 +480,9 @@ function main(argv: string[]): number {
     // 6. final check + test on the integrated tree (reused when nothing changed since the last green run)
     const final = batchGreen && !localChecks.length ? batchGreen : checkAndTest();
     localChecks.push(
-      `npm run check && npm test (Windows): ${final.ok ? `green; ${final.out}` : `RED: ${firstLines(final.out, 4)}`}`,
+      `npm run check && npm test (Windows): ${final.ok ? `green; ${final.out}` : `RED: ${failureExcerpt(final.out)}`}`,
     );
-    if (!final.ok) throw new Error(`the integrated tree is red: ${firstLines(final.out)}`);
+    if (!final.ok) throw new Error(`the integrated tree is red: ${failureExcerpt(final.out)}`);
 
     // 7. host goldens with MSYS2 gcc
     if (existsSync(join(root, "runtime/Makefile.host"))) {
