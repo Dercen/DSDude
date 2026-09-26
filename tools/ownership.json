@@ -1,0 +1,361 @@
+{
+  "version": 1,
+  "description": "Path ownership (PLAN.md 3.4). A row is active when its `from` tag exists (or it has none) and its `until` tag does not. A stream may commit a path when one of its active rows matches it (a row's `except` globs do not match). Globs: `**` any depth, `*` within one path segment. Checked by tools/check-ownership.ts (pre-commit, staged files) and by WS0's integration (per commit, stream from the DSDude-WS trailer).",
+  "events": [
+    { "tag": "phase0", "when": "end of Phase 0 (day 2)", "effect": "stream rows start; WS0's pre-tag rows end" },
+    { "tag": "toolchain-ok", "when": "WS1's toolchain gate (day 1-3)", "effect": "WS3 may launch" },
+    { "tag": "cp-a", "when": "checkpoint A (D+3)", "effect": "freezes C11, C12 panel API, C4 BuildService" },
+    { "tag": "cp-b", "when": "checkpoint B = M0 (D+7)", "effect": "freezes C7, C12 preview API" },
+    { "tag": "cp-c", "when": "checkpoint C = M1 (D+14)", "effect": "WS8 takes slot 1 (with start-ws8)" },
+    { "tag": "m2", "when": "M2 accepted", "effect": "samples/minimal and samples/flappy pass from WS4 to WS7" },
+    { "tag": "start-ws<n>", "when": "just before WS0 tells the user to launch stream n (start-ws2 .. start-ws8, start-ws6b)", "effect": "ends WS0's holding rows for that stream; start-ws8 moves WS1's paths to WS8; start-ws6b ends WS6's hold on WS6b's paths" }
+  ],
+  "rows": [
+    {
+      "owner": "WS0",
+      "note": "Phase 0: WS0 writes anywhere except WS1's entries",
+      "until": "phase0",
+      "paths": ["**"],
+      "except": [
+        "packages/toolchain/**",
+        "packages/cli/**",
+        "tools/fetch-vendor.ps1",
+        "tools/screenshot.py",
+        "tools/tools-pack.json",
+        "scripts/install-toolchain.ps1",
+        "scripts/smoke-test.ps1",
+        "samples/hello/**",
+        "fixtures/runtime/hello/**",
+        "fixtures/build/**",
+        "contracts/toolchain-api.md",
+        "contracts/cli.md",
+        "docs/manual/setup/**",
+        "docs/status/ws1.md"
+      ]
+    },
+    {
+      "owner": "WS0",
+      "note": "Phase 0: the packages/toolchain and packages/cli skeletons, api.ts + MockBuildService, the cli.md draft",
+      "until": "phase0",
+      "paths": [
+        "packages/toolchain/package.json",
+        "packages/toolchain/tsconfig.json",
+        "packages/toolchain/vitest.config.ts",
+        "packages/toolchain/CLAUDE.md",
+        "packages/toolchain/src/index.ts",
+        "packages/toolchain/src/index.test.ts",
+        "packages/toolchain/src/api.ts",
+        "packages/toolchain/src/mock-build-service.ts",
+        "packages/toolchain/src/mock-build-service.test.ts",
+        "packages/cli/package.json",
+        "packages/cli/tsconfig.json",
+        "packages/cli/vitest.config.ts",
+        "packages/cli/CLAUDE.md",
+        "packages/cli/src/index.ts",
+        "packages/cli/src/index.test.ts",
+        "packages/cli/src/main.ts",
+        "contracts/cli.md"
+      ]
+    },
+    {
+      "owner": "WS0",
+      "note": "WS0's permanent rows (PLAN.md 3.4)",
+      "paths": [
+        "package.json",
+        "package-lock.json",
+        "tsconfig.json",
+        "tsconfig.base.json",
+        "biome.json",
+        "vitest.config.ts",
+        ".gitattributes",
+        ".editorconfig",
+        ".npmrc",
+        ".gitignore",
+        "vendor/README.md",
+        "README.md",
+        "LICENSE*",
+        "runtime/LICENSE",
+        "PLAN.md",
+        "CLAUDE.md",
+        "CODEOWNERS",
+        ".githooks/**",
+        ".claude/**",
+        ".vscode/**",
+        "tools/ownership.json",
+        "tools/tsconfig.json",
+        "tools/gen-builtins.ts",
+        "tools/gen-opcodes.ts",
+        "tools/gen-dsdb.ts",
+        "tools/check-ownership.ts",
+        "tools/check-lockfile.mjs",
+        "tools/postinstall.mjs",
+        "tools/cloud/**",
+        "tools/checkpoint.ps1",
+        "tools/memsampler.ps1",
+        "tools/adr-pending.ts",
+        "tools/phase0/**",
+        "tools/lib/**",
+        "tools/*.test.ts",
+        "docs/adr/**",
+        "docs/research/**",
+        "docs/kickoff/**",
+        "docs/status/checkpoint-*.md",
+        "docs/status/cloud.md",
+        "docs/status/ws0.md",
+        "contracts/README.md",
+        "contracts/CHANGELOG.md",
+        "contracts/builtins.json",
+        "contracts/project-format.md",
+        "contracts/diagnostics.md",
+        "packages/project-format/**"
+      ]
+    },
+    {
+      "owner": "WS0",
+      "note": "Built locally for the cloud streams WS2 (grit/mmutil) and WS5 (py-desmume golden)",
+      "from": "phase0",
+      "paths": ["fixtures/runtime-core/flappy-nitrofs/**", "fixtures/assets/golden/**"]
+    },
+    {
+      "owner": "WS0",
+      "note": "Holding row: WS2's contract files until WS2 starts (PLAN.md 5.1)",
+      "from": "phase0",
+      "until": "start-ws2",
+      "paths": ["contracts/log-protocol.md", "contracts/runtime-limits.json", "contracts/dsdb.md"]
+    },
+    {
+      "owner": "WS0",
+      "note": "Holding row: WS3's contract files until WS3 starts",
+      "from": "phase0",
+      "until": "start-ws3",
+      "paths": ["contracts/runtime-artifact.md"]
+    },
+    {
+      "owner": "WS0",
+      "note": "Holding row: WS4's contract files until WS4 starts",
+      "from": "phase0",
+      "until": "start-ws4",
+      "paths": ["contracts/opcodes.json", "contracts/language.md", "contracts/events.md", "contracts/dsdb.md"]
+    },
+    {
+      "owner": "WS0",
+      "note": "Holding row: WS5's contract files until WS5 starts",
+      "from": "phase0",
+      "until": "start-ws5",
+      "paths": ["contracts/assetpack.md", "packages/asset-pipeline/src/preview.ts"]
+    },
+    {
+      "owner": "WS0",
+      "note": "Holding row: WS6's contract files until WS6 starts",
+      "from": "phase0",
+      "until": "start-ws6",
+      "paths": ["contracts/ipc.md", "packages/ipc-contract/**"]
+    },
+    {
+      "owner": "WS1",
+      "note": "WS1 from hour zero; passes to WS8 at start-ws8",
+      "until": "start-ws8",
+      "paths": [
+        "packages/toolchain/**",
+        "packages/cli/**",
+        "tools/fetch-vendor.ps1",
+        "tools/screenshot.py",
+        "tools/tools-pack.json",
+        "scripts/install-toolchain.ps1",
+        "scripts/smoke-test.ps1",
+        "samples/hello/**",
+        "fixtures/runtime/hello/**",
+        "fixtures/build/**",
+        "contracts/toolchain-api.md",
+        "contracts/cli.md",
+        "docs/manual/setup/**"
+      ]
+    },
+    {
+      "owner": "WS8",
+      "note": "WS1's paths from start-ws8, plus WS8's own",
+      "from": "start-ws8",
+      "paths": [
+        "packages/toolchain/**",
+        "packages/cli/**",
+        "tools/fetch-vendor.ps1",
+        "tools/screenshot.py",
+        "tools/tools-pack.json",
+        "scripts/install-toolchain.ps1",
+        "scripts/smoke-test.ps1",
+        "samples/hello/**",
+        "fixtures/runtime/hello/**",
+        "fixtures/build/**",
+        "contracts/toolchain-api.md",
+        "contracts/cli.md",
+        "docs/manual/setup/**",
+        "tests/e2e/**",
+        ".github/**",
+        "apps/ide/electron-builder.yml",
+        "scripts/release.ps1",
+        "scripts/ci.ps1",
+        "CHANGELOG.md",
+        "docs/qa/**"
+      ]
+    },
+    {
+      "owner": "WS2",
+      "from": "phase0",
+      "paths": [
+        "runtime/core/**",
+        "runtime/host/**",
+        "runtime/Makefile.host",
+        "runtime/tests/**",
+        "runtime/CLAUDE.md",
+        "fixtures/bytecode/**",
+        "fixtures/runtime-core/**",
+        "fixtures/conformance/expected/**",
+        "contracts/log-protocol.md",
+        "contracts/runtime-limits.json",
+        "contracts/dsdb.md"
+      ],
+      "except": ["fixtures/runtime-core/flappy-nitrofs/**"]
+    },
+    {
+      "owner": "WS3",
+      "from": "phase0",
+      "paths": [
+        "runtime/platform/ds/**",
+        "runtime/selftest/**",
+        "runtime/data/**",
+        "runtime/Makefile",
+        "runtime/package.json",
+        "runtime/tsconfig.json",
+        "runtime/vitest.config.ts",
+        "runtime/src/**",
+        "runtime/dist/**",
+        "fixtures/runtime/**",
+        "contracts/runtime-artifact.md",
+        "docs/manual/runtime-build.md"
+      ],
+      "except": ["fixtures/runtime/hello/**"]
+    },
+    {
+      "owner": "WS4",
+      "from": "phase0",
+      "paths": [
+        "packages/lang/**",
+        "packages/compiler/**",
+        "packages/dsdb/**",
+        "contracts/opcodes.json",
+        "contracts/language.md",
+        "contracts/events.md",
+        "contracts/dsdb.md",
+        "fixtures/compiler/**",
+        "fixtures/conformance/**"
+      ],
+      "except": ["fixtures/conformance/expected/**"]
+    },
+    {
+      "owner": "WS4",
+      "note": "Compiler fixtures until M2, then WS7's",
+      "from": "phase0",
+      "until": "m2",
+      "paths": ["samples/minimal/**", "samples/flappy/**"]
+    },
+    {
+      "owner": "WS5",
+      "from": "phase0",
+      "paths": ["packages/asset-pipeline/**", "fixtures/assets/**", "contracts/assetpack.md", "docs/manual/assets/**"],
+      "except": ["fixtures/assets/golden/**"]
+    },
+    {
+      "owner": "WS6",
+      "from": "phase0",
+      "paths": ["apps/ide/**", "packages/ipc-contract/**", "contracts/ipc.md", "fixtures/ide/**"],
+      "except": ["apps/ide/src/renderer/editors/**", "apps/ide/electron-builder.yml"]
+    },
+    {
+      "owner": "WS6",
+      "note": "WS6 holds WS6b's paths while WS6b does not run",
+      "from": "phase0",
+      "until": "start-ws6b",
+      "paths": ["apps/ide/src/renderer/editors/**", "packages/editor-core/**", "fixtures/editors/**"]
+    },
+    {
+      "owner": "WS6b",
+      "from": "phase0",
+      "paths": ["apps/ide/src/renderer/editors/**", "packages/editor-core/**", "fixtures/editors/**"]
+    },
+    {
+      "owner": "WS7",
+      "from": "phase0",
+      "paths": [
+        "packages/language-service/**",
+        "packages/monaco-dss/**",
+        "tools/gen-docs/**",
+        "docs/reference/**",
+        "docs/manual/**",
+        "docs/tutorial/**",
+        "samples/topdown-mini/**",
+        "samples/touch-paint/**",
+        "templates/**",
+        "fixtures/language-service/**"
+      ],
+      "except": ["docs/manual/setup/**", "docs/manual/assets/**", "docs/manual/runtime-build.md"]
+    },
+    {
+      "owner": "WS7",
+      "note": "Samples pass to WS7 at M2",
+      "from": "m2",
+      "paths": ["samples/minimal/**", "samples/flappy/**"]
+    }
+  ],
+  "statusFiles": {
+    "note": "Each stream writes its own docs/status/wsN.md above the closing '## Integration feedback' heading; only WS0 writes that section, by appending at the end of the file. WS1's rows have no `from`, the others start at phase0.",
+    "heading": "## Integration feedback",
+    "streams": ["WS1", "WS2", "WS3", "WS4", "WS5", "WS6", "WS6b", "WS7", "WS8"]
+  },
+  "sharedRules": [
+    {
+      "path": "contracts/CHANGELOG.md",
+      "rule": "append-only",
+      "streams": ["WS1", "WS2", "WS3", "WS4", "WS5", "WS6", "WS6b", "WS7", "WS8"],
+      "note": "Contract owners append entries for their own contracts; WS7 under the C2 builtins.json section. Existing lines never change."
+    },
+    {
+      "path": "docs/adr/*.md",
+      "rule": "create-only",
+      "streams": ["WS1", "WS2", "WS3", "WS4", "WS5", "WS6", "WS6b", "WS7", "WS8"],
+      "note": "Any stream may add a new docs/adr/NNNN-*.md; WS0 numbers, edits and closes ADRs."
+    },
+    {
+      "path": "contracts/builtins.json",
+      "rule": "doc-example-fields",
+      "streams": ["WS7"],
+      "from": "phase0",
+      "note": "WS7 may change only the doc and example fields of existing entries (field-level JSON diff)."
+    }
+  ],
+  "generated": [
+    {
+      "paths": [
+        "runtime/gen/builtins_table.h",
+        "packages/compiler/src/gen/builtins.ts",
+        "packages/language-service/src/gen/builtins.ts"
+      ],
+      "generator": "tools/gen-builtins.ts",
+      "inputs": ["contracts/builtins.json", "tools/gen-builtins.ts"]
+    },
+    {
+      "paths": ["runtime/gen/opcodes.h", "packages/dsdb/src/gen/opcodes.ts"],
+      "generator": "tools/gen-opcodes.ts",
+      "inputs": ["contracts/opcodes.json", "tools/gen-opcodes.ts"]
+    },
+    {
+      "paths": ["fixtures/**/*.dsdb"],
+      "generator": "tools/gen-dsdb.ts",
+      "inputs": ["<sibling .dsda>", "contracts/builtins.json", "contracts/opcodes.json", "tools/gen-dsdb.ts"]
+    },
+    {
+      "paths": ["docs/reference/**"],
+      "generator": "tools/gen-docs",
+      "inputs": ["contracts/builtins.json", "tools/gen-docs/**", "**/diagnostics/catalog.ts", "runtime/core/diagnostics/catalog.json"]
+    }
+  ]
+}

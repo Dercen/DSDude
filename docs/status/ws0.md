@@ -26,13 +26,13 @@ Legend: todo / in progress / done (<sha>).
   - `LICENSE`, `runtime/LICENSE`, `README.md`: done
   - lockfile (`chore(deps): regenerate lockfile`): done
   - spike 13 (WS0 part): todo
-- Task 3. Hooks and governance tools: todo
-  - `tools/ownership.json`, `tools/check-ownership.ts` + walk test: todo
-  - `.githooks/pre-commit`, `commit-msg`, `pre-push`: todo
-  - `tools/adr-pending.ts`, `tools/memsampler.ps1` (started), `tools/checkpoint.ps1` Day-1 part: todo
-  - `.claude/settings.json` cloud rules + SessionStart hook: todo
+- Task 3. Hooks and governance tools: in progress
+  - `tools/ownership.json`, `tools/check-ownership.ts` + walk test: done (see git log)
+  - `.githooks/pre-commit`, `commit-msg`, `pre-push` (+x): done
+  - `tools/adr-pending.ts`, `tools/memsampler.ps1` (started 18:33, running), `tools/checkpoint.ps1` Day-1 part: done
+  - `.claude/settings.json` cloud rules + SessionStart hook: done
   - spike 1 (`tools/phase0/spike1-hooks.ps1`): todo
-  - cloud pieces (`tools/cloud/**`, `docs/status/cloud.md`, status stubs), pushed: todo
+  - cloud pieces (`tools/cloud/**`, `docs/status/cloud.md`, status stubs for WS2-WS8 and WS6b): done, pushed
   - cloud probe (user runs it): todo
 - Task 4. Small contracts, C4 types, project format, samples: in progress
   - C9 `diagnostics.md` + `Diagnostic` type, C1 `Project` + schemas + load/save, C4 `api.ts` + `MockBuildService`, C10 `cli.md`: done (this commit; WS1 told to merge `main`)

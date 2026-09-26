@@ -1,0 +1,10 @@
+#!/bin/sh
+# DSDude pre-push (PLAN.md 3.4): refuses any pushed commit that adds a file under vendor/ (other than
+# vendor/README.md) or any mwccarm/, license.dat or dsd-*.exe path, anywhere in the pushed history.
+while read lref lsha rref rsha; do
+  case "$lsha" in *[!0]*) ;; *) continue;; esac
+  case "$rsha" in *[!0]*) range="$rsha..$lsha";; *) range="$lsha --not --remotes=$1";; esac
+  bad=$(git log --format= --name-only $range -- vendor ':(glob)**/mwccarm/**' ':(glob)**/license.dat' ':(glob)**/dsd-*.exe' ':(exclude)vendor/README.md' | sort -u)
+  if [ -n "$bad" ]; then echo "pre-push: proprietary files in pushed history:"; echo "$bad"; exit 1; fi
+done
+exit 0

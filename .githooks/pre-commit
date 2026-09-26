@@ -1,0 +1,13 @@
+#!/bin/sh
+# DSDude pre-commit (PLAN.md 3.4): Biome on the staged files, then the path-ownership check.
+# A convenience only: WS0's integration re-checks every commit. Merge commits are exempt.
+git rev-parse -q --verify MERGE_HEAD >/dev/null && exit 0
+root=$(git rev-parse --show-toplevel)
+biome="$root/node_modules/.bin/biome"
+if [ ! -f "$biome" ]; then
+  echo "pre-commit: Biome is missing: run npm install first (never npm ci)"
+  exit 1
+fi
+"$biome" check --staged --no-errors-on-unmatched || exit 1
+node "$root/tools/check-ownership.ts" || exit 1
+exit 0

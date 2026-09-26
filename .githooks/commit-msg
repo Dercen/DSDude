@@ -1,0 +1,22 @@
+#!/bin/sh
+# DSDude commit-msg (PLAN.md 3.4): adds the DSDude-WS trailer, then refuses a staged package-lock.json
+# outside WS0's 'chore(deps): regenerate lockfile' commits and runs the lockfile guard when it is staged.
+# Merge commits get the trailer and skip the checks.
+msg="$1"
+ws=$(git config --worktree --get dsdude.ws 2>/dev/null || git config --get dsdude.ws 2>/dev/null)
+if [ -z "$ws" ]; then
+  echo "commit-msg: dsdude.ws is not set. Local: git config --worktree dsdude.ws WSn. Cloud: git config dsdude.ws WSn"
+  exit 1
+fi
+git interpret-trailers --in-place --if-exists doNothing --trailer "DSDude-WS: $ws" "$msg" || exit 1
+git rev-parse -q --verify MERGE_HEAD >/dev/null && exit 0
+if git diff --cached --name-only | grep -qx 'package-lock.json'; then
+  subject=$(grep -v '^#' "$msg" | sed -n '1p')
+  if [ "$ws" != "WS0" ] || [ "$subject" != "chore(deps): regenerate lockfile" ]; then
+    echo "commit-msg: package-lock.json is staged. Only WS0 commits it, as 'chore(deps): regenerate lockfile'."
+    echo "  Unstage and restore it: git restore --staged package-lock.json; git restore package-lock.json"
+    exit 1
+  fi
+  node "$(git rev-parse --show-toplevel)/tools/check-lockfile.mjs" || exit 1
+fi
+exit 0

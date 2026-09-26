@@ -122,13 +122,41 @@
       "PowerShell(python tools/screenshot.py *)",
       "PowerShell(python tools\\screenshot.py *)",
       "PowerShell(runtime\\build-host\\dsdude-host.exe *)",
-      "PowerShell(.\\runtime\\build-host\\dsdude-host.exe *)"
+      "PowerShell(.\\runtime\\build-host\\dsdude-host.exe *)",
+      "Bash(bash tools/cloud/*)",
+      "Bash(make -f runtime/Makefile.host *)",
+      "Bash(make -f runtime/Makefile.host)",
+      "Bash(runtime/build-host/dsdude-host *)",
+      "Bash(./runtime/build-host/dsdude-host *)",
+      "Bash(timeout *)",
+      "Bash(node tools/*)",
+      "Bash(npx playwright install chromium)",
+      "Bash(git fetch *)",
+      "Bash(git fetch)",
+      "Bash(git merge origin/*)",
+      "Bash(git restore package-lock.json)",
+      "Bash(git config core.hooksPath .githooks)",
+      "Bash(git config core.autocrlf false)",
+      "Bash(git config dsdude.ws *)"
     ],
     "deny": [
       "Bash(npm ci)",
       "Bash(npm ci *)",
       "PowerShell(npm ci)",
       "PowerShell(npm ci *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tools/cloud/session-start.mjs"
+          }
+        ]
+      }
     ]
   }
 }
