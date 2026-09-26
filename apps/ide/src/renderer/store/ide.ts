@@ -56,6 +56,8 @@ export interface IdeState {
   manifest: ManifestSummary | null;
   /** The New Project dialog is open. */
   newProject: boolean;
+  /** The first-run wizard is open (settings.firstRunDone is false). */
+  firstRun: boolean;
 }
 
 /** What the store needs from the dockview layout. */
@@ -92,6 +94,8 @@ export interface IdeActions {
   showToast(message: string, kind?: Toast["kind"]): void;
   /** Re-reads the build folder's manifest (after open and after every build). */
   refreshManifest(): Promise<void>;
+  /** Closes the first-run wizard and remembers it (settings.firstRunDone). */
+  finishFirstRun(): Promise<void>;
   showNewProject(): void;
   hideNewProject(): void;
   /** Creates <parent>/<name> from a template and opens it; throws (for the dialog) when main refuses. */
@@ -128,6 +132,7 @@ const initial = (): IdeState => ({
   controlsCard: false,
   manifest: null,
   newProject: false,
+  firstRun: false,
 });
 
 const errorsIn = (ds: Diagnostic[]) => ds.filter((d) => d.severity === "error");
@@ -165,7 +170,7 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
     async boot() {
       try {
         const { settings } = await ipc.invoke("settings.getAll", {});
-        set({ settings });
+        set({ settings, firstRun: !settings.firstRunDone });
         const recent = settings.recentProjects[0];
         if (recent) await actions.openProject(recent);
         // The Learn panel opens on first launch (PLAN.md 6 WS6).
@@ -331,6 +336,17 @@ export function createIde(ipc: DsdudeBridge, workbench: Workbench, options: IdeO
         if (get().projectDir === dir) set({ manifest });
       } catch {
         // meters keep what they had
+      }
+    },
+
+    async finishFirstRun() {
+      set({ firstRun: false });
+      const settings = get().settings;
+      if (settings) set({ settings: { ...settings, firstRunDone: true } });
+      try {
+        await ipc.invoke("settings.set", { key: "firstRunDone", value: true });
+      } catch (err) {
+        actions.showToast(`Could not save the settings: ${parseIpcError(err).message}`, "error");
       }
     },
 

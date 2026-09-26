@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { createLocalBridge } from "@dsdude/ipc-contract";
 import { projectBuildDir } from "@dsdude/toolchain";
 import { afterEach, describe, expect, it } from "vitest";
-import { createBuildHandlers, createCoreHandlers, type DialogLike } from "./handlers.ts";
+import { createBuildHandlers, createCoreHandlers, createToolHandlers, type DialogLike } from "./handlers.ts";
 import { SettingsStore } from "./settings.ts";
 
 const repo = resolve(import.meta.dirname, "../../../..");
@@ -30,6 +30,41 @@ function setup(dialogResult = { canceled: false, filePaths: ["C:/picked"] }) {
   const settings = new SettingsStore(join(temp(), "settings.json"));
   return { ...createLocalBridge(createCoreHandlers({ settings, dialog, learnRoot: repo })), calls };
 }
+
+describe("doctor.run and toolchain.status", () => {
+  it("answer with canned results in mock and fake mode", async () => {
+    const { bridge } = createLocalBridge(createToolHandlers("mock"));
+    const { checks } = await bridge.invoke("doctor.run", {});
+    expect(checks).toEqual([expect.objectContaining({ ok: true, status: "info" })]);
+    expect(await bridge.invoke("toolchain.status", {})).toEqual({
+      installed: true,
+      blocksdsVersion: "1.24.0",
+      diagnostics: [],
+    });
+  });
+
+  it("map C10 doctor statuses in real mode (fail is the only not-ok)", async () => {
+    const { bridge } = createLocalBridge(
+      createToolHandlers("real", {
+        doctor: async () => ({
+          checks: [
+            { name: "BlocksDS", status: "ok", detail: "1.24.0" },
+            { name: "OneDrive", status: "warn", detail: "Pause OneDrive while you build." },
+            { name: "melonDS", status: "fail", detail: "Run dsdude doctor --fix." },
+          ],
+        }),
+        detect: async () => ({ installed: false, blocksdsVersion: null, diagnostics: [] }),
+      }),
+    );
+    const { checks } = await bridge.invoke("doctor.run", {});
+    expect(checks.map((c) => [c.name, c.ok, c.status])).toEqual([
+      ["BlocksDS", true, "ok"],
+      ["OneDrive", true, "warn"],
+      ["melonDS", false, "fail"],
+    ]);
+    expect((await bridge.invoke("toolchain.status", {})).installed).toBe(false);
+  });
+});
 
 describe("build.manifest", () => {
   it("reads the project's C3 manifest from its build folder, or null", async () => {

@@ -7,10 +7,12 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type InvokeHandlers, ManifestSummarySchema, type SettingKey } from "@dsdude/ipc-contract";
+import type { Diagnostic } from "@dsdude/project-format";
 import { loadProject, saveProject } from "@dsdude/project-format/node";
-import { dsdudeHome, projectBuildDir } from "@dsdude/toolchain";
+import { detectToolchain, dsdudeHome, projectBuildDir, runDoctor } from "@dsdude/toolchain";
 import type { IdeEmulatorManager } from "./build/modes.ts";
 import type { PlayController } from "./build/play.ts";
+import type { BuildServiceMode } from "./build/protocol.ts";
 import { inside, readProjectFile, writeProjectFile } from "./files.ts";
 import { listLearnDocs, readLearnDoc } from "./learn.ts";
 import { createProject, templateSources } from "./projects.ts";
@@ -56,6 +58,49 @@ export async function readManifest(buildDir: string): Promise<unknown | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * doctor.run and toolchain.status (C10 dsdude doctor, C4 detectToolchain). In mock and fake mode they report canned
+ * results, so tests never probe the machine; `real` runs the checks (every tool spawn has its own timeout).
+ */
+export function createToolHandlers(
+  mode: BuildServiceMode,
+  deps: {
+    doctor?: () => Promise<{ checks: { name: string; status: "ok" | "warn" | "fail" | "info"; detail: string }[] }>;
+    detect?: () => Promise<{ installed: boolean; blocksdsVersion: string | null; diagnostics: Diagnostic[] }>;
+  } = {},
+): InvokeHandlers {
+  const fake = mode !== "real";
+  return {
+    "doctor.run": async () => {
+      if (fake)
+        return {
+          checks: [
+            {
+              name: "Build service",
+              ok: true,
+              status: "info",
+              detail: `This IDE runs the ${mode} build service, so it needs no tools.`,
+            },
+          ],
+        };
+      const report = await (deps.doctor ?? (() => runDoctor({ env: process.env })))();
+      return {
+        checks: report.checks.map((c) => ({
+          name: c.name,
+          ok: c.status !== "fail",
+          detail: c.detail,
+          status: c.status,
+        })),
+      };
+    },
+    "toolchain.status": async () => {
+      if (fake) return { installed: true, blocksdsVersion: "1.24.0", diagnostics: [] };
+      const st = await (deps.detect ?? (() => detectToolchain({ env: process.env })))();
+      return { installed: st.installed, blocksdsVersion: st.blocksdsVersion, diagnostics: st.diagnostics };
+    },
+  };
 }
 
 /** build.* and emulator.* over the PlayController (worker + EmulatorManager). */

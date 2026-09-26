@@ -15,18 +15,24 @@ npm run build:runtime -w runtime -- --jobs 4
 It prints the make output, then the memory report:
 
 ```
-build:runtime: runtime\dist\arm9.elf (runtime 0.1.0, abi 0dd9987a)
-itcm   1088 B (1.1 KB of 24.0 KB)
-dtcm   0 B (0.0 KB of 4.5 KB reserved)
+build:runtime: runtime\dist\arm9.elf (runtime 0.1.0, abi f1d376bb)
+build inputs unchanged since the previous dist/ (build_tree dc2e32de...)
+itcm   11056 B (10.8 KB of 24.0 KB)
+dtcm   4096 B (4.0 KB of 4.5 KB reserved)
 cstack 11200 B (10.9 KB)
-image  92692 B (90.5 KB of 716.8 KB)
+loaded 161740 B (157.9 KB of 716.8 KB: code + data)
+image  957836 B (935.4 KB: everything static, the core's pools included)
 ```
 
 Exit 2 means BlocksDS is missing, make failed (E640, or E604 after 10 minutes), or a budget was exceeded (ITCM over
-24 KB, DTCM data over `__dtcm_data_size`, the image over 0.7 MB).
+24 KB, DTCM data over `__dtcm_data_size`, the binary's code + data over 0.7 MB).
 
-Commit `runtime/dist/arm9.elf`, `arm9-debug.elf` and `VERSION` **together with the sources they were built from**:
-`VERSION`'s `tree` is then the committed `runtime/` tree without `dist/`.
+Commit `runtime/dist/arm9.elf`, `arm9-debug.elf` and `VERSION` **together with the sources they were built from**.
+
+Is `dist/` current? `npm run check:dist -w runtime` compares `VERSION`'s `build_tree` (the tree of the DS build's
+inputs: `core/`, `gen/`, `platform/ds/src/`, `data/`, `Makefile`, `package.json`) and `arm9_sha256` with the working
+tree; exit 1 means rebuild. It needs only git, so it runs in the cloud too. Edits to WS2's `tests/` or `host/` never
+make `dist/` stale.
 
 ## Make directly
 

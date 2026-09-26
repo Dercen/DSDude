@@ -21,7 +21,7 @@ import {
 import type { BuildPhase, BuildRequest, BuildResult } from "@dsdude/toolchain";
 import { z } from "zod";
 
-export const CONTRACT_VERSION = "0.7.0";
+export const CONTRACT_VERSION = "0.8.0";
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared payload schemas
@@ -334,7 +334,17 @@ export const invokeChannels = {
   },
   "doctor.run": {
     request: z.object({}),
-    response: z.object({ checks: z.array(z.object({ name: z.string(), ok: z.boolean(), detail: z.string() })) }),
+    response: z.object({
+      checks: z.array(
+        z.object({
+          name: z.string(),
+          ok: z.boolean(),
+          detail: z.string(),
+          /** (0.8.0) C10 doctor status; `ok` is false only for "fail". */
+          status: z.enum(["ok", "warn", "fail", "info"]).optional(),
+        }),
+      ),
+    }),
   },
   /** (0.4.0) Reads an asset file of the project (sprite sheets, background images, sounds). */
   "project.readFile": {

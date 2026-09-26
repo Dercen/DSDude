@@ -5,9 +5,10 @@ Cloud push target: `ws5-assets`
 Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`. Launched early on 2026-09-26.
 
 ## Environment
-- start.sh (2026-09-26, after checkpoint-6 relay): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
-  origin/main by 34 (then merged, main 91fc4c9+); latest checkpoint: docs/status/checkpoint-7.md; open IF entries: 1
-  by start.sh's count (see Blockers). Lockfile guard passed.
+- start.sh (2026-09-26, after checkpoint-8 relay): node v24.16.0, npm 11.13.0; push target: ws5-assets; behind
+  origin/main by 17 (then merged, main 5b8d0cc+); latest checkpoint: docs/status/checkpoint-8.md; open IF entries: 1
+  by start.sh's count (see Blockers). Lockfile guard passed. WS0 merged ws5-assets@3bbe1f8 at checkpoint-8, green on
+  Windows.
 
 ## Progress
 - [x] Task 1 (day 1): `contracts/assetpack.md` C3 0.1.0 written, CHANGELOG line appended.
@@ -79,6 +80,9 @@ Cloud session (hybrid mode), environment `dsdude-ws5`, stream line `ws5-assets`.
   `@vitest/ui`; pure-JS zlib so the preview and PNG code need no `node:zlib`). WS0: regenerate the lockfile.
 - samples/flappy `spr_bird/sprite.json` bbox says left 2, but the wing reaches column 1 (the C1 opaque-bounds default
   gives left 1). Harmless; for the samples' owner (WS4 until M2).
+- WS6's status-bar meters read `assets.manifest.json` through a tolerant schema (C5 `build.manifest`, checkpoint-8).
+  Any C3 manifest change is therefore made as a T1 (minor bump + CHANGELOG line naming the fields) so WS6 can follow;
+  no C3 change is pending.
 - C3 manifest is a superset of C4's provisional `AssetManifest` (it keeps `provisional: true`). WS1/WS8: adopt the
   C3 schema in `api.ts` by a C4 T1 when convenient; C3 then drops `provisional` (C3 T1).
 - C3 fixes the sprite GRF layout the runtime reads (WS2/WS3): frames padded to the smallest containing OBJ size,

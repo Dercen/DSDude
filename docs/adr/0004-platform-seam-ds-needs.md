@@ -1,6 +1,10 @@
 # ADR-0004: What the DS platform layer needs from C11 before the CP-A freeze
 
-- Status: **proposed** (WS3, 2026-09-26). WS0 numbers, merges and closes it (renumber if 0004 is taken).
+- Status: **resolved** (user, 2026-09-26). WS2, the C11 owner, answered in `dsd_platform.h` 0.2.0 and 0.3.0: the core
+  entry point `dsd_core_main`, the line-formatting and flush-pad split (`dsd_plat_log` + `dsd_plat_log_flush`),
+  `dsd_plat_fatal`, `dsd_plat_mem_report`, core error codes in place of R580-R583, the sprite box and frame count
+  supplied by the core, and the UI colour numbering (c_white 0 .. c_navy 15). WS3 adopted it on the DS; no
+  `ADR-pending ADR-0004` markers remain. C11 freezes at CP-A (2026-09-28).
 - Affected streams: WS2 (owns C11 `runtime/core/include/dsd_platform.h`, the R5xx catalog
   `runtime/core/diagnostics/catalog.json` and C8 `log-protocol.md`), WS3 (implements C11 on the DS).
 - Sources: PLAN.md 5.2 C8 and C11, 3.3; `docs/kickoff/ws3.md` tasks 1-2; `contracts/runtime-artifact.md`.

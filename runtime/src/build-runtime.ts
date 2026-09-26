@@ -7,17 +7,19 @@
  * Exit codes follow C10: 0 ok, 2 tool/environment failure (no BlocksDS, make failed, a budget exceeded).
  */
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildRuntime, detectToolchain, formatDiagnostic } from "@dsdude/toolchain";
 import {
+  BUILD_INPUTS,
   formatReport,
   formatVersion,
   memoryReport,
   parseNm,
   parseSizeA,
   parseSizeBerkeley,
+  parseVersion,
   readAbiHash,
   reportProblems,
   run,
@@ -67,18 +69,28 @@ async function main(): Promise<number> {
 
   const abi = readAbiHash(readFileSync(path.join(runtimeDir, "gen", "builtins_table.h"), "utf8"));
   const pkg = JSON.parse(readFileSync(path.join(runtimeDir, "package.json"), "utf8")) as { version: string };
+  const versionFile = path.join(runtimeDir, "dist", "VERSION");
+  const previous = existsSync(versionFile) ? parseVersion(readFileSync(versionFile, "utf8")) : {};
+  const buildTree = await runtimeTreeHash(repoRoot, "git", BUILD_INPUTS);
   const version = formatVersion({
     runtime: pkg.version,
     abi,
     tree: await runtimeTreeHash(repoRoot),
+    buildTree,
     blocksds: status.blocksdsVersion ?? "unknown",
     arm9Sha256: createHash("sha256").update(readFileSync(built.arm9Elf)).digest("hex"),
     report,
   });
   // Binary write: LF only, on every host.
-  writeFileSync(path.join(runtimeDir, "dist", "VERSION"), Buffer.from(version, "utf8"));
+  writeFileSync(versionFile, Buffer.from(version, "utf8"));
 
   console.log(`\nbuild:runtime: ${path.relative(repoRoot, built.arm9Elf)} (runtime ${pkg.version}, abi ${abi})`);
+  // The staleness check (C8 artifact 0.3.0): only build_tree says whether dist/ had to change.
+  console.log(
+    previous.build_tree === buildTree
+      ? `build inputs unchanged since the previous dist/ (build_tree ${buildTree})`
+      : `build inputs changed: build_tree ${previous.build_tree ?? "(none)"} -> ${buildTree}; commit runtime/dist`,
+  );
   console.log(formatReport(report));
   const problems = reportProblems(report);
   for (const p of problems) console.error(`build:runtime: ${p}`);

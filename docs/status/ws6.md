@@ -177,8 +177,19 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
   - C5 0.7.0 (T1): `project.templates`, `app.info`, and `TemplateIndexSchema`, the reader's format for WS7's `templates/index.json`: `{templates: [{id, title, description, dir}]}`. It also pins the `project.create` semantics.
   - Tests: node 82 (projects 5, helpers 3), browser 10, ipc-contract 73, Playwright 9 (new-project.spec: OneDrive warning, invalid name, create from a template, opens, refuses an existing folder). Screenshot checked.
 
+- **Task 6e, first-run wizard: done.**
+  - It opens until finished once (`settings.firstRunDone`).
+  - 'Your computer' lists C10 `dsdude doctor` checks (ok/warn/fail/info icons; each detail names its fix) and has Check again.
+  - 'Emulator' sets up melonDS through C4 `ensureInstalled` (the bundled or downloaded 1.1 zip, SHA-256 checked by WS1) and offers the optional DeSmuME profile.
+  - It finishes with 'Start making games' (or 'Skip for now'), and Learn opens behind it on the first launch.
+  - Main: `doctor.run` runs `runDoctor` and `toolchain.status` runs `detectToolchain` in real mode; mock and fake mode answer canned results, so tests never probe the machine.
+  - C5 0.8.0 (T1): doctor checks carry an optional `status`.
+  - The e2e helper pre-seeds `firstRunDone` unless a test asks for the first run.
+  - Tests: node 85, browser 10, ipc-contract 73, Playwright 10 (first-run.spec new). Screenshot checked.
+- 2026-09-26: WS0 merged `85eb04c` at checkpoint-8 (C5 0.6.0/0.7.0 accepted). ADR-0007 was accepted by the user; WS1 implements `LaunchOptions.keys`; the marker stays until WS0 reports it on main.
+
 ## Next
-- Task 6 continues: meters, import dialogs, New Project and first-run wizards, Debug, the fake-toolchain smoke test; the rebinding page once ADR-0007 is accepted.
+- Task 6 continues: import dialogs (the preview needs WS5's previewSprite, CP-B), Debug, the fake-toolchain smoke test; the rebinding page once WS1's `LaunchOptions.keys` is on main.
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
 ## Leftovers / ADR-pending

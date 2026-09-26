@@ -125,7 +125,16 @@ const INVOKE_SAMPLES: { [C in InvokeChannel]: { req: unknown; res: unknown; badR
     badReq: 3,
   },
   "toolchain.install": { req: {}, res: { installed: true, diagnostics: [] }, badReq: "x" },
-  "doctor.run": { req: {}, res: { checks: [{ name: "BlocksDS", ok: true, detail: "1.24.0" }] }, badReq: false },
+  "doctor.run": {
+    req: {},
+    res: {
+      checks: [
+        { name: "BlocksDS", ok: true, detail: "1.24.0" },
+        { name: "OneDrive", ok: true, detail: "The project is under OneDrive", status: "warn" },
+      ],
+    },
+    badReq: false,
+  },
   "project.readFile": {
     req: { dir: "C:/p", path: "sprites/spr_bird/sheet.png" },
     res: { bytes: new Uint8Array([137, 80, 78, 71]) },
