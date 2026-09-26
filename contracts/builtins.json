@@ -1,6 +1,6 @@
 {
   "contract": "C2",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "howToChange": "Owner WS0. Ordinals (`id`) are append-only forever: never reorder, renumber or delete an entry. A new builtin, alias or unsupported entry is appended as T1 (minor version bump; `node tools/gen-builtins.ts` and `node tools/gen-dsdb.ts` regenerate their outputs in the same commit; CHANGELOG entry). WS7 fills `doc`/`example` fields left as TODO(WS7) as T0 changes on its own branch. Changing the id, name, kind or signature of a function, variable or constant entry changes the ABI hash (contracts/dsdb.md) and is T2.",
   "types": [
     "number",
@@ -2826,6 +2826,471 @@
       "doc": "TODO(WS7)",
       "example": "TODO(WS7)",
       "since": "0.2"
+    },
+    {
+      "id": 159,
+      "name": "instance_create_layer",
+      "kind": "alias",
+      "aliasOf": "instance_create",
+      "argMap": [
+        0,
+        1,
+        3
+      ],
+      "note": "DSDude has no layers, so the layer is ignored: use instance_create(x, y, obj).",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 160,
+      "name": "instance_create_depth",
+      "kind": "alias",
+      "aliasOf": "instance_create",
+      "argMap": [
+        0,
+        1,
+        3
+      ],
+      "note": "The depth argument is ignored: set Depth in the object's properties, or change depth in its Create event.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 161,
+      "name": "keyboard_check",
+      "kind": "alias",
+      "aliasOf": "button_check",
+      "note": "The DS has no keyboard: use button_check with a btn_ button.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 162,
+      "name": "keyboard_check_pressed",
+      "kind": "alias",
+      "aliasOf": "button_pressed",
+      "note": "The DS has no keyboard: use button_pressed with a btn_ button.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 163,
+      "name": "keyboard_check_released",
+      "kind": "alias",
+      "aliasOf": "button_released",
+      "note": "The DS has no keyboard: use button_released with a btn_ button.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 164,
+      "name": "vk_left",
+      "kind": "alias",
+      "aliasOf": "btn_left",
+      "note": "vk_left means Left on the D-pad here: write btn_left.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 165,
+      "name": "vk_right",
+      "kind": "alias",
+      "aliasOf": "btn_right",
+      "note": "vk_right means Right on the D-pad here: write btn_right.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 166,
+      "name": "vk_up",
+      "kind": "alias",
+      "aliasOf": "btn_up",
+      "note": "vk_up means Up on the D-pad here: write btn_up.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 167,
+      "name": "vk_down",
+      "kind": "alias",
+      "aliasOf": "btn_down",
+      "note": "vk_down means Down on the D-pad here: write btn_down.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 168,
+      "name": "vk_space",
+      "kind": "alias",
+      "aliasOf": "btn_a",
+      "note": "vk_space means the A button here: write btn_a.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 169,
+      "name": "vk_enter",
+      "kind": "alias",
+      "aliasOf": "btn_start",
+      "note": "vk_enter means the START button here: write btn_start.",
+      "category": "gamemaker",
+      "doc": "TODO(WS7)",
+      "example": "TODO(WS7)",
+      "since": "0.3"
+    },
+    {
+      "id": 170,
+      "name": "image_alpha",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "image_alpha isn't available on the DS in DSDude 0.1. Try visible = false, or a second sprite.",
+      "manual": "docs/manual/differences-from-gamemaker.md#image-alpha",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 171,
+      "name": "image_blend",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "image_blend isn't available on the DS in DSDude 0.1. Try a second sprite drawn in the colour you want.",
+      "manual": "docs/manual/differences-from-gamemaker.md#image-blend",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 172,
+      "name": "draw_set_alpha",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "draw_set_alpha isn't available on the DS in DSDude 0.1. Try visible = false, or a second sprite.",
+      "manual": "docs/manual/differences-from-gamemaker.md#draw-set-alpha",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 173,
+      "name": "draw_text_ext",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "draw_text_ext isn't available on the DS in DSDude 0.1. Use draw_text; start a new line of text with a second draw_text lower down.",
+      "manual": "docs/manual/differences-from-gamemaker.md#draw-text-ext",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 174,
+      "name": "draw_set_font",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "draw_set_font isn't available on the DS in DSDude 0.1. DSDude 0.1 has one built-in 8x8 font; custom fonts come in a later version.",
+      "manual": "docs/manual/differences-from-gamemaker.md#draw-set-font",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 175,
+      "name": "draw_line",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "draw_line isn't available on the DS in DSDude 0.1. Try draw_rectangle, or a thin sprite.",
+      "manual": "docs/manual/differences-from-gamemaker.md#draw-line",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 176,
+      "name": "draw_circle",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "draw_circle isn't available on the DS in DSDude 0.1. Try a round sprite.",
+      "manual": "docs/manual/differences-from-gamemaker.md#draw-circle",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 177,
+      "name": "sprite_get_width",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "sprite_get_width isn't available on the DS in DSDude 0.1. Use the instance's sprite_width.",
+      "manual": "docs/manual/differences-from-gamemaker.md#sprite-get-width",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 178,
+      "name": "sprite_get_height",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "sprite_get_height isn't available on the DS in DSDude 0.1. Use the instance's sprite_height.",
+      "manual": "docs/manual/differences-from-gamemaker.md#sprite-get-height",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 179,
+      "name": "mouse_x",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "mouse_x isn't available on the DS in DSDude 0.1. The DS has a touch screen instead: use touch_x (and touch_check() to see if it is touched).",
+      "manual": "docs/manual/differences-from-gamemaker.md#mouse-x",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 180,
+      "name": "mouse_y",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "mouse_y isn't available on the DS in DSDude 0.1. The DS has a touch screen instead: use touch_y (and touch_check() to see if it is touched).",
+      "manual": "docs/manual/differences-from-gamemaker.md#mouse-y",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 181,
+      "name": "mouse_check_button",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "mouse_check_button isn't available on the DS in DSDude 0.1. The DS has a touch screen instead: use touch_check().",
+      "manual": "docs/manual/differences-from-gamemaker.md#mouse-check-button",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 182,
+      "name": "mouse_check_button_pressed",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "mouse_check_button_pressed isn't available on the DS in DSDude 0.1. The DS has a touch screen instead: use touch_pressed().",
+      "manual": "docs/manual/differences-from-gamemaker.md#mouse-check-button-pressed",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 183,
+      "name": "mouse_check_button_released",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "mouse_check_button_released isn't available on the DS in DSDude 0.1. The DS has a touch screen instead: use touch_released().",
+      "manual": "docs/manual/differences-from-gamemaker.md#mouse-check-button-released",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 184,
+      "name": "keyboard_string",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "keyboard_string isn't available on the DS in DSDude 0.1. The DS has no keyboard, and text input is not in DSDude 0.1.",
+      "manual": "docs/manual/differences-from-gamemaker.md#keyboard-string",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 185,
+      "name": "get_string",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "get_string isn't available on the DS in DSDude 0.1. Text input is not in DSDude 0.1.",
+      "manual": "docs/manual/differences-from-gamemaker.md#get-string",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 186,
+      "name": "persistent",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "persistent isn't available on the DS in DSDude 0.1. Keep what should survive a room change in global variables (global.name).",
+      "manual": "docs/manual/differences-from-gamemaker.md#persistent",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 187,
+      "name": "solid",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "solid isn't available on the DS in DSDude 0.1. Check for walls yourself with place_meeting before you move.",
+      "manual": "docs/manual/differences-from-gamemaker.md#solid",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 188,
+      "name": "room_persistent",
+      "kind": "unsupported",
+      "match": "exact",
+      "message": "room_persistent isn't available on the DS in DSDude 0.1. Rooms always start fresh; keep what should survive in global variables.",
+      "manual": "docs/manual/differences-from-gamemaker.md#room-persistent",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 189,
+      "name": "ds_list_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "ds_list functions are isn't available on the DS in DSDude 0.1. Use an array: arr = [], array_push, array_length.",
+      "manual": "docs/manual/differences-from-gamemaker.md#ds-list",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 190,
+      "name": "ds_map_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "ds_map functions are isn't available on the DS in DSDude 0.1. Use parallel arrays, or instance variables.",
+      "manual": "docs/manual/differences-from-gamemaker.md#ds-map",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 191,
+      "name": "ds_grid_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "ds_grid functions are isn't available on the DS in DSDude 0.1. Use an array of arrays: grid[x][y].",
+      "manual": "docs/manual/differences-from-gamemaker.md#ds-grid",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 192,
+      "name": "ds_stack_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "ds_stack functions are isn't available on the DS in DSDude 0.1. Use an array with array_push and array_pop.",
+      "manual": "docs/manual/differences-from-gamemaker.md#ds-stack",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 193,
+      "name": "ds_queue_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "ds_queue functions are isn't available on the DS in DSDude 0.1. Use an array with array_push and array_delete(arr, 0, 1).",
+      "manual": "docs/manual/differences-from-gamemaker.md#ds-queue",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 194,
+      "name": "layer_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "layer functions are isn't available on the DS in DSDude 0.1. DSDude has no layers: each room has one background per screen, and instances have a depth.",
+      "manual": "docs/manual/differences-from-gamemaker.md#layer",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 195,
+      "name": "surface_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "surfaces are isn't available on the DS in DSDude 0.1. Draw sprites and text directly in the Draw event.",
+      "manual": "docs/manual/differences-from-gamemaker.md#surface",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 196,
+      "name": "shader_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "shaders are isn't available on the DS in DSDude 0.1. The DS has no shaders.",
+      "manual": "docs/manual/differences-from-gamemaker.md#shader",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 197,
+      "name": "part_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "particle functions are isn't available on the DS in DSDude 0.1. Try a small object with a sprite and a short life (an alarm that calls instance_destroy).",
+      "manual": "docs/manual/differences-from-gamemaker.md#part",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 198,
+      "name": "path_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "path functions are isn't available on the DS in DSDude 0.1. Move with hspeed and vspeed, or move_towards_point.",
+      "manual": "docs/manual/differences-from-gamemaker.md#path",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 199,
+      "name": "physics_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "physics functions are isn't available on the DS in DSDude 0.1. Use hspeed, vspeed, gravity and place_meeting.",
+      "manual": "docs/manual/differences-from-gamemaker.md#physics",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 200,
+      "name": "ini_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "ini files are isn't available on the DS in DSDude 0.1. Saving is not in DSDude 0.1; keep values in global variables while the game runs.",
+      "manual": "docs/manual/differences-from-gamemaker.md#ini",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 201,
+      "name": "file_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "file functions are isn't available on the DS in DSDude 0.1. Saving is not in DSDude 0.1; keep values in global variables while the game runs.",
+      "manual": "docs/manual/differences-from-gamemaker.md#file",
+      "category": "gamemaker",
+      "since": "0.3"
+    },
+    {
+      "id": 202,
+      "name": "buffer_*",
+      "kind": "unsupported",
+      "match": "prefix",
+      "message": "buffers are isn't available on the DS in DSDude 0.1. Use arrays.",
+      "manual": "docs/manual/differences-from-gamemaker.md#buffer",
+      "category": "gamemaker",
+      "since": "0.3"
     }
-  ]
+  ],
+  "kinds": {
+    "alias": "A GameMaker name compiled as `aliasOf` (a DSDude builtin function or constant). `argMap`, when present, lists which of the alias's arguments are passed to the target, in order (others are ignored). The checker raises a W lint whose text is `note`. Aliases never reach the runtime and are left out of the ABI hash.",
+    "unsupported": "A GameMaker name DSDude 0.1 does not have. `match` is `exact`, or `prefix` for a name ending in `*` (every name starting with the part before it). Using one is E207 with `message` as the diagnostic text and `manual` as its link. Left out of the ABI hash."
+  }
 }

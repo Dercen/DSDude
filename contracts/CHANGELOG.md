@@ -23,6 +23,7 @@ builtins for its doc/example fills); existing lines never change. Format:
 ## C2 builtins (`contracts/builtins.json`)
 - 0.1.0 (2026-09-25, WS0, Phase 0): ids 0-84 the 85 section-4 functions, 85-116 instance variables, 117-124 globals, 125-142 constants; ABI hash 0x0dd9987a; docs for the 30 builtins the samples use, TODO(WS7) elsewhere.
 - 0.2.0 (2026-09-26, WS0, T1): ids 143-158 append the 16 UI colours as constants of type color, c_white = 0, c_black 1, c_red 2, c_green 3, c_blue 4, c_yellow 5, c_orange 6, c_purple 7, c_gray 8, c_ltgray 9, c_dkgray 10, c_aqua 11, c_fuchsia 12, c_lime 13, c_maroon 14, c_navy 15 (the order of C11 dsd_platform.h; asked by WS3). ABI hash 0x0dd9987a -> 0xf1d376bb; every fixtures/**/*.dsdb regenerated.
+- 0.3.0 (2026-09-26, WS0, T1): ids 159-202 add the GameMaker compatibility entries: 11 aliases (instance_create_layer/_depth -> instance_create with argMap [0,1,3]; keyboard_check/_pressed/_released -> button_*; vk_left/right/up/down/space/enter -> btn_left/right/up/down/a/start), each with a W-lint note, and 33 unsupported names (image_alpha, draw_text_ext, mouse_x, ds_list_* and friends, match exact|prefix) with E207 messages and manual links; top-level `kinds` documents both. No ABI change (aliases and unsupported entries are outside the hash). gen-builtins emits BUILTIN_ALIASES and BUILTIN_UNSUPPORTED for the compiler and the language service (asked by WS4).
 
 ## C3 Asset pack (`contracts/assetpack.md`)
 - owed: WS5 writes 0.1.0 on its first day (CP-A).
