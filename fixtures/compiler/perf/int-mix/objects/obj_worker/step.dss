@@ -1,0 +1,25 @@
+// The M1 bench's mix written in DSS: int instance variables, int locals, a counted loop, comparisons.
+// packages/compiler/src/intproof.test.ts requires every ADD/SUB/MUL/CMPJ here to be the int-specialised form.
+global.frames += 1;
+timer = timer + lane;
+if (timer >= room_speed) {
+    timer -= room_speed;
+    score = score + lane * 10;
+}
+var total = 0;
+for (var i = 0; i < 16; i++) {
+    var cell = i * lane + timer;
+    if (cell mod 3 == 0) total = total + cell;
+    else total = total - i;
+}
+cells = total;
+if (score > 1000) {
+    score = 0;
+    lane = lane + 1;
+}
+if (lane > 3) lane = 1;
+if (global.frames == 120) {
+    show_debug_message(score);
+    show_debug_message(cells);
+    game_end();
+}

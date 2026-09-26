@@ -17,14 +17,14 @@
     MOV r1, r9
     .loc "v1/11-random.dss" 11
     LOADI r9, 0
-    CMPJ r1, r9, 5
+    CMPJII r1, r9, 5
     JMP L1
     LOADI r9, 10
-    CMPJ r1, r9, 3
+    CMPJII r1, r9, 3
     JMP L1
     MOV r9, r1
     CALLN r9, 1, floor
-    CMPJ r9, r1, 1
+    CMPJII r9, r1, 1
     JMP L2
   L1:
     LOADB r0, false
@@ -87,10 +87,10 @@
     MOV r3, r9
     .loc "v1/11-random.dss" 23
     LOADI r9, -3
-    CMPJ r3, r9, 5
+    CMPJII r3, r9, 5
     JMP L9
     LOADI r9, 3
-    CMPJ r3, r9, 4
+    CMPJII r3, r9, 4
     JMP L10
   L9:
     LOADB r0, false

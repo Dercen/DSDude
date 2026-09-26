@@ -1,0 +1,138 @@
+.dsda 0.1
+.seed 0
+.global frames
+
+.func obj_worker__create 0 1
+    .loc "objects/obj_worker/create.dss" 3
+    LOADI r0, 0
+    SETSLOT r0, 2
+    .loc "objects/obj_worker/create.dss" 4
+    LOADI r0, 1
+    SETSLOT r0, 1
+    .loc "objects/obj_worker/create.dss" 5
+    LOADI r0, 0
+    SETSLOT r0, 3
+    .loc "objects/obj_worker/create.dss" 6
+    LOADI r0, 0
+    SETSLOT r0, 0
+    .loc "objects/obj_worker/create.dss" 7
+    LOADI r0, 0
+    SETGLOB r0, frames
+    RET r0, 0
+.end
+
+.func obj_worker__step 0 5
+    .loc "objects/obj_worker/step.dss" 3
+    GETGLOB r3, frames
+    ADDI r3, r3, 1
+    SETGLOB r3, frames
+    .loc "objects/obj_worker/step.dss" 4
+    GETSLOT r3, 3
+    GETSLOT r4, 1
+    ADDII r3, r3, r4
+    SETSLOT r3, 3
+    .loc "objects/obj_worker/step.dss" 5
+    GETSLOT r3, 3
+    GETBI r4, room_speed
+    CMPJII r3, r4, 5
+    JMP L0
+    .loc "objects/obj_worker/step.dss" 6
+    GETSLOT r3, 3
+    GETBI r4, room_speed
+    SUBII r3, r3, r4
+    SETSLOT r3, 3
+    .loc "objects/obj_worker/step.dss" 7
+    GETSLOT r3, 2
+    GETSLOT r4, 1
+    MULI r4, r4, 10
+    ADDII r3, r3, r4
+    SETSLOT r3, 2
+  L0:
+    .loc "objects/obj_worker/step.dss" 9
+    LOADI r0, 0
+    .loc "objects/obj_worker/step.dss" 10
+    LOADI r1, 0
+  L1:
+    LOADI r3, 16
+    CMPJII r1, r3, 2
+    JMP L4
+    .loc "objects/obj_worker/step.dss" 11
+    GETSLOT r3, 1
+    MULII r2, r1, r3
+    GETSLOT r3, 3
+    ADDII r2, r2, r3
+    .loc "objects/obj_worker/step.dss" 12
+    LOADI r4, 3
+    MOD r3, r2, r4
+    LOADI r4, 0
+    CMPJII r3, r4, 0
+    JMP L2
+    ADDII r0, r0, r2
+    JMP L3
+  L2:
+    .loc "objects/obj_worker/step.dss" 13
+    SUBII r0, r0, r1
+  L3:
+    .loc "objects/obj_worker/step.dss" 10
+    ADDI r1, r1, 1
+    JMP L1
+  L4:
+    .loc "objects/obj_worker/step.dss" 15
+    SETSLOT r0, 0
+    .loc "objects/obj_worker/step.dss" 16
+    GETSLOT r3, 2
+    LOADI r4, 1000
+    CMPJII r3, r4, 4
+    JMP L5
+    .loc "objects/obj_worker/step.dss" 17
+    LOADI r3, 0
+    SETSLOT r3, 2
+    .loc "objects/obj_worker/step.dss" 18
+    GETSLOT r3, 1
+    ADDI r3, r3, 1
+    SETSLOT r3, 1
+  L5:
+    .loc "objects/obj_worker/step.dss" 20
+    GETSLOT r3, 1
+    LOADI r4, 3
+    CMPJII r3, r4, 4
+    JMP L6
+    LOADI r3, 1
+    SETSLOT r3, 1
+  L6:
+    .loc "objects/obj_worker/step.dss" 21
+    GETGLOB r3, frames
+    LOADI r4, 120
+    CMPJII r3, r4, 0
+    JMP L7
+    .loc "objects/obj_worker/step.dss" 22
+    GETSLOT r3, 2
+    CALLN r3, 1, show_debug_message
+    .loc "objects/obj_worker/step.dss" 23
+    GETSLOT r3, 0
+    CALLN r3, 1, show_debug_message
+    .loc "objects/obj_worker/step.dss" 24
+    CALLN r3, 0, game_end
+  L7:
+    RET r0, 0
+.end
+
+.object obj_worker sprite=- parent=- visible=0 screen=top depth=0
+    .slot cells 0
+    .slot lane 1
+    .slot score 2
+    .slot timer 3
+    .event create obj_worker__create
+    .event step obj_worker__step
+.end
+
+.room rm_bench 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_worker 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_bench

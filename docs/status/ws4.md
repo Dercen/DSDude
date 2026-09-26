@@ -279,6 +279,25 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
   - **For WS2:** the flag is written now, so the `ADR-pending ADR-0008` markers can go.
     `fixtures/compiler/release/wrap.dsdb` is a ready release fixture (its intended output is in the .dss comments).
 
+- **M1 guard for the int-specialised share (WS0 relay: the M1 gate is met only with the II forms, 44,605 vs
+  38,631 ops/frame on melonDS), 2026-09-26.**
+  - Flappy's Step handlers cannot carry the pin: every arithmetic op and comparison there reads `vspeed`, `y` or
+    `sprite_height` (typed "number", fractional by design), so their II share is 0 by soundness, and a pin on them
+    would pin nothing.
+  - Instead `fixtures/compiler/perf/int-mix/` is a small project whose Step is the bench mix in DSS: int instance
+    variables, int locals, a counted loop, comparisons against room_speed and constants. `src/intproof.test.ts`
+    requires **every** ADD/SUB/MUL/CMPJ of that Step to be int-specialised (13 II, 0 tag-checked), with its golden.
+    It prints the same on `dsdude-host` as a tag-checked build of the same project.
+  - `fixtures/compiler/ii-share.json` reports II vs tag-checked per function for every compiled golden (a golden, so
+    changes show in review). The test also enforces a corpus floor (`CORPUS_II_FLOOR` = 38 II instructions):
+    lowering it takes a deliberate edit, and the reason goes here.
+  - Writing the benchmark found a gap, now closed: a local declared inside a loop body (`var cell = ...` in a `for`)
+    was never proved int, because only top-level declarations counted. The rule is now "every mention lies in the
+    region of a declaration with a value": from the declaration to the end of its statement list (function body,
+    `{ }` block, `case` body; a `for`'s `var` also covers the `for`). A list is only entered at its start, so that is
+    as sound as before. Two loops that each declare `var i = 0` now both qualify. v1/11 gains II ops (its output is
+    unchanged); host tests green (125,079 checks x3).
+
 ## Next
 
 - Int-specialised opcodes only if the M1 gate needs them (kickoff task 7; WS2 adds them at CP-C below the gate).

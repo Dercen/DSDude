@@ -3,13 +3,18 @@
  * M1 fallback). ADDII/SUBII/MULII/CMPJII skip the VM's tag checks, so they may appear only where both operands are
  * proved int; everything else keeps the tag-checked opcode.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { disassemble } from "@dsdude/dsdb";
+import type { Project } from "@dsdude/project-format";
+import { loadProject } from "@dsdude/project-format/node";
 import type { AssetManifest } from "@dsdude/toolchain";
 import { describe, expect, it } from "vitest";
 import type { CodegenEnv } from "./codegen/env.ts";
 import { compileFunction } from "./codegen/function.ts";
 import { IntProof } from "./codegen/intproof.ts";
 import { Reporter } from "./diagnostics/report.ts";
+import { goldenText, REPO_ROOT, readBytes, UPDATING_GOLDENS } from "./golden.ts";
 import { compileProjectModule, GAME_OPTIONS } from "./project.ts";
 import type { Stmt } from "./syntax/ast.ts";
 import { parse } from "./syntax/parser.ts";
@@ -147,5 +152,75 @@ describe("int variables (project-wide)", () => {
 
   it("never proves builtin variables the engine writes (x moves by hspeed)", () => {
     expect(game({ step: "x = 0\nx = x + irandom(3)\n" })).not.toMatch(/ADDII /);
+  });
+});
+
+/**
+ * The M1 gate (44,000 ops/frame on melonDS) is met only with the int-specialised opcodes (WS3's re-bench: 44,605
+ * with them, 38,631 without), so a narrower int proof is an M1 regression. These tests make any loss visible.
+ */
+/** An empty provisional asset manifest (C4). */
+const MANIFEST_EMPTY: AssetManifest = { provisional: true, sprites: {}, backgrounds: {}, sounds: {} };
+
+describe("int-specialised share (M1 guard)", () => {
+  /** Tag-checked forms that have an int-specialised twin. */
+  const CHECKED = new Set(["ADD", "SUB", "MUL", "CMPJ"]);
+  /** The int-specialised forms (opcodes 51-54). */
+  const SPECIALISED = new Set(["ADDII", "SUBII", "MULII", "CMPJII"]);
+  /**
+   * The corpus-wide count of int-specialised instructions in fixtures/compiler (samples, conformance, perf) when this
+   * guard was written. Lower it only on purpose, with the reason in docs/status/ws4.md.
+   */
+  const CORPUS_II_FLOOR = 38;
+
+  /** Per function of a `.dsda` text: how many instructions are int-specialised and how many tag-checked. */
+  function share(dsda: string): Record<string, { ii: number; checked: number }> {
+    const out: Record<string, { ii: number; checked: number }> = {};
+    let fn: string | null = null;
+    for (const line of dsda.split("\n")) {
+      const head = line.trim().split(/\s+/)[0] ?? "";
+      if (head === ".func") fn = line.trim().split(/\s+/)[1] ?? null;
+      else if (head === ".end") fn = null;
+      else if (fn !== null && (SPECIALISED.has(head) || CHECKED.has(head))) {
+        const counts = out[fn] ?? { ii: 0, checked: 0 };
+        if (SPECIALISED.has(head)) counts.ii++;
+        else counts.checked++;
+        out[fn] = counts;
+      }
+    }
+    return out;
+  }
+
+  it("compiles the int-mix benchmark with every ADD/SUB/MUL/CMPJ of its Step int-specialised", async () => {
+    const loaded = await loadProject(join(REPO_ROOT, "fixtures/compiler/perf/int-mix"));
+    expect(loaded.diagnostics).toEqual([]);
+    const r = compileProjectModule(loaded.project as Project, MANIFEST_EMPTY, GAME_OPTIONS);
+    expect(r.diagnostics).toEqual([]);
+    const dsda = disassemble(r.module as NonNullable<typeof r.module>);
+    const golden = "fixtures/compiler/perf/int-mix.dsda";
+    expect(dsda).toBe(goldenText(golden, dsda));
+    if (!UPDATING_GOLDENS) expect(r.dsdb).toEqual(readBytes(golden.replace(/\.dsda$/, ".dsdb")));
+    const step = share(dsda).obj_worker__step;
+    expect(step?.checked).toBe(0);
+    expect(step?.ii).toBeGreaterThanOrEqual(10);
+  });
+
+  it("keeps the corpus's int-specialised share (report: fixtures/compiler/ii-share.json)", () => {
+    const report: Record<string, Record<string, { ii: number; checked: number }>> = {};
+    const root = join(REPO_ROOT, "fixtures/compiler");
+    const files = readdirSync(root, { recursive: true, encoding: "utf8" })
+      .filter((f) => f.endsWith(".dsda"))
+      .map((f) => f.replace(/\\/g, "/"))
+      .sort();
+    let total = 0;
+    for (const f of files) {
+      const s = share(readFileSync(join(root, f), "utf8"));
+      if (Object.keys(s).length === 0) continue;
+      report[f] = s;
+      for (const c of Object.values(s)) total += c.ii;
+    }
+    const text = `${JSON.stringify(report, null, 2)}\n`;
+    expect(text).toBe(goldenText("fixtures/compiler/ii-share.json", text));
+    expect(total).toBeGreaterThanOrEqual(CORPUS_II_FLOOR);
   });
 });

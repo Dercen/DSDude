@@ -1,0 +1,96 @@
+{
+  "conformance/v0/01-arith.dsda": {
+    "__main": {
+      "ii": 3,
+      "checked": 0
+    }
+  },
+  "conformance/v0/02-fixed.dsda": {
+    "__main": {
+      "ii": 0,
+      "checked": 2
+    }
+  },
+  "conformance/v0/03-compare.dsda": {
+    "__main": {
+      "ii": 1,
+      "checked": 0
+    }
+  },
+  "conformance/v0/04-control.dsda": {
+    "__main": {
+      "ii": 6,
+      "checked": 0
+    }
+  },
+  "conformance/v0/05-functions.dsda": {
+    "add": {
+      "ii": 0,
+      "checked": 1
+    },
+    "fact": {
+      "ii": 0,
+      "checked": 2
+    }
+  },
+  "conformance/v1/06-strings.dsda": {
+    "__main": {
+      "ii": 0,
+      "checked": 2
+    }
+  },
+  "conformance/v1/07-arrays.dsda": {
+    "__main": {
+      "ii": 1,
+      "checked": 1
+    }
+  },
+  "conformance/v1/11-random.dsda": {
+    "__main": {
+      "ii": 12,
+      "checked": 10
+    }
+  },
+  "conformance/v2/08-instances.dsda": {
+    "obj_ctrl__create": {
+      "ii": 0,
+      "checked": 1
+    }
+  },
+  "conformance/v3/09-with.dsda": {
+    "obj_ctrl__create": {
+      "ii": 4,
+      "checked": 1
+    }
+  },
+  "conformance/v4/10-rooms.dsda": {
+    "obj_runner__create": {
+      "ii": 0,
+      "checked": 1
+    },
+    "obj_runner__step": {
+      "ii": 2,
+      "checked": 0
+    },
+    "obj_runner__room_start": {
+      "ii": 0,
+      "checked": 1
+    }
+  },
+  "perf/int-mix.dsda": {
+    "obj_worker__step": {
+      "ii": 13,
+      "checked": 0
+    }
+  },
+  "samples/flappy.dsda": {
+    "obj_bird__step": {
+      "ii": 0,
+      "checked": 4
+    },
+    "obj_ctrl__alarm_0": {
+      "ii": 1,
+      "checked": 0
+    }
+  }
+}

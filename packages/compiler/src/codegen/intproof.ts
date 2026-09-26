@@ -18,10 +18,13 @@
  * - an int local (below).
  *
  * An int local is a `var` whose every assignment stores a proved int, and which is certainly assigned before any
- * read: its first declaration has a value and is a top-level statement of the function (or the `var` of a top-level
- * `for`), and every mention of it comes after that declaration. Top-level statements run in order and only loops
- * jump back, so a later mention always runs after the declaration. Parameters are never int locals (callers pass
- * anything), and neither is a local ever written by `/=` or declared without a value (that stores undefined).
+ * read: every mention of it lies in the *region* of one of its declarations with a value. A declaration's region
+ * runs from the end of that declaration to the end of the statement list holding it (the function body, a `{ }`
+ * block or a `case` body; a `for`'s `var` also covers the `for` itself). A statement list is only ever entered at its
+ * start (a loop re-runs its body from the start, a `case` label is the start of its body) and runs in order, so a
+ * mention later in the same list always runs after that declaration. Two loops that each declare `var i = 0` both
+ * qualify. Parameters are never int locals (callers pass anything), and neither is a local ever written by `/=` or
+ * declared anywhere without a value (that stores undefined).
  * The set is found by optimistic iteration: assume every candidate is int, drop any with an assignment that is not
  * int under the current assumption, and repeat until nothing changes.
  *
@@ -31,7 +34,7 @@
  * with R500/R501. Builtin variables are never int variables: the engine itself writes `x`, `y` and friends
  * (`x += hspeed` each step) and most are typed "number", so only the int-typed ones above count.
  */
-import type { AssignOp, BinaryOp, Expr, LValue, Stmt } from "../syntax/ast.ts";
+import type { AssignOp, BinaryOp, Expr, LValue, Stmt, VarStmt } from "../syntax/ast.ts";
 import { localsOf, walk } from "../syntax/walk.ts";
 import { builtinConstants, builtinFunctions, builtinVariables } from "./builtins.ts";
 
@@ -127,11 +130,12 @@ export class IntProof {
       if (list === undefined) stores.set(name, [value]);
       else list.push(value);
     };
-    // Every store into a local, and the first mention of each name.
-    const firstMention = new Map<string, number>();
+    // Every store into a local, and every mention of each name.
+    const mentions = new Map<string, number[]>();
     const mention = (name: string, at: number): void => {
-      const seen = firstMention.get(name);
-      if (seen === undefined || at < seen) firstMention.set(name, at);
+      const list = mentions.get(name);
+      if (list === undefined) mentions.set(name, [at]);
+      else list.push(at);
     };
     walk(body, {
       stmt: (s) => {
@@ -153,10 +157,13 @@ export class IntProof {
       },
     });
 
-    // Candidates: certainly assigned by a top-level declaration before any mention.
+    // Candidates: certainly assigned before every mention (each mention inside a declaration's region).
     const candidates = new Set<string>();
-    for (const [name, at] of topLevelDeclarations(body))
-      if ((firstMention.get(name) ?? Number.POSITIVE_INFINITY) >= at && stores.has(name)) candidates.add(name);
+    const regions = declarationRegions(body);
+    for (const [name, spans] of regions) {
+      const covered = (at: number): boolean => spans.some(([from, to]) => at >= from && at <= to);
+      if (stores.has(name) && (mentions.get(name) ?? []).every(covered)) candidates.add(name);
+    }
 
     // Optimistic iteration down to the largest consistent set.
     const ints = new Set(candidates);
@@ -182,27 +189,64 @@ function compound(op: BinaryOp, target: Expr, value: Expr): Expr {
 }
 
 /**
- * Locals whose first `var` declaration has a value and is a top-level statement (or a top-level `for`'s `var`), with
- * the offset where that declaration ends: from there on the local certainly holds its value. A name declared
- * anywhere without a value, or first declared deeper, is left out.
+ * The regions (see the file comment) of every local declared with a value: name -> [from, to] offset ranges. A name
+ * declared anywhere without a value is left out (that declaration stores undefined).
  */
-function topLevelDeclarations(body: readonly Stmt[]): Map<string, number> {
-  const decls = new Map<string, number>();
+function declarationRegions(body: readonly Stmt[]): Map<string, [number, number][]> {
+  const regions = new Map<string, [number, number][]>();
   const unusable = new Set<string>();
-  for (const s of body) {
-    const v = s.kind === "var" ? s : s.kind === "for" && s.init?.kind === "var" ? s.init : null;
-    if (v === null) continue;
-    for (const d of v.decls) if (!decls.has(d.name) && d.init !== null) decls.set(d.name, d.end);
-  }
-  // A declaration without a value stores undefined, wherever it is.
-  walk(body, {
-    stmt: (s) => {
-      if (s.kind === "var") for (const d of s.decls) if (d.init === null) unusable.add(d.name);
-      return true;
-    },
-  });
-  for (const name of unusable) decls.delete(name);
-  return decls;
+  const add = (v: VarStmt, to: number): void => {
+    for (const d of v.decls) {
+      if (d.init === null) {
+        unusable.add(d.name);
+        continue;
+      }
+      const list = regions.get(d.name);
+      if (list === undefined) regions.set(d.name, [[d.end, to]]);
+      else list.push([d.end, to]);
+    }
+  };
+  /** A statement list that runs from its start, in order, ending at offset `end`. */
+  const list = (stmts: readonly Stmt[], end: number): void => {
+    for (const s of stmts) {
+      if (s.kind === "var") add(s, end);
+      else if (s.kind === "for" && s.init?.kind === "var") add(s.init, end);
+      stmt(s);
+    }
+  };
+  /** Finds the statement lists (and `for` declarations) nested in one statement. */
+  const stmt = (s: Stmt): void => {
+    switch (s.kind) {
+      case "block":
+        list(s.body, s.end);
+        return;
+      case "var":
+        add(s, s.end); // a lone `var` as an if/loop body: its region is itself
+        return;
+      case "if":
+        stmt(s.then);
+        if (s.otherwise !== null) stmt(s.otherwise);
+        return;
+      case "for":
+        if (s.init?.kind === "var") add(s.init, s.end);
+        stmt(s.body);
+        return;
+      case "while":
+      case "do":
+      case "repeat":
+      case "with":
+        stmt(s.body);
+        return;
+      case "switch":
+        for (const c of s.clauses) list(c.body, c.end);
+        return;
+      default:
+        return;
+    }
+  };
+  list(body, Number.POSITIVE_INFINITY);
+  for (const name of unusable) regions.delete(name);
+  return regions;
 }
 
 /** A builtin array variable of type int (`alarm`). */
