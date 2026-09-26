@@ -1,0 +1,9 @@
+{
+  "frames": 1,
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "origin": { "x": 8, "y": 8 },
+  "bbox": { "left": 2, "top": 3, "right": 13, "bottom": 12 },
+  "colorMode": "auto",
+  "transparent": "alpha"
+}

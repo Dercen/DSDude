@@ -1,0 +1,51 @@
+// Built-in variables, instance queries and motion builtins no other fixture reached (runtime coverage). The
+// expected line is beside each call. The probe stands at (40, 50) with spr_box (16 x 16, origin 8,8, bbox 2,3 to
+// 13,12 inclusive); obj_wall's box is x 54-65 at y 45-54; obj_mark (no sprite) at (100, 50) and (200, 150).
+show_debug_message("bbox " + string(bbox_left) + " " + string(bbox_top) + " " + string(bbox_right) + " " + string(bbox_bottom)); // bbox 34 45 45 54
+show_debug_message("room " + string(room_width) + "x" + string(room_height) + " at " + string(room_speed)); // room 256x192 at 60
+show_debug_message(sprite_index == spr_box); // true
+show_debug_message(image_number); // 1
+show_debug_message(visible); // true
+show_debug_message(depth); // 3
+show_debug_message(screen == SCREEN_TOP); // true
+alarm[0] = 4;
+show_debug_message(alarm[0]); // 4
+visible = false;
+show_debug_message(visible); // false
+depth = -2;
+show_debug_message(depth); // -2
+// Without a sprite the box is the position, and there are no frames.
+sprite_index = -1;
+show_debug_message(string(sprite_index) + " " + string(bbox_left == x) + " " + string(image_number)); // -1 true 0
+sprite_index = spr_box;
+show_debug_message(bbox_left); // 34
+screen = SCREEN_BOTTOM;
+show_debug_message(screen == SCREEN_BOTTOM); // true
+screen = SCREEN_TOP;
+// Instance queries.
+show_debug_message(instance_exists(obj_mark)); // true
+show_debug_message(instance_exists(obj_pad)); // false (it lives in rm_two)
+show_debug_message(instance_number(obj_mark)); // 2
+var m = instance_find(obj_mark, 1);
+show_debug_message(m.x); // 200 (creation order)
+show_debug_message(instance_find(obj_mark, 5) == noone); // true
+m = instance_nearest(0, 0, obj_mark);
+show_debug_message(m.x); // 100
+m = instance_nearest(190, 140, obj_mark);
+show_debug_message(m.x); // 200
+m = instance_nearest(150, 100, obj_mark);
+show_debug_message(m.x); // 100 (both are 70.71 away: the earlier-created wins)
+m.depth = 7;
+show_debug_message(m.depth); // 7
+// place_free: the probe's box moved to (x, y) against every other box (edges inclusive).
+show_debug_message(place_free(x, y)); // true
+show_debug_message(place_free(48, 50)); // true: right edge 53, the wall starts at 54
+show_debug_message(place_free(49, 50)); // false: right edge 54 touches the wall
+// Motion: two views of one motion (hspeed/vspeed and speed/direction).
+motion_add(0, 2);
+motion_add(90, 2);
+show_debug_message(string(hspeed) + " " + string(vspeed) + " " + string(speed) + " " + string(direction)); // 2 -2 2.83 45
+move_towards_point(x + 30, y + 40, 5);
+show_debug_message(string(hspeed) + " " + string(vspeed) + " " + string(speed) + " " + string(direction)); // 3 4 5 306.87
+speed = 0;
+show_debug_message(string(hspeed) + " " + string(vspeed)); // 0 0

@@ -1,0 +1,103 @@
+.dsda 0.1
+.seed 7
+
+.func __main 0 4
+    .loc "rt/builtins-math.dss" 5
+    LOADK r0, 1.25
+    CALLN r0, 1, ceil
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 6
+    LOADK r0, -1.25
+    CALLN r0, 1, ceil
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 7
+    LOADI r0, 3
+    CALLN r0, 1, ceil
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 8
+    LOADK r0, 2.75
+    CALLN r0, 1, frac
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 9
+    LOADK r0, -2.75
+    CALLN r0, 1, frac
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 10
+    LOADI r0, 5
+    CALLN r0, 1, frac
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 11
+    LOADI r0, -4
+    CALLN r0, 1, sign
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 12
+    LOADI r0, 0
+    CALLN r0, 1, sign
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 13
+    LOADK r0, 2.5
+    CALLN r0, 1, sign
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 14
+    LOADI r0, 0
+    LOADI r1, 10
+    LOADK r2, 0.25
+    CALLN r0, 3, lerp
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 15
+    LOADI r0, 10
+    LOADI r1, 20
+    LOADK r2, 1.5
+    CALLN r0, 3, lerp
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 16
+    LOADI r0, 4
+    LOADI r1, 4
+    LOADK r2, 0.300048828125
+    CALLN r0, 3, lerp
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 17
+    LOADI r0, 0
+    LOADI r1, 0
+    LOADI r2, 3
+    LOADI r3, 4
+    CALLN r0, 4, point_distance
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 18
+    LOADI r0, 1
+    LOADI r1, 1
+    LOADI r2, -2
+    LOADI r3, -3
+    CALLN r0, 4, point_distance
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 19
+    LOADI r0, 0
+    LOADI r1, 0
+    LOADI r2, 1
+    LOADI r3, 1
+    CALLN r0, 4, point_distance
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 21
+    LOADI r0, 10
+    CALLN r0, 1, random
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 22
+    LOADI r0, -2
+    CALLN r0, 1, random
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 23
+    LOADI r0, 0
+    CALLN r0, 1, random
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 24
+    LOADI r0, 5
+    LOADI r1, 6
+    CALLN r0, 2, random_range
+    CALLN r0, 1, show_debug_message
+    .loc "rt/builtins-math.dss" 25
+    LOADI r0, 6
+    LOADI r1, 5
+    CALLN r0, 2, random_range
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end

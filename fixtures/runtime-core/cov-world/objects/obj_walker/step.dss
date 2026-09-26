@@ -1,0 +1,11 @@
+// Frame f runs with global.t = f + 1. Room order rm_one, rm_two, rm_three; changes happen at the end of the frame.
+global.t += 1;
+if (global.t == 1 || global.t == 6 || global.t == 8 || global.t == 9) {
+    room_goto_next(); // at t 9 in rm_three: R542, there is no room after rm_three (the run ends there)
+}
+if (global.t == 7) {
+    room_goto_previous();
+}
+if (button_released(btn_a)) {
+    show_debug_message("a released at " + string(global.t)); // t 4 (a is held on frame 2 only)
+}
