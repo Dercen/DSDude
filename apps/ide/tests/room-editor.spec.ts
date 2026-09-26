@@ -29,7 +29,7 @@ test("room editor pans a 1024x512 room with 200 instances at 4x zoom at 60 fps",
 
     await page.getByTestId("tree:room:rm_game").click();
     await expect(page.getByTestId("room-editor:rm_game")).toBeVisible();
-    const canvas = page.getByTestId("room-canvas");
+    const canvas = page.locator("[data-testid=room-canvas][data-ready]");
     await expect(canvas).toBeVisible();
     await page.getByTestId("room-zoom-in").click(); // 2x -> 4x
     await expect(page.getByTestId("room-editor:rm_game")).toContainText("4x");

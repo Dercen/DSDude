@@ -1,0 +1,39 @@
+{
+  "width": 256,
+  "height": 192,
+  "layout": "separate",
+  "screens": {
+    "top": {
+      "background": null,
+      "viewX": 0,
+      "viewY": 0
+    },
+    "bottom": {
+      "background": null,
+      "viewX": 0,
+      "viewY": 0
+    }
+  },
+  "instances": [
+    {
+      "object": "obj_bird",
+      "x": 64,
+      "y": 96
+    },
+    {
+      "object": "obj_ctrl",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "object": "obj_hud",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "object": "obj_pipe",
+      "x": 192,
+      "y": 128
+    }
+  ]
+}

@@ -257,11 +257,22 @@ Local slot 3, hybrid mode, branch `ws6-ide`. Started 2026-09-25 (phase0 tag).
     - Dirty state compares content, since undo rebuilds equal documents.
     - The pointer handlers read the tool, colour and preview from refs, so events between renders are handled right.
   - Tests: editor-core 14; browser 15 (sprite editor 2: stroke plus undo/redo, line, new frame, save PNG + frames; mirror, onion, animate); node 94; Playwright 13 (the import test now opens the sprite editor). Screenshots checked.
+- **2026-09-26: merged `main` (checkpoint-15, `6057408`, then `68ca7da`); `npm install` links `image-q` from the lockfile, so the `--no-save` copy is gone.**
+- **Task 7, batch B, the room editor: done.**
+  - `packages/editor-core/src/room.ts` (pure, node-tested): draw order by depth, hit test by sprite origin (a 16x16 marker for sprite-less objects), rubber band; immer-draft mutators to place (a `screen` stored only when it differs from the object's), move, delete, paint walls on grid cells without duplicates, erase cells, and clamp views; sprites per screen (visible sprite-bearing instances only). samples/flappy's `room.json` round-trips through edit and undo.
+  - `apps/ide/src/renderer/editors/room/`, a C12 EditorPanel on PixiJS 8.21 (`pixi.js/unsafe-eval` under our CSP; textures from ImageData canvases, nearest scaling; renders on demand):
+    - both screens stacked, each with its background, grid, instances by depth (invisible objects faint) and its 256x192 view rectangle;
+    - tools select/move with rubber band (V), place (P), paint walls (B), erase (E), view (W); grid off/8/16/32, snap, zoom 1-8x (Ctrl+wheel around the pointer), wheel/middle-drag pan, Delete, double-click opens the object;
+    - gestures preview as a ghost overlay and commit one undo step each through the project store;
+    - per-screen sprite meters: red past 128, never a crash.
+  - The canvas gets `data-ready` once its input listeners are attached; tests wait for it.
+  - **Editor-saved room for WS0: `fixtures/editors/flappy-rm_game/room.json`.** A browser test empties rm_game (rubber band + Delete) and rebuilds it with the mouse. The saved `room.json` is byte-identical to the sample's (the DoD round trip). One `obj_pipe` is then added, and the result is the fixture (written when missing, compared otherwise). I built it: flappy with this room gives `dsdude build` a ROM, and `dsdude screenshot --frames 20` shows the bird, the score and the pipe.
+  - Tests: editor-core 20; browser 20 (room 5: place + undo, paint 16 invisible walls in one step then erase one, the 129th-sprite red meter, rm_game with the mouse + round trip, and an fps report of 25 fps in headless software WebGL); node 94; Playwright 14 (`room-editor.spec.ts` enforces 55+ fps panning a 1024x512 room with 200 instances at 4x: measured 60; full suite green). Screenshots checked.
 
 ## Next
 - Task 6: done.
 - CP-A (2026-09-28): the C12 panel API and mock host freeze; WS0 runs the e2e suite locally.
-- Task 7 continues: batch B the room core + PixiJS room view (60 fps check), batch C the background editor + sound panel, batch D in-editor meters.
+- Task 7 continues: batch C the background editor + sound panel, batch D in-editor meters.
 - Task 5 (CP-B): real BuildService as the default, M0 IDE Play (fixtures/runtime/hello in melonDS through `--skip-compile --skip-assets`).
 - CP-A (2026-09-28): stop and wait for WS0's merge. Task 5 (real BuildService) at CP-B.
 
