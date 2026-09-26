@@ -17,6 +17,7 @@ import { ProblemsPanel } from "./panels/ProblemsPanel.tsx";
 import { ProjectTree } from "./panels/ProjectTree.tsx";
 import { loadEditorModules, registerEditor, saveDirtyPanels } from "./panels/registry.ts";
 import { WelcomePanel } from "./panels/WelcomePanel.tsx";
+import { propertiesEditorFactory } from "./properties/PropertiesEditor.tsx";
 import { createIde } from "./store/ide.ts";
 import { FirstRunWizard } from "./wizards/FirstRunWizard.tsx";
 import { ImportDialog } from "./wizards/ImportDialog.tsx";
@@ -30,6 +31,8 @@ const ide = createIde(ipc, workbench, {
 });
 installLearnLinkOpener((target) => ide.actions.openLearn(target));
 registerEditor(createObjectEditorFactory(ide));
+// The fallback for Game Settings, sprites, backgrounds, sounds and rooms: after the editor modules, so they win.
+registerEditor(propertiesEditorFactory);
 let started = false;
 
 const components = {

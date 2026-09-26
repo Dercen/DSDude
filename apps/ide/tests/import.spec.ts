@@ -42,6 +42,12 @@ test("import a sprite and a sound through the dialogs", async () => {
     const json = JSON.parse(readFileSync(join(dir, "sprites/spr_coin/sprite.json"), "utf8"));
     expect(json).toMatchObject({ frames: 3, frameWidth: 16, frameHeight: 16, origin: { x: 8, y: 15 } });
 
+    // The new sprite opens in its property form (the fallback editor until a visual sprite editor lands).
+    await page.getByTestId("tree:sprite:spr_coin").click();
+    await expect(page.getByTestId("properties:sprite:spr_coin")).toBeVisible();
+    await expect(page.getByTestId("pf-frames")).toHaveValue("3");
+    await page.screenshot({ path: test.info().outputPath("properties.png") });
+
     // Sound: a WAV becomes an effect.
     await pick(join(assets, "blip.wav"));
     await page.getByTestId("import:sound").click();
