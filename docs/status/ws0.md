@@ -185,6 +185,12 @@ cheaper CALLN; not yet the watchdog change or the int ops). Read from the user's
   232 ms (4401 KB/s) ok; maxmod load=0 blip=0 loop=0 and bad id=1 handle=1 active=1, as expected; cstack
   3068/11200 B; heap free 16,184 KB (DSi mode, above).
 - Relayed to WS3 (spike 15, page 4, bench) and WS2 (the bench figure, provisional).
+- **DS-mode re-run (same ROMs, TWiLight per-game "Run in: DS mode"): the ROMs stop at start-up with R584.** A game
+  ROM shows "The game file could not be read (file system) game.dsdb"; 1-selftest shows "NitroFS or the soundbank
+  did not start: selftest". The error box itself works. So in TWiLight's DS mode on the 3DS, NitroFS cannot open
+  the ROM from the SD card (no DSi SD access; DLDI or argv presumably missing). This matters beyond the bench:
+  DS-mode setups (flashcards on a DS or DS Lite) are target hardware. Sent to WS3 to diagnose; meanwhile the
+  calibration run uses "Run in: DSi mode" with "ARM9 CPU speed: 67 MHz (NTR)".
 
 ## Open questions for the user
 
