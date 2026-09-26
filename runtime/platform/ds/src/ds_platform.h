@@ -25,8 +25,22 @@ extern bool ds_frame_nowait;
 // can boot several workloads in turn. NULL: no override.
 extern const char *ds_game_file;
 
+// The M1 timer harness sets this to serve "game.dsdb" from memory (a workload linked into the ELF), so it needs no
+// NitroFS. NULL: no override. Checked before ds_game_file.
+extern const void *ds_game_image;
+extern uint32_t ds_game_image_size;
+
 // Hardware test builds set this: dsd_plat_frame_end draws the mirrored log (ds_ui console) over the bottom screen.
 extern bool ds_screen_log;
+
+// Set by the M1 timer harness, whose workloads are linked into the ELF: a NitroFS that does not mount is then not an
+// error (ds_platform_init returns DSD_PLAT_OK without sound), so the bench runs on any loader.
+extern bool ds_nitrofs_optional;
+
+// Why NitroFS did not mount, for the R584 error box and the log (empty when it mounted): DS/DSi mode, argc and
+// argv[0] from the loader (the homebrew argv protocol), the DLDI driver's name, fatInitDefault's result and
+// nitroFSInit's errno. Lines are separated by '\n'.
+extern char ds_boot_diag[256];
 
 // The first call runs the boot order of PLAN.md 3.3, nitroFSInit -> soundEnable() -> mmInitDefault
 // ("nitro:/soundbank.bin", only when that file exists), and returns DSD_PLAT_OK, DSD_PLAT_ENOENT (NitroFS not

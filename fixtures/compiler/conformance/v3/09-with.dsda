@@ -20,7 +20,7 @@
     CALLN r2, 1, floor
     LOADI r3, 0
   L0:
-    CMPJ r2, r3, 4
+    CMPJII r2, r3, 4
     JMP L1
     .loc "objects/obj_ctrl/create.dss" 4
     MULI r4, r0, 32
@@ -42,14 +42,14 @@
     .loc "objects/obj_ctrl/create.dss" 9
     GETSLOT r3, 0
     LOADI r4, 0
-    CMPJ r3, r4, 0
+    CMPJII r3, r4, 0
     JMP L5
     LOADK r3, @obj_ball
     WITHBEGIN r3, L5
   L3:
     GETSLOT r4, 0
     LOADI r5, 2
-    CMPJ r4, r5, 0
+    CMPJII r4, r5, 0
     JMP L4
     CALLN r4, 0, instance_destroy
   L4:
@@ -76,7 +76,7 @@
     .loc "objects/obj_ctrl/create.dss" 13
     GETSLOT r3, 0
     LOADI r4, 3
-    CMPJ r3, r4, 0
+    CMPJII r3, r4, 0
     JMP L8
     WITHEND r2
     JMP L11

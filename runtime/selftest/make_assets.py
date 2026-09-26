@@ -10,6 +10,11 @@
 #          fixtures/runtime/selftest/nitrofs/*    the ROM's NitroFS root (GRFs, soundbank.bin, big.bin)
 #          fixtures/runtime/selftest/commands.txt every command line run, with exit codes and tool versions
 #          runtime/selftest/source/soundbank.h    mmutil's header (ids for the selftest)
+#
+#   python runtime/selftest/make_assets.py --conformance-bank
+#
+# writes only fixtures/runtime/conformance/soundbank.bin (+ soundbank.h, commands.txt): 8 short effects and 8 tiny
+# modules, so `npm run conformance:ds` can pack a bank for WS2's fixtures that declare sounds or music (ids 0-7).
 # Every spawned tool gets a timeout. Needs Pillow (in the same user site as py-desmume).
 
 import os
@@ -28,6 +33,7 @@ OUT = os.path.join(ROOT, "fixtures", "runtime", "selftest")
 SRC = os.path.join(OUT, "src")
 NITRO = os.path.join(OUT, "nitrofs")
 HEADER = os.path.join(HERE, "source", "soundbank.h")
+CONF = os.path.join(ROOT, "fixtures", "runtime", "conformance")
 
 WONDERFUL_BIN = r"C:\msys64\opt\wonderful\bin"
 TOOLS = r"C:\msys64\opt\wonderful\thirdparty\blocksds\core\tools"
@@ -134,7 +140,7 @@ def background():
     return indexed(rgba_pixels(im), im.size, "bg.png", 256)
 
 
-def loop_wav():
+def loop_wav(out_dir=None, name="loop.wav"):
     """Spike 11: mono 16-bit 22050 Hz, only fmt/smpl/data chunks, a loop of >= 16 samples (2.9)."""
     rate, period, periods = 22050, 50, 40  # 441 Hz square-ish tone, loop over the last 20 periods
     n = period * periods
@@ -150,13 +156,13 @@ def loop_wav():
     body = b"WAVE"
     for tag, chunk in ((b"fmt ", fmt), (b"smpl", smpl), (b"data", data)):
         body += tag + struct.pack("<I", len(chunk)) + chunk
-    path = os.path.join(SRC, "loop.wav")
+    path = os.path.join(out_dir or SRC, name)
     with open(path, "wb") as f:
         f.write(b"RIFF" + struct.pack("<I", len(body)) + body)
     return path
 
 
-def xm_module():
+def xm_module(out_dir=None, name="selftest.xm"):
     """Spike 11: a minimal FastTracker 2 XM (v0104): 2 channels, 1 pattern of 64 rows, 1 instrument with one
     looped 8-bit sample. Written here because WS5's XM fixture is not on main yet."""
     channels, rows = 2, 64
@@ -195,7 +201,7 @@ def xm_module():
     inst = inst.ljust(263, b"\0")
     # Sample header: loop the whole sample forward, volume 48, relative note +12 (a 64-byte loop sounds low).
     shdr = struct.pack("<IIIBbBBbB", sample_len, 0, sample_len, 48, 0, 1, 128, 12, 0) + b"square".ljust(22, b"\0")
-    path = os.path.join(SRC, "selftest.xm")
+    path = os.path.join(out_dir or SRC, name)
     with open(path, "wb") as f:
         f.write(header + pattern + inst + shdr + bytes(delta))
     return path
@@ -227,25 +233,26 @@ def grit(png, out, bpp4=False, bg=False):
         sys.exit(f"grit wrote no {target}")
 
 
-def mmutil(inputs):
+def mmutil(inputs, bank=None, header=None, work_dir=None):
     """2.9: WAVs sorted by name, then modules; attached -o/-h; cwd a writable build dir (mm_*_tmp.*)."""
-    bank = os.path.join(NITRO, "soundbank.bin")
-    for p in (bank, HEADER):
+    bank = bank or os.path.join(NITRO, "soundbank.bin")
+    header = header or HEADER
+    for p in (bank, header):
         if os.path.exists(p):
             os.remove(p)
-    work = os.path.join(OUT, "mmwork")
+    work = work_dir or os.path.join(OUT, "mmwork")
     os.makedirs(work, exist_ok=True)
     try:
-        run([MMUTIL, *inputs, "-d", "-o" + bank, "-h" + HEADER], work)
+        run([MMUTIL, *inputs, "-d", "-o" + bank, "-h" + header], work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
-    for p in (bank, HEADER):
+    for p in (bank, header):
         if not os.path.exists(p):
             sys.exit(f"mmutil wrote no {p}")
     # mmutil writes CRLF; the repo stores LF (.gitattributes), so a re-run leaves no diff.
-    with open(HEADER, "rb") as f:
+    with open(header, "rb") as f:
         text = f.read().replace(b"\r\n", b"\n")
-    with open(HEADER, "wb") as f:
+    with open(header, "wb") as f:
         f.write(text)
 
 
@@ -279,5 +286,25 @@ def main():
     print(f"mmutil -V: {version}; big.bin sum {total}")
 
 
+def conformance_bank():
+    """8 effects (sfx_0..7: loop.wav's tone) and 8 modules (mod_0..7: the selftest XM), so every sound or music id
+    0-7 a WS2 fixture declares exists. Names sort in id order (mmutil: WAVs by name, then modules by name)."""
+    src = os.path.join(CONF, "src")
+    if os.path.isdir(src):
+        shutil.rmtree(src)
+    os.makedirs(src)
+    waves = [loop_wav(src, f"sfx_{i}.wav") for i in range(8)]
+    mods = [xm_module(src, f"mod_{i}.xm") for i in range(8)]
+    mmutil(waves + mods, os.path.join(CONF, "soundbank.bin"), os.path.join(CONF, "soundbank.h"), os.path.join(CONF, "mmwork"))
+    with open(os.path.join(CONF, "commands.txt"), "w", newline="\n") as f:
+        f.write("# Written by runtime/selftest/make_assets.py --conformance-bank; do not edit.\n")
+        for line in log_lines:
+            f.write(line + "\n")
+    print("\n".join(log_lines))
+
+
 if __name__ == "__main__":
-    main()
+    if "--conformance-bank" in sys.argv:
+        conformance_bank()
+    else:
+        main()

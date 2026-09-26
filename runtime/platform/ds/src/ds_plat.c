@@ -75,9 +75,15 @@ static uint32_t g_mod_loaded_n;
 static struct { mm_sfxhand handle; uint16_t id; } g_sfx_playing[DS_SFX_TRACKED];
 static uint32_t g_sfx_next;
 static mm_byte g_sfx_volume = 255;
+// A module started and not stopped. C11 modules always loop, so this is audio_is_playing's answer; maxmod's
+// mmActive() only turns true at its next frame tick, which would make audio_is_playing false right after
+// audio_play_music (WS2's fixtures/bytecode/runtime/music, host platform.c).
+static bool g_music_on;
 
 bool ds_frame_nowait = false;
 const char *ds_game_file = NULL;
+const void *ds_game_image = NULL;
+uint32_t ds_game_image_size = 0;
 bool ds_screen_log = false;
 
 static volatile uint32_t g_vblanks;
@@ -200,6 +206,13 @@ void dsd_plat_read_input(dsd_input *out)
 
 int32_t dsd_plat_read_file(const char *path, void *buf, uint32_t cap)
 {
+    if (ds_game_image != NULL && strcmp(path, "game.dsdb") == 0)
+    {
+        if (ds_game_image_size > cap)
+            return DSD_PLAT_ETOOBIG;
+        memcpy(buf, ds_game_image, ds_game_image_size);
+        return (int32_t)ds_game_image_size;
+    }
     if (ds_game_file != NULL && strcmp(path, "game.dsdb") == 0)
         path = ds_game_file;
     FILE *f = fopen(nitro_path(path), "rb");
@@ -232,7 +245,7 @@ void dsd_plat_log_flush(void)
 
 void dsd_plat_fatal(const dsd_fatal *err)
 {
-    static char where[160];
+    static char where[160 + sizeof(ds_boot_diag)];
     where[0] = '\0';
     if (err->object[0] != '\0' || err->event[0] != '\0')
         snprintf(where, sizeof(where), "%s%s%s", err->object, err->object[0] && err->event[0] ? " / " : "",
@@ -245,6 +258,12 @@ void dsd_plat_fatal(const dsd_fatal *err)
             snprintf(where + n, sizeof(where) - n, "%s%s line %ld", n ? "\n" : "", err->file, (long)err->line);
         else
             snprintf(where + n, sizeof(where) - n, "%s%s", n ? "\n" : "", err->file);
+    }
+    // NitroFS did not mount (R584): add the platform's diagnosis (ds_platform.c) so a photo says why.
+    if (ds_boot_diag[0] != '\0')
+    {
+        size_t n = strlen(where);
+        snprintf(where + n, sizeof(where) - n, "%s%s", n ? "\n" : "", ds_boot_diag);
     }
     ds_error_screen(err->code, where, err->message); // START: back to main, which runs dsd_core_main again
 }
@@ -398,19 +417,22 @@ void dsd_plat_sfx_stop(uint32_t sound_id)
 
 void dsd_plat_music_play(uint32_t module_id)
 {
-    if (ds_sound_ready)
-        mmStart(module_id, MM_PLAY_LOOP);
+    if (!ds_sound_ready)
+        return;
+    mmStart(module_id, MM_PLAY_LOOP);
+    g_music_on = true;
 }
 
 void dsd_plat_music_stop(void)
 {
     if (ds_sound_ready)
         mmStop();
+    g_music_on = false;
 }
 
 bool dsd_plat_music_active(void)
 {
-    return ds_sound_ready && mmActive();
+    return g_music_on;
 }
 
 void dsd_plat_volume(int32_t volume_fx)
@@ -436,6 +458,7 @@ void dsd_plat_screens_blank(bool blank)
 
 void dsd_plat_assets_free(void)
 {
+    g_music_on = false;
     if (ds_sound_ready)
     {
         mmStop();

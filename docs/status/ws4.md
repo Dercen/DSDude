@@ -214,7 +214,7 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     a debug build, a wrap to int in a release build). The verifier applies ADD's and CMPJ's operand rules (register
     bounds; C <= 5 and a JMP next for CMPJII). Suggestion, WS2's call: a debug build may assert both tags are int and
     stop with an internal-error R code, to catch a compiler proof bug; a release build never checks.
-  - **Rollout:** as soon as WS2 agrees (in docs/status/ws2.md, relayed by WS0), WS4 makes the one T1: opcodes.json
+  - **Rollout (done, see the 0.4.0 entry below):** as soon as WS2 agrees (in docs/status/ws2.md, relayed by WS0), WS4 makes the one T1: opcodes.json
     0.4.0 (51-54 stable with the formats above), dsdb.md 0.5.0, regenerated `runtime/gen/opcodes.h` and
     `packages/*/src/gen`, and a CHANGELOG line. WS2 then flips `OP_CHECKS[...].impl` (the loader keeps answering R582
     until then, so the T1 alone breaks nothing) and adds its `.dsda` fixtures. Once WS2's VM runs them, WS4 turns
@@ -232,6 +232,52 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     - Emission: `a op b` and `a op= b` use ADDII/SUBII/MULII when both sides are proved int (a small literal still
       takes ADDI/SUBI/MULI, which is one instruction); comparisons in conditions use CMPJII; `repeat`'s counter
       (floored, so always int) uses CMPJII. Tests: `src/intproof.test.ts` (six).
+
+- **Opcodes 0.4.0 / dsdb.md 0.5.0 (T1), 2026-09-26: ADDII/SUBII/MULII/CMPJII (51-54) promoted to stable and
+  switched on.** WS2 implemented the handlers and verifier (docs/status/ws2.md, M1 step 7) with the same encoding
+  WS4 proposed (ADD/SUB/MUL/CMPJ operands, no tag checks, the same overflow rules), which is the co-signature.
+  WS3's melonDS re-bench (relayed by WS0): the II forms take the bench mix from 31.76 to 28.27 cycles/op (35,266 to
+  39,629 ops/frame).
+  - `compileProject` and `dsdude compile` use `GAME_OPTIONS` (`fold` + `intOps`); the conformance goldens use
+    `intOps` without folding, so WS2's VM runs the II forms too (v0/01's check against the hand-assembled fixture
+    keeps them off). Goldens regenerated: v0/01, 03, 04, v1/07, 11, v3/09, Flappy. `make -f runtime/Makefile.host
+    test` green: 120,002 checks in each of -O2, UBSan and -O0.
+  - Flappy gets one II op: nearly all its arithmetic is on instance variables, which the proof does not cover yet.
+- **Int proof widened to instance variables and globals (WS0 relay: "keep widening"), 2026-09-26.**
+  `intVariables` in `codegen/intproof.ts`: a user instance variable (by name, whichever object holds it) or a
+  global is int when every store into it anywhere in the project (every event, function, script and creation code,
+  through bare names, `other.`/`obj.` members, `with` bodies and compound assignments) stores a proved int. It is
+  solved as one optimistic fixpoint together with each unit's int locals. An element write (`a[i] = v`) counts as a
+  non-int store. No definite-assignment rule is needed: an unassigned slot or global stops with R500/R501.
+  - Not provable, deliberately: builtin variables such as `x`, `y`, `hspeed` and `vspeed`. The engine writes them
+    itself (`x += hspeed` each step, gravity), and their type is "number", so they may hold fractions. Only the
+    read-only int ones (room_width, room_height, room_speed, image_number) count. Flappy's arithmetic is almost all
+    on these (`vspeed`, `y`), so it keeps its one II op; its only user counter, `global.score += 1`, is already
+    ADDI.
+  - Goldens: v3/09 and v4/10 gain II ops from instance variables; host tests green (120,002 checks x3).
+    Tests: four more in `src/intproof.test.ts`.
+  - Also proved: every builtin variable typed int, writable ones included (`depth`: the runtime floors a store to
+    int32, bivars.c `to_int`), and `alarm[i]` elements.
+  - **For WS0 (builtins.json, changes the ABI hash):** `bbox_left/top/right/bottom` are typed "number", but the
+    runtime always returns ints (`bivars.c` `bbox_edge`). Typed int, collision code comparing bbox edges would get
+    CMPJII. Nothing sound reaches `x`/`y`: they are fractional by design.
+
+- **ADR-0008 (debug and release arithmetic), WS4's part: dsdb.md 0.6.0 (T1), 2026-09-26** (accepted by the user,
+  WS0 relay, main 68ca7da).
+  - Header flags bit 0 = release; bits 1-15 reserved, must be 0 (the runtime refuses them with R581, and
+    packages/dsdb's decoder does too). `.dsda` has a `.release` line after `.seed`, only in release files.
+  - Compiler: a `release` option on `compileProgram` and `compileProjectModule` (absent = debug). `compileProject`
+    (C4, Play) stays debug; `dsdude compile --release` is C10, WS1's or WS8's.
+  - Folding, ADR point 4, WS4's choice: in debug an overflowing constant stays unfolded, so the runtime raises R52x
+    on its line (as before). In release it folds to the low 32 bits of the exact result, as the release runtime
+    computes it (`int_result`/`real_result`/`dsd_fx_mul`); division by zero stays a runtime error in both modes.
+    An int operand is now scaled to Q.12 in full as the runtime does, and only the result must fit.
+  - Checked against WS2's VM: 12,400 random constant expressions (311 overflowing) built as release, unfolded (the
+    VM wraps) and folded (the compiler wraps), printed identical lines on `dsdude-host`.
+    `fixtures/compiler/release/wrap.{dss,dsda,dsdb}` prints `-2147483648 -2147483648 0 -524287.5 2147483647` in
+    release; the same program built for debug stops at line 5 with R520.
+  - **For WS2:** the flag is written now, so the `ADR-pending ADR-0008` markers can go.
+    `fixtures/compiler/release/wrap.dsdb` is a ready release fixture (its intended output is in the .dss comments).
 
 ## Next
 

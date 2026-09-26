@@ -1,6 +1,6 @@
 {
   "contract": "C2",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "howToChange": "Owner WS4 from the phase0 tag; WS2 co-signs every change. Opcode numbers never change. Adding an opcode, or promoting a provisional or reserved one to stable (fixing its operands), is T1: minor version bump, `node tools/gen-opcodes.ts` (runtime/gen/opcodes.h, packages/dsdb/src/gen/opcodes.ts), regenerated fixtures and a contracts/CHANGELOG.md entry in one commit. Changing a stable opcode's meaning or operands is T2 (ADR co-signed by WS2 and WS4). Encoding: 32-bit little-endian words, op = bits 0-7, A = 8-15, B = 16-23, C = 24-31, Bx/sBx = 16-31 (see contracts/dsdb.md).",
   "opcodes": [
     {
@@ -583,34 +583,50 @@
     {
       "number": 51,
       "name": "ADDII",
-      "status": "reserved",
-      "format": "none",
-      "operands": [],
-      "summary": "reserved: int-specialised ADD (M1 fallback)"
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB + rC, both proved int by the compiler (no tag checks); int32 overflow as ADD (R520 in a debug build, wraps in a release build)"
     },
     {
       "number": 52,
       "name": "SUBII",
-      "status": "reserved",
-      "format": "none",
-      "operands": [],
-      "summary": "reserved: int-specialised SUB (M1 fallback)"
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB - rC, both proved int by the compiler (no tag checks); int32 overflow as SUB"
     },
     {
       "number": 53,
       "name": "MULII",
-      "status": "reserved",
-      "format": "none",
-      "operands": [],
-      "summary": "reserved: int-specialised MUL (M1 fallback)"
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:reg"
+      ],
+      "summary": "rA = rB * rC, both proved int by the compiler (no tag checks); int32 overflow as MUL"
     },
     {
       "number": 54,
       "name": "CMPJII",
-      "status": "reserved",
-      "format": "none",
-      "operands": [],
-      "summary": "reserved: int-specialised CMPJ (M1 fallback)"
+      "status": "stable",
+      "format": "ABC",
+      "operands": [
+        "A:reg",
+        "B:reg",
+        "C:u8"
+      ],
+      "summary": "as CMPJ with rA and rB proved int by the compiler (no tag checks): relation C 0-5, the next instruction must be a JMP, skipped when the relation holds"
     },
     {
       "number": 55,

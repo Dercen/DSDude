@@ -9,7 +9,7 @@
     CALLN r7, 1, floor
     LOADI r8, 0
   L0:
-    CMPJ r7, r8, 4
+    CMPJII r7, r8, 4
     JMP L3
     .loc "v1/11-random.dss" 10
     LOADI r9, 10
@@ -42,7 +42,7 @@
     CALLN r7, 1, floor
     LOADI r8, 0
   L4:
-    CMPJ r7, r8, 4
+    CMPJII r7, r8, 4
     JMP L7
     .loc "v1/11-random.dss" 16
     LOADI r9, 2
@@ -78,7 +78,7 @@
     CALLN r7, 1, floor
     LOADI r8, 0
   L8:
-    CMPJ r7, r8, 4
+    CMPJII r7, r8, 4
     JMP L11
     .loc "v1/11-random.dss" 22
     LOADI r9, -3
@@ -108,7 +108,7 @@
     CALLN r7, 1, floor
     LOADI r8, 0
   L12:
-    CMPJ r7, r8, 4
+    CMPJII r7, r8, 4
     JMP L15
     .loc "v1/11-random.dss" 28
     LOADI r9, 5
@@ -138,7 +138,7 @@
     CALLN r7, 1, floor
     LOADI r8, 0
   L16:
-    CMPJ r7, r8, 4
+    CMPJII r7, r8, 4
     JMP L18
     .loc "v1/11-random.dss" 34
     LOADI r9, 2
@@ -176,7 +176,7 @@
     CALLN r7, 1, floor
     LOADI r8, 0
   L19:
-    CMPJ r7, r8, 4
+    CMPJII r7, r8, 4
     JMP L20
     LOADI r9, 3
     CALLN r9, 1, irandom
@@ -214,7 +214,7 @@
     CALLN r7, 1, floor
     LOADI r8, 0
   L23:
-    CMPJ r7, r8, 4
+    CMPJII r7, r8, 4
     JMP L24
     LOADK r9, 1000000
     CALLN r9, 1, irandom

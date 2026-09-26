@@ -22,7 +22,15 @@ import {
   wonderfulLayout,
 } from "@dsdude/toolchain";
 import { readAbiHash } from "./artifact.ts";
-import { compareLogs, objBox, parseProgramCases, placeholderGrf, readyAbi, spriteAssets } from "./conformance.ts";
+import {
+  compareLogs,
+  declaresSound,
+  objBox,
+  parseProgramCases,
+  placeholderGrf,
+  readyAbi,
+  spriteAssets,
+} from "./conformance.ts";
 
 const runtimeDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.dirname(runtimeDir);
@@ -66,6 +74,12 @@ async function main(): Promise<number> {
     writeFileSync(path.join(dir, "nitrofs", "game.dsdb"), seeded ? withDsdbSeed(dsdb, HOST_SEED) : dsdb);
     // Placeholder GRFs for the sprites the fixture declares (conformance.ts).
     const dsda = path.join(repoRoot, c.dsdb.replace(/\.dsdb$/, ".dsda"));
+    if (existsSync(dsda) && declaresSound(readFileSync(dsda, "utf8"))) {
+      copyFileSync(
+        path.join(repoRoot, "fixtures", "runtime", "conformance", "soundbank.bin"),
+        path.join(dir, "nitrofs", "soundbank.bin"),
+      );
+    }
     for (const s of existsSync(dsda) ? spriteAssets(readFileSync(dsda, "utf8")) : []) {
       const box = objBox(s.width, s.height);
       if (!box) continue;

@@ -16,11 +16,11 @@ const ONE = 4096;
 const CONSTANTS: Record<string, number> = { c_red: 2 };
 
 /** Folds the argument of `show_debug_message(<source>)`. */
-function folded(source: string): Folded | null {
+function folded(source: string, wrap = false): Folded | null {
   const parsed = parse(`show_debug_message(${source})`, { file: "t.dss", kind: "code" });
   expect(parsed.diagnostics).toEqual([]);
   const stmt = parsed.ast.items[0] as { call: { args: Expr[] } };
-  return fold(stmt.call.args[0] as Expr, (name) => CONSTANTS[name]);
+  return fold(stmt.call.args[0] as Expr, (name) => CONSTANTS[name], { wrap });
 }
 const int = (value: number): Folded => ({ kind: "number", repr: "int", value });
 const fixed = (raw: number): Folded => ({ kind: "number", repr: "fixed", value: raw });
@@ -87,6 +87,24 @@ describe("constant folding: left to the runtime", () => {
     expect(folded("7.5 div 2")).toBeNull();
     expect(folded("1 < 2 ? 10 : x")).toBeNull();
     expect(folded("x + 1")).toBeNull();
+  });
+});
+
+describe("constant folding: release builds (ADR-0008)", () => {
+  /** The int32 minimum, where int overflow wraps to. */
+  const INT_MIN = -(2 ** 31);
+
+  it("wraps an overflow to its low 32 bits, as the release runtime does", () => {
+    expect(folded("2147483647 + 1", true)).toEqual(int(INT_MIN));
+    expect(folded("65536 * 65536", true)).toEqual(int(0));
+    expect(folded("-(-2147483647 - 1)", true)).toEqual(int(INT_MIN));
+    // (524287.5 + 1) * 4096 = 2^31 + 2048 wraps to -2^31 + 2048: -524287.5.
+    expect(folded("524287.5 + 1", true)).toEqual(fixed(INT_MIN + ONE / 2));
+  });
+
+  it("still leaves division by zero to the runtime (an error in both modes)", () => {
+    expect(folded("1 / 0", true)).toBeNull();
+    expect(folded("1 mod 0", true)).toBeNull();
   });
 });
 

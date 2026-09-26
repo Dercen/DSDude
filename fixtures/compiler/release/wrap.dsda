@@ -1,0 +1,25 @@
+.dsda 0.1
+.seed 0
+.release
+
+.func __main 0 2
+    .loc "release/wrap.dss" 4
+    LOADK r0, 2147483647
+    .loc "release/wrap.dss" 5
+    ADDI r1, r0, 1
+    CALLN r1, 1, show_debug_message
+    .loc "release/wrap.dss" 6
+    LOADK r1, -2147483648
+    CALLN r1, 1, show_debug_message
+    .loc "release/wrap.dss" 7
+    LOADI r1, 0
+    CALLN r1, 1, show_debug_message
+    .loc "release/wrap.dss" 8
+    LOADK r1, -524287.5
+    CALLN r1, 1, show_debug_message
+    .loc "release/wrap.dss" 9
+    ADDI r1, r0, 1
+    SUBI r1, r1, 1
+    CALLN r1, 1, show_debug_message
+    RET r0, 0
+.end

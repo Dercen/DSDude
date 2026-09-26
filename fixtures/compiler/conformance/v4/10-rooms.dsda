@@ -23,7 +23,7 @@
     .loc "objects/obj_runner/step.dss" 1
     GETGLOB r0, visits
     LOADI r1, 1
-    CMPJ r0, r1, 0
+    CMPJII r0, r1, 0
     JMP L0
     LOADK r0, @rm_b
     CALLN r0, 1, room_goto
@@ -32,7 +32,7 @@
     .loc "objects/obj_runner/step.dss" 2
     GETGLOB r0, visits
     LOADI r1, 2
-    CMPJ r0, r1, 0
+    CMPJII r0, r1, 0
     JMP L1
     CALLN r0, 0, room_restart
     JMP L2

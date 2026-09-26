@@ -13,7 +13,10 @@
 typedef struct DsdVm DsdVm;
 
 // A builtin reads its argc arguments from args[0..argc-1] and writes its result to args[0] (undefined for void
-// builtins). It returns false after raising a runtime error with dsd_vm_error*, true otherwise.
+// builtins). It returns false when the script must stop: after raising a runtime error with dsd_vm_error*, or when
+// script code it ran (an event: instance_create, instance_destroy, event_inherited, event_user) executed HALT
+// (vm->halted). True otherwise. CALLN tells the two apart only on the false path, so a builtin that runs no script
+// code never makes the VM check vm->halted.
 typedef bool (*DsdBuiltinFn)(DsdVm *vm, DsdValue *args, uint32_t argc);
 
 // Dense runtime indices by name: DSD_BI_floor, DSD_BI_show_debug_message, ...

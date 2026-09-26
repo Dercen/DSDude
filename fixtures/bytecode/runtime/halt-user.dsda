@@ -1,0 +1,47 @@
+.dsda 0.1
+.seed 0
+
+.func ctrl_step 0 1
+    .loc "objects/obj_ctrl/step.dss" 1
+    LOADK r0, "step"
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/step.dss" 2
+    LOADI r0, 0
+    CALLN r0, 1, event_user
+    .loc "objects/obj_ctrl/step.dss" 3
+    LOADK r0, "after"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_user0 0 1
+    .loc "objects/obj_ctrl/user_0.dss" 1
+    LOADK r0, "user 0"
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/user_0.dss" 2
+    HALT
+.end
+
+.func ctrl_game_end 0 1
+    .loc "objects/obj_ctrl/game_end.dss" 1
+    LOADK r0, "game end"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event step ctrl_step
+    .event user_0 ctrl_user0
+    .event game_end ctrl_game_end
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a

@@ -7,7 +7,7 @@ import type { AssetManifest } from "@dsdude/toolchain";
 import { describe, expect, it } from "vitest";
 import { COMPILER_BUILTINS_ENV } from "./codegen/abi.ts";
 import { goldenText, REPO_ROOT, readBytes, UPDATING_GOLDENS } from "./golden.ts";
-import { compileProject, compileProjectModule } from "./project.ts";
+import { compileProject, compileProjectModule, GAME_OPTIONS } from "./project.ts";
 import { makeProject } from "./testing.ts";
 
 /** An empty provisional manifest (C4): the compiler falls back to sprite.json frame counts. */
@@ -34,8 +34,8 @@ describe("compileProject: the samples", () => {
     it(`compiles samples/${name} with zero diagnostics to its goldens`, async () => {
       const loaded = await loadProject(join(REPO_ROOT, "samples", name));
       expect(loaded.diagnostics).toEqual([]);
-      // Games compile with constant folding, as compileProject does.
-      const r = compileProjectModule(loaded.project as Project, MANIFEST, { fold: true });
+      // Games compile with constant folding and the int-specialised opcodes, as compileProject does.
+      const r = compileProjectModule(loaded.project as Project, MANIFEST, GAME_OPTIONS);
       expect(r.diagnostics).toEqual([]);
       const dsda = disassemble(r.module as NonNullable<typeof r.module>);
       const golden = `fixtures/compiler/samples/${name}.dsda`;
@@ -74,7 +74,8 @@ describe("compileProject: the conformance projects", () => {
     it(`compiles ${tier}/${name} with zero diagnostics to its golden`, async () => {
       const loaded = await loadProject(join(REPO_ROOT, "fixtures", "conformance", tier, name));
       expect(loaded.diagnostics).toEqual([]);
-      const r = compileProjectModule(loaded.project as Project, MANIFEST);
+      // No folding (the VM must run every operation), but the int-specialised opcodes, so the VM runs those too.
+      const r = compileProjectModule(loaded.project as Project, MANIFEST, { intOps: true });
       expect(r.diagnostics).toEqual([]);
       const dsda = disassemble(r.module as NonNullable<typeof r.module>);
       const golden = `fixtures/compiler/conformance/${tier}/${name}.dsda`;

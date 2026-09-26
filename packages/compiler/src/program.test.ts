@@ -52,7 +52,9 @@ describe("program form: the conformance corpus", () => {
     const golden = `fixtures/compiler/conformance/${tier}/${stem}.dsda`;
     it(`compiles ${tier}/${name} to its golden and round-trips through the disassembler`, () => {
       const text = readFileSync(join(REPO_ROOT, "fixtures", "conformance", tier, name), "utf8").replace(/\r/g, "");
-      const r = compileProgram(text, { file: `${tier}/${name}`, seed: PROGRAM_SEEDS[`${tier}/${name}`] });
+      // The int-specialised opcodes on (the VM runs them too); v0/01's hand-assembled check above keeps them off.
+      const seed = PROGRAM_SEEDS[`${tier}/${name}`];
+      const r = compileProgram(text, { file: `${tier}/${name}`, seed, intOps: true });
       // Programs may exercise a lint on purpose (v1/07's fractional index is W041), never an error.
       expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
       expect(r.diagnostics.map((d) => d.code)).toEqual(EXPECTED_WARNINGS[`${tier}/${name}`] ?? []);
@@ -67,6 +69,34 @@ describe("program form: the conformance corpus", () => {
       if (!UPDATING_GOLDENS) expect(bytes).toEqual(readBytes(golden.replace(/\.dsda$/, ".dsdb")));
     });
   }
+});
+
+describe("release builds (ADR-0008)", () => {
+  /** The release golden: compiled as a game would be for release (folding and the int opcodes on). */
+  const golden = "fixtures/compiler/release/wrap.dsda";
+
+  it("sets the release flag, folds overflow wrapped, and round-trips", () => {
+    const text = readFileSync(join(REPO_ROOT, "fixtures/compiler/release/wrap.dss"), "utf8").replace(/\r/g, "");
+    const r = compileProgram(text, { file: "release/wrap.dss", release: true, fold: true, intOps: true });
+    expect(r.diagnostics).toEqual([]);
+    const dsda = disassemble(r.module as NonNullable<typeof r.module>);
+    expect(dsda).toBe(goldenText(golden, dsda));
+    expect(dsda).toContain(".release\n");
+    const bytes = r.dsdb as Uint8Array;
+    expect(disassemble(decode(bytes, COMPILER_BUILTINS_ENV))).toBe(dsda);
+    if (!UPDATING_GOLDENS) expect(bytes).toEqual(readBytes(golden.replace(/\.dsda$/, ".dsdb")));
+  });
+
+  it("leaves an overflowing constant unfolded in a debug build, so the runtime reports it on its line", () => {
+    /** The disassembly of `2147483647 + 1` compiled with folding, as a debug or a release build. */
+    const build = (release: boolean): string => {
+      const r = compileProgram("show_debug_message(2147483647 + 1)", { file: "t.dss", fold: true, release });
+      return disassemble(r.module as NonNullable<typeof r.module>);
+    };
+    expect(build(false)).not.toContain(".release");
+    expect(build(false)).toContain("ADDI r0, r0, 1");
+    expect(build(true)).toContain("LOADK r0, -2147483648");
+  });
 });
 
 describe("program form: code shape", () => {

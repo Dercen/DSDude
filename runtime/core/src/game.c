@@ -13,7 +13,10 @@
 #define EXIT_NORMAL 0          // DSD|EXIT code for a normal end
 
 // The DSDB image: 4-byte aligned, because the loader reads its records in place.
-static _Alignas(4) uint8_t g_dsdb[DSD_C13_DSDB_MAX_BYTES];
+// One spare word past the largest DSDB: the VM fetches the word after a function's last instruction one dispatch
+// early (vm.arm.c), which must stay inside this buffer even when CODE ends the largest possible file.
+#define DSDB_READAHEAD_BYTES 4
+static _Alignas(4) uint8_t g_dsdb[DSD_C13_DSDB_MAX_BYTES + DSDB_READAHEAD_BYTES];
 static DsdProgram g_prog;
 static DsdWorld g_world;
 static DsdVm g_vm;
@@ -49,7 +52,7 @@ static int32_t fail_init(int32_t rc) {
 int32_t dsd_game_boot(void) {
     int32_t rc = dsd_plat_init();
     if (rc != DSD_PLAT_OK) return fail_init(rc);
-    int32_t size = dsd_plat_read_file(DSDB_PATH, g_dsdb, sizeof g_dsdb);
+    int32_t size = dsd_plat_read_file(DSDB_PATH, g_dsdb, DSD_C13_DSDB_MAX_BYTES); // the read-ahead word stays spare
     if (size == DSD_PLAT_ETOOBIG) return fail_load(DSD_R_FILE_TOO_BIG, DSDB_PATH);
     if (size < 0) return fail_load(DSD_R_NO_FILE, DSDB_PATH);
     DsdLoadError err;

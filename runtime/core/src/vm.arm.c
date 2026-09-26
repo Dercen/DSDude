@@ -494,6 +494,11 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     const DsdValue *const kons = prog->kons;
     const uint32_t entry_depth = vm->depth;
     const uint32_t *ip = code + prog->funcs[func].code_start;
+    // The word at ip, fetched one dispatch early (software pipelining: its load overlaps the jump to the current
+    // handler instead of stalling the next dispatch). Every assignment to ip reloads it. At a function's last
+    // instruction this reads one word past it, which is still inside the DSDB (CODE is never the last section);
+    // that word is never executed.
+    uint32_t next = *ip;
     DsdValue *R = vm->regs + base; // the running frame's r0
     // self's slot cells (NULL without a self): GETSLOT/SETSLOT index it directly instead of reloading vm->self and
     // locating the instance block each time. vm->self changes inside run() only through the `with` opcodes (which
@@ -509,7 +514,8 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
 // Fetch the next instruction and jump to its handler. No per-step work: the step is charged at the next transfer.
 #define DISPATCH()                                                                                                     \
     do {                                                                                                               \
-        ins = *ip++;                                                                                                   \
+        ins = next;                                                                                                    \
+        next = *++ip;                                                                                                  \
         goto *dispatch_base[DSD_OP(ins)];                                                                              \
     } while (0)
 // Charge the steps of the straight run that ends here (the running instruction included); R510 when the frame's
@@ -526,7 +532,34 @@ DSD_ITCM_CODE static int32_t run(DsdVm *vm, uint32_t func, uint32_t base) {
     do {                                                                                                               \
         SETTLE();                                                                                                      \
         ip = (target);                                                                                                 \
+        next = *ip;                                                                                                    \
         seg = ip;                                                                                                      \
+    } while (0)
+// A relative jump by d instructions from the next one. Forward (d >= 0) the skipped instructions never run, so
+// moving `seg` by the same d keeps `ip - seg` exact with no settling (and no loop can run forward only); backward
+// jumps, the only way to loop, settle and check the budget.
+#define JUMP_BY(d)                                                                                                     \
+    do {                                                                                                               \
+        int32_t d_ = (d);                                                                                              \
+        if (d_ >= 0) {                                                                                                 \
+            ip += d_;                                                                                                  \
+            seg += d_;                                                                                                 \
+            next = *ip;                                                                                                \
+        } else {                                                                                                       \
+            TRANSFER(ip + d_);                                                                                         \
+        }                                                                                                              \
+    } while (0)
+// The end of CMPJ/CMPJII: when the relation holds, skip the JMP that follows (it never runs); otherwise run that JMP
+// here, from the prefetched word, instead of dispatching to it: it counts as a step, then jumps.
+#define CMPJ_END(holds)                                                                                                \
+    do {                                                                                                               \
+        if (holds) {                                                                                                   \
+            JUMP_BY(1);                                                                                                \
+        } else {                                                                                                       \
+            uint32_t jmp_ = next;                                                                                      \
+            ip++;                                                                                                      \
+            JUMP_BY(DSD_SBX(jmp_));                                                                                    \
+        }                                                                                                              \
     } while (0)
 // Record the running instruction's code index for errors and builtins (ip already points past it).
 #define SYNC_PC() (vm->pc = (uint32_t)(ip - 1 - code))
@@ -646,15 +679,15 @@ op_NOT:
     DISPATCH();
 
 op_JMP:
-    TRANSFER(ip + DSD_SBX(ins));
+    JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 
 op_JMPT:
-    if (dsd_truthy(RA)) TRANSFER(ip + DSD_SBX(ins));
+    if (dsd_truthy(RA)) JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 
 op_JMPF:
-    if (!dsd_truthy(RA)) TRANSFER(ip + DSD_SBX(ins));
+    if (!dsd_truthy(RA)) JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 
 op_CALLN: {
@@ -665,9 +698,13 @@ op_CALLN: {
     // steps of the current straight run are not settled here (that cost WS3 ~5 cycles per CALLN): `seg` stays, and
     // the next transfer charges them, so the count stays exact; a nested event only sees them one run later.
     vm->budget = (uint32_t)budget;
-    if (!fn(vm, &RA, DSD_B(ins))) goto failed;
+    if (!fn(vm, &RA, DSD_B(ins))) {
+        // Stopped: an error, or HALT inside script code the builtin ran (builtins.h). Only this path looks.
+        budget = (int32_t)vm->budget;
+        if (vm->halted) goto halted_inside;
+        goto failed;
+    }
     budget = (int32_t)vm->budget;
-    if (vm->halted) goto halted_inside;
     DISPATCH();
 }
 
@@ -704,6 +741,7 @@ op_RET:
         func = f->func;
         R = vm->regs + f->base;
         ip = code + f->ret_pc;
+        next = *ip;
         seg = ip;
         vm->top = f->base + prog->funcs[func].regs;
     }
@@ -822,7 +860,7 @@ op_CMPJ: {
         SYNC_PC();
         if (!relation_holds(vm, DSD_C(ins), a, b, &holds)) goto failed;
     }
-    if (holds) TRANSFER(ip + 1); // skip the JMP (the verifier guarantees one follows), which never runs
+    CMPJ_END(holds); // the verifier guarantees a JMP follows
     DISPATCH();
 }
 
@@ -882,7 +920,7 @@ op_CMPJII: {
         holds = x >= y;
         break;
     }
-    if (holds) TRANSFER(ip + 1); // skip the JMP, which never runs
+    CMPJ_END(holds);
     DISPATCH();
 }
 
@@ -974,12 +1012,12 @@ op_WITHBEGIN: {
     SYNC_PC();
     if (!dsd_with_begin(RA, &RA, &empty)) goto failed;
     self_slots = SELF_SLOTS(vm); // the loop's first instance (or the outer self when the loop is empty)
-    if (empty) TRANSFER(ip + DSD_SBX(ins));
+    if (empty) JUMP_BY(DSD_SBX(ins));
     DISPATCH();
 }
 
 op_WITHNEXT:
-    if (dsd_with_next(RA)) TRANSFER(ip + DSD_SBX(ins));
+    if (dsd_with_next(RA)) JUMP_BY(DSD_SBX(ins));
     self_slots = SELF_SLOTS(vm); // the next instance, or the outer self again after the last one
     DISPATCH();
 
@@ -1009,6 +1047,8 @@ failed:
 #undef SELF_SLOTS
 #undef SETTLE
 #undef TRANSFER
+#undef JUMP_BY
+#undef CMPJ_END
 #undef SYNC_PC
 #undef RA
 #undef RB

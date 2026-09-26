@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   comparable,
   compareLogs,
+  declaresSound,
   normalizeLine,
   objBox,
   type ProgramCase,
@@ -80,6 +81,14 @@ describe("log comparison", () => {
     expect(
       compareLogs(["DSD|READY|0.1.0|0dd9987a", "DSD|LOG|hello", "DSD|EXIT|0", "DSD|LOG|later"], host, running),
     ).toBe(null);
+  });
+});
+
+describe("sound fixtures", () => {
+  it("know when a fixture declares sounds or music (the harness then packs a soundbank)", () => {
+    expect(declaresSound('.asset music mus_theme "" 3\n')).toBe(true);
+    expect(declaresSound('.asset sound snd_x "" 0\n')).toBe(true);
+    expect(declaresSound('.asset sprite spr "gfx/spr.grf" 1\n')).toBe(false);
   });
 });
 

@@ -38,8 +38,10 @@ export function parseBenchLine(line: string): BenchResult | null {
   };
 }
 
-/** The ROM's own VM-only figures (the summary line, computed on the DS from full, base and loop). */
+/** The ROM's own VM-only figures (a summary line, computed on the DS from full, base and loop). */
 export interface BenchSummary {
+  /** "tagged" (bench.dsdb as is), "ii" (its int-specialised form) or "mix" (a NitroFS single-opcode body). */
+  set: string;
   calls: "long" | "bl";
   vmCyclesPerOp: number;
   vmOpsPerFrame: number;
@@ -52,19 +54,20 @@ export interface BenchSummary {
 
 export function parseSummaryLine(line: string): BenchSummary | null {
   const m =
-    /^DSD\|LOG\|bench: summary calls=(long|bl) vm_cycles_per_op=(\d+\.\d\d) vm_ops_per_frame=(\d+) loop_cycles_per_op=(\d+\.\d\d) loop_ops_per_frame=(\d+) overhead_per_frame=(\d+) gate=(\d+) (PASS|FAIL)$/.exec(
+    /^DSD\|LOG\|bench: summary set=(\w+) calls=(long|bl) vm_cycles_per_op=(\d+\.\d\d) vm_ops_per_frame=(\d+) loop_cycles_per_op=(\d+\.\d\d) loop_ops_per_frame=(\d+) overhead_per_frame=(\d+) gate=(\d+) (PASS|FAIL)$/.exec(
       line,
     );
   if (!m) return null;
   return {
-    calls: m[1] as "long" | "bl",
-    vmCyclesPerOp: Number(m[2]),
-    vmOpsPerFrame: Number(m[3]),
-    loopCyclesPerOp: Number(m[4]),
-    loopOpsPerFrame: Number(m[5]),
-    overheadPerFrame: Number(m[6]),
-    gate: Number(m[7]),
-    pass: m[8] === "PASS",
+    set: m[1],
+    calls: m[2] as "long" | "bl",
+    vmCyclesPerOp: Number(m[3]),
+    vmOpsPerFrame: Number(m[4]),
+    loopCyclesPerOp: Number(m[5]),
+    loopOpsPerFrame: Number(m[6]),
+    overheadPerFrame: Number(m[7]),
+    gate: Number(m[8]),
+    pass: m[9] === "PASS",
   };
 }
 

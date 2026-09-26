@@ -1,4 +1,6 @@
-// gen_bench.mjs: writes fixtures/bytecode/bench.dsda, the M1 microbenchmark (PLAN.md 2.3 and 8 M1; C14).
+// gen_bench.mjs: writes fixtures/bytecode/bench.dsda, the M1 microbenchmark (PLAN.md 2.3 and 8 M1; C14), and
+// bench-ii.dsda, the same block with the int-specialised ADDII/SUBII/MULII/CMPJII (opcodes 0.4.0) that WS4's
+// compiler emits when it proves both operands ints.
 //
 //   node runtime/tests/gen_bench.mjs && node tools/gen-dsdb.ts
 //
@@ -13,7 +15,9 @@ import { join } from "node:path";
 
 const UNITS = 120; // 120 x 10 = 1,200 words = 4.8 KB
 const SLOTS = 4; // user slots the block reads and writes
-const OUT = join(import.meta.dirname, "..", "..", "fixtures", "bytecode", "bench.dsda");
+const DIR = join(import.meta.dirname, "..", "..", "fixtures", "bytecode");
+// Tag-checked opcode -> its int-specialised form, for bench-ii.dsda (every operand in the block is an int).
+const INT_FORMS = { ADD: "ADDII", SUB: "SUBII", MUL: "MULII", CMPJ: "CMPJII" };
 
 // Registers: r0-r7 small constants, r8-r11 accumulators and products, r12-r14 scratch, r15 the CALLN argument.
 const ARITH = [
@@ -58,5 +62,8 @@ lines.push(
   ".first rm_bench",
   "",
 );
-writeFileSync(OUT, lines.join("\n"));
-console.log(`gen_bench: wrote ${OUT} (${UNITS * 10} words in the block)`);
+const text = lines.join("\n");
+const intText = text.replace(/^( {4})(ADD|SUB|MUL|CMPJ) /gm, (_, indent, op) => `${indent}${INT_FORMS[op]} `);
+writeFileSync(join(DIR, "bench.dsda"), text);
+writeFileSync(join(DIR, "bench-ii.dsda"), intText);
+console.log(`gen_bench: wrote bench.dsda and bench-ii.dsda in ${DIR} (${UNITS * 10} words in the block)`);
