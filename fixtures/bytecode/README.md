@@ -18,10 +18,16 @@ the regenerated `.dsdb` together.
   WS2 until WS4's conformance programs 6-10 exist, each with a full `*.out` golden whose lines were written from the
   language rules before the first run. v1-03 pushes ~2.3 MB of short-lived text through the 192 KB arena, so the
   collector runs while a global list of 500 strings must survive.
+- `v2-01-lifecycle` .. `v2-06-motion` (`.dsda`, `.dsdb`, `.out`, and `v2-05-input.keys`): tier v2 (instances and
+  events) as hand-assembled room games, run by the tests for 1-10 frames (`runtime/tests/test_programs.c` lists the
+  frame counts): load order, per-frame stage order, event inheritance and `event_inherited`, an instance created
+  mid-frame joining the next stage, `with` (descendants, destroy mid-loop, `other`, nesting), `obj.var` through slots
+  and the overflow map, `room_goto` at the end of the frame, Room End/Start, globals across rooms and
+  `game_restart`, `game_end`, button and global-touch events from a key script, and speed/direction/gravity.
 - `runtime/*.dsda`: WS2's runtime fixtures, each with a hand-checked `*.out` holding the full expected `dsdude-host
   --seed 1` output (READY, LOG, and EXIT or ERR with code, function, file, line and message): `strings` (TOSTR,
   CONCAT, string comparison and equality, asset ids) and one `err-*` program per runtime error the VM raises so far
-  (R501, R510, R511, R520, R530, R540, R541, R550, R551, R582, R590).
+  (R500, R501, R510, R511, R520, R530, R540, R541, R550, R551, R582, R590).
 
 The host test runner (`make -f runtime/Makefile.host test`, `runtime/tests/test_programs.c`) runs every one of them.
 Tools: `npx dsdb-asm in.dsda -o out.dsdb`, `npx dsdb-dis in.dsdb [-o out.dsda]` (packages/dsdb).

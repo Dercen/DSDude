@@ -1,0 +1,83 @@
+.dsda 0.1
+.seed 0
+.global visits
+
+.func ctrl_game_start 0 1
+    .loc "objects/obj_ctrl/game_start.dss" 1
+    LOADK r0, "game start"
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/game_start.dss" 2
+    LOADI r0, 0
+    SETGLOB r0, visits
+    RET r0, 0
+.end
+
+.func ctrl_room_start 0 1
+    .loc "objects/obj_ctrl/room_start.dss" 1
+    GETGLOB r0, visits
+    ADDI r0, r0, 1
+    SETGLOB r0, visits
+    .loc "objects/obj_ctrl/room_start.dss" 2
+    GETBI r0, room
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/room_start.dss" 3
+    GETGLOB r0, visits
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_room_end 0 1
+    .loc "objects/obj_ctrl/room_end.dss" 1
+    LOADK r0, "room end"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_step 0 2
+    .loc "objects/obj_ctrl/step.dss" 1
+    LOADK r0, "step "
+    GETBI r1, room
+    TOSTR r1, r1
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/step.dss" 2
+    GETBI r0, room
+    LOADK r1, @rm_a
+    EQ r0, r0, r1
+    JMPF r0, L0
+    LOADK r0, @rm_b
+    CALLN r0, 1, room_goto
+    JMP L1
+  L0:
+    .loc "objects/obj_ctrl/step.dss" 3
+    CALLN r0, 0, game_restart
+  L1:
+    RET r0, 0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event step ctrl_step
+    .event game_start ctrl_game_start
+    .event room_start ctrl_room_start
+    .event room_end ctrl_room_end
+.end
+
+.room rm_a 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.room rm_b 320 240
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_a

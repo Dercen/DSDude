@@ -1,0 +1,115 @@
+.dsda 0.1
+.seed 0
+
+.func ctrl_create 0 2
+    .loc "objects/obj_ctrl/create.dss" 1
+    LOADK r0, "ctrl create"
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/create.dss" 2
+    LOADI r0, 2
+    LOADI r1, 0
+    SETBIX r0, alarm, r1
+    RET r0, 0
+.end
+
+.func ctrl_begin 0 1
+    .loc "objects/obj_ctrl/begin_step.dss" 1
+    LOADK r0, "ctrl begin"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_step 0 1
+    .loc "objects/obj_ctrl/step.dss" 1
+    LOADK r0, "ctrl step"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_end 0 1
+    .loc "objects/obj_ctrl/end_step.dss" 1
+    LOADK r0, "ctrl end"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_alarm0 0 3
+    .loc "objects/obj_ctrl/alarm_0.dss" 1
+    LOADK r0, "ctrl alarm 0"
+    CALLN r0, 1, show_debug_message
+    .loc "objects/obj_ctrl/alarm_0.dss" 2
+    LOADI r0, 0
+    LOADI r1, 0
+    LOADK r2, @obj_b
+    CALLN r0, 3, instance_create
+    RET r0, 0
+.end
+
+.func ctrl_game_start 0 1
+    .loc "objects/obj_ctrl/game_start.dss" 1
+    LOADK r0, "ctrl game_start"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func ctrl_room_start 0 1
+    .loc "objects/obj_ctrl/room_start.dss" 1
+    LOADK r0, "ctrl room_start"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func a_create 0 1
+    .loc "objects/obj_a/create.dss" 1
+    LOADK r0, "a create"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func a_step 0 1
+    .loc "objects/obj_a/step.dss" 1
+    LOADK r0, "a step"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func b_create 0 1
+    .loc "objects/obj_b/create.dss" 1
+    CALLN r0, 0, event_inherited
+    .loc "objects/obj_b/create.dss" 2
+    LOADK r0, "b create"
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_ctrl sprite=- parent=- visible=0 screen=top depth=0
+    .event create ctrl_create
+    .event begin_step ctrl_begin
+    .event step ctrl_step
+    .event end_step ctrl_end
+    .event alarm_0 ctrl_alarm0
+    .event game_start ctrl_game_start
+    .event room_start ctrl_room_start
+.end
+
+.object obj_a sprite=- parent=- visible=0 screen=top depth=0
+    .event create a_create
+    .event step a_step
+.end
+
+.object obj_b sprite=- parent=obj_a visible=0 screen=top depth=0
+    .event create b_create
+.end
+
+.room rm_one 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_ctrl 0 0 top -
+    .instance obj_a 0 0 top -
+    .instance obj_b 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_one
