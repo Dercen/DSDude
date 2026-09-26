@@ -1,7 +1,7 @@
 # WS3 DS platform layer status
 
 Mode: **hybrid**, local slot 2. Launched 2026-09-26 (after `start-ws3`). Branch `ws3-platform`; `main` merged
-daily (last: `9ff97c1`, checkpoint-23; dist rebuilt for WS2's direct threading, conformance:ds 46/46). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
+daily (last: `73756aa`, checkpoint-25; dist rebuilt for WS2's step 12, conformance:ds 46/46). Toolchain: BlocksDS 1.24.0 (GCC 16.2.0) from WS1's install.
 
 ## Progress
 
@@ -135,6 +135,12 @@ Legend: todo / in progress / done (<sha>).
     cycles/op** (equal within 1 %: melonDS does not model the data cache); py-desmume **47.71 vs 57.62** (the loop
     17 % cheaper there). What the D-cache is worth on hardware needs spike 15 (a flashcart run). `npm run bench`
     now reports it every run (`LOOP` lines).
+  - **Re-run after WS2's f636475 (step 12: op_CALLN_QUICK, one-store SYNC_PC, run_plain back in ITCM), main 73756aa:**
+    melonDS, **II mix 25.11 cycles/op = 44,605 ops/frame: PASS** (gate 44,000; target 25.46); tag-checked 29.00 =
+    38,631 (FAIL). Loop 28.87 / 25.12; BL = long. Per-opcode: **CALLN 51.8 -> 42.9**; CMPJII+JMP 25.2, CMPJ+JMP 29.9,
+    ADDII 24.0, ADD 31.9, MULII 27.0, MUL 32.9, GETSLOT 27.0, SETSLOT 24.0, MOV 18.0, LOADI 15.0. predecode=10/256.
+    **ITCM 15,376 B of 24 KB** (run_plain back in ITCM). Hardware set 3 rebuilt from this dist (unreleased,
+    `<DSDUDE_HOME>/hardware-set3/`; its 2-bench.nds gives 29.00 / 25.11 on melonDS); set 2 unchanged.
   - **Re-run after WS2's 837fe60 (pre-decoded code, direct threading), main 9ff97c1:** `DSD|MEM predecode=10/256` in
     the bench room (1 in the baseline's), so the threaded path is in use. melonDS VM, gate mix tag-checked **29.94
     cycles/op = 37,419 ops/frame**; II **26.06 = 42,990**: both still FAIL 44,000, the II mix 0.60 cycles/op above
