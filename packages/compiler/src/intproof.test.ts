@@ -140,6 +140,11 @@ describe("int variables (project-wide)", () => {
     );
   });
 
+  it("proves int-typed builtin variables, writable ones included, and alarm elements", () => {
+    expect(game({ step: "depth = depth + irandom(3)\n" })).toMatch(/ADDII /);
+    expect(game({ step: "if (alarm[0] < irandom(9)) x = 0\n" })).toMatch(/CMPJII /);
+  });
+
   it("never proves builtin variables the engine writes (x moves by hspeed)", () => {
     expect(game({ step: "x = 0\nx = x + irandom(3)\n" })).not.toMatch(/ADDII /);
   });

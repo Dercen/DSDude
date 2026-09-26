@@ -6,8 +6,9 @@
  *
  * A value is proved int when it is (checked against the runtime's C, runtime/core/src, 2026-09-26):
  * - an int literal, or a builtin constant (every constant is loaded as an int);
- * - a read-only builtin variable of type int (`room_width`, `room_height`, `room_speed`, `image_number`), bare or
- *   through an instance: user code can't store a fraction in one;
+ * - a builtin variable of type int (`room_width`, `room_speed`, `image_number`, `depth`, ...), bare or through an
+ *   instance, and an element of the int array `alarm`: the runtime keeps them as int32 (a store is floored to an
+ *   int, bivars.c `to_int`) and reads them back as ints;
  * - a call of a builtin whose builtins.json return type is int (`floor`, `irandom`, `array_length`, ...), unless a
  *   local or user function of that name shadows it;
  * - `-x`, `x + y`, `x - y`, `x * y`, `x mod y` of proved ints (int op int stays int; on overflow a release build
@@ -28,7 +29,7 @@
  * whichever object holds it) or a global is int when every store into it, in every function, event and creation
  * code, stores a proved int. No definite-assignment rule is needed there: reading one that was never assigned stops
  * with R500/R501. Builtin variables are never int variables: the engine itself writes `x`, `y` and friends
- * (`x += hspeed` each step), so only the read-only int ones above count.
+ * (`x += hspeed` each step) and most are typed "number", so only the int-typed ones above count.
  */
 import type { AssignOp, BinaryOp, Expr, LValue, Stmt } from "../syntax/ast.ts";
 import { localsOf, walk } from "../syntax/walk.ts";
@@ -89,6 +90,9 @@ export class IntProof {
         return this.variableIsInt("instance", e.name);
       case "global":
         return this.variableIsInt("global", e.name);
+      case "index":
+        // An element of a builtin int array (`alarm[0]`); user arrays can hold anything.
+        return e.object.kind === "name" && !this.locals.has(e.object.name) && isIntBuiltinArray(e.object.name);
       case "call":
         return (
           e.callee.kind === "name" &&
@@ -108,9 +112,9 @@ export class IntProof {
     }
   }
 
-  /** A builtin variable is int only when read-only and of type int; a user one when the project proof says so. */
+  /** A builtin variable is int when its type is int; a user one when the project proof says so. */
   private variableIsInt(kind: VariableKind, name: string): boolean {
-    if (kind === "instance" && builtinVariables.has(name)) return isReadOnlyIntVariable(name);
+    if (kind === "instance" && builtinVariables.has(name)) return isIntBuiltinVariable(name);
     return this.scope.isIntVariable?.(kind, name) ?? false;
   }
 
@@ -201,10 +205,16 @@ function topLevelDeclarations(body: readonly Stmt[]): Map<string, number> {
   return decls;
 }
 
-/** A read-only builtin variable of type int, not an array (`room_width`, `image_number`, ...). */
-function isReadOnlyIntVariable(name: string): boolean {
+/** A builtin array variable of type int (`alarm`). */
+function isIntBuiltinArray(name: string): boolean {
   const v = builtinVariables.get(name);
-  return v?.readonly === true && v.arrayLength === 0 && v.type === INT_TYPE;
+  return v !== undefined && v.arrayLength > 0 && v.type === INT_TYPE;
+}
+
+/** A builtin variable of type int, not an array (`room_width`, `image_number`, `depth`, ...). */
+function isIntBuiltinVariable(name: string): boolean {
+  const v = builtinVariables.get(name);
+  return v !== undefined && v.arrayLength === 0 && v.type === INT_TYPE;
 }
 
 /** One store into an instance variable or a global: the value stored, or null for a store that is never int. */

@@ -256,10 +256,11 @@ start.sh (2026-09-26): node v24.16.0, npm 11.13.0, gcc 13.3.0, GNU Make 4.3; loc
     ADDI.
   - Goldens: v3/09 and v4/10 gain II ops from instance variables; host tests green (120,002 checks x3).
     Tests: four more in `src/intproof.test.ts`.
-  - **Next lever, for WS0 to weigh (needs a contract change):** declared types for builtin variables whose
-    values really are whole numbers in DSS (e.g. `depth` is typed int but writable). Or a `var`-style int
-    declaration for instance variables. Either would let game code with `x`/`y` on a pixel grid use the II
-    forms; today nothing proves those int.
+  - Also proved: every builtin variable typed int, writable ones included (`depth`: the runtime floors a store to
+    int32, bivars.c `to_int`), and `alarm[i]` elements.
+  - **For WS0 (builtins.json, changes the ABI hash):** `bbox_left/top/right/bottom` are typed "number", but the
+    runtime always returns ints (`bivars.c` `bbox_edge`). Typed int, collision code comparing bbox edges would get
+    CMPJII. Nothing sound reaches `x`/`y`: they are fractional by design.
 
 ## Next
 
