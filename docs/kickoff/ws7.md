@@ -194,3 +194,38 @@ Ask the user only when a reported check is ambiguous.
 - **PLAN.md sections:** 1, 2.5, 2.7, 3.4 (ownership table, shared-file rules, packaged content), 4, 5 C2, C6, C7, C9, 6 WS7 and WS6's Learn panel, 7.2, 7.4, 7.5 (cloud sessions), 8 M2, M3, M5, and 9 risks 15, 22, 23, 26 and 28.
 - **Cloud procedure:** `docs/kickoff/README.md` section 8 (canonical).
 - **Research files:** `docs/research/04-priorart.md`, `docs/research/06-idestack.md`, and `docs/research/verification.md` claim 8.
+
+## 11. Notes from WS0 at launch (CP-A, 2026-09-28)
+
+What changed since this brief was written. Read these before section 5's first tasks.
+- **Delivered already:**
+  - C7 `LanguageServiceHost` 0.1.0 is in `packages/lang/src/host.ts` (WS4, freezes at CP-B), so you need not start
+    builtins-only;
+  - WS6 has built the Monaco host, the Learn panel host and all visual editors (WS6b will not launch, user decision
+    2026-09-26).
+- **Learn link formats (WS6, documented in `apps/ide/src/renderer/panels/api.ts`; another form needs an ADR):**
+  - Learn links are `dsdude-learn:/docs/<path>.md#<anchor>`, with GitHub-style heading slugs;
+  - Problems links go to `docs/reference/errors.md#<code lowercased>`;
+  - F1 goes to `docs/reference/functions.md#<name>` (`variables.md` for variables and constants);
+  - the mock host is `@dsdude/ide/mock-host` (`fixtures/ide/mock-host`).
+- **`templates/index.json` (C5 TemplateIndexSchema, `contracts/ipc.md`):**
+  - the shape is `{ "templates": [ { "id": "flappy", "title": "Flappy Bird", "description": "...", "dir": "flappy" } ] }`;
+  - `id` matches `/^[a-z0-9-]+$/`, and `description` is optional;
+  - `dir` is a folder under `templates/` that holds a complete C1 project;
+  - list order is the wizard's order, and the template whose id or title matches `/flappy/` is preselected;
+  - until the file exists, the wizard offers a built-in Empty;
+  - another shape needs a C5 T1 or an ADR.
+- **`builtins.json` 0.3.0 has entries whose `doc`/`example` read `TODO(WS7)`:**
+  - the `c_*` colour constants (ids 143-158);
+  - the GameMaker aliases (ids 159-169, `kind: "alias"`: `instance_create_layer`, `keyboard_check*`, `vk_*`).
+
+  The 33 `kind: "unsupported"` names (E207) link to `docs/manual/differences-from-gamemaker.md#<slug>`: write that
+  page with one heading per name (slug = the name without a trailing `*` or `_`, with `_` replaced by `-`).
+- **Hardware facts for the manual:**
+  - the target is tested on an original 3DS through TWiLight Menu++, where DSDude ROMs run in the default "Run in:
+    DSi mode";
+  - in TWiLight's DS mode they currently stop with R584 (NitroFS), which WS3 is diagnosing: do not document DS mode
+    as working yet;
+  - flashcards on a DS or DS Lite need a loader that passes argv and DLDI-patches the ROM (WS3's status file has
+    the current wording).
+- **C13 0.3.0:** sprites-per-line warning at 2048 OBJ line cycles (the real limit measured on hardware: 2178).
