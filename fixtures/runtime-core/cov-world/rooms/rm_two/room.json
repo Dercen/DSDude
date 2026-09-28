@@ -1,0 +1,13 @@
+{
+  "width": 256,
+  "height": 192,
+  "layout": "separate",
+  "screens": {
+    "top": { "background": null, "viewX": 0, "viewY": 0 },
+    "bottom": { "background": null, "viewX": 0, "viewY": 0 }
+  },
+  "instances": [
+    { "object": "obj_pad", "x": 20, "y": 20 },
+    { "object": "obj_walker", "x": 0, "y": 0 }
+  ]
+}

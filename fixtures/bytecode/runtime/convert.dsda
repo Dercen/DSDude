@@ -1,0 +1,35 @@
+.dsda 0.1
+.seed 0
+
+; convert: TOINT and TOFIXED, which the compiler does not emit yet (runtime coverage, hand-assembled). TOINT floors
+; a fraction and keeps an int; TOFIXED keeps a fraction and scales an int into Q20.12, where 600000 does not fit
+; (R521 in a debug build ends the run). Expected lines: 2, -3, 7, 1.5, 3.5, then the R521 error.
+.func __main 0 4
+    .loc "rt/convert.dss" 1
+    LOADK r0, 2.75
+    TOINT r1, r0
+    CALLN r1, 1, show_debug_message
+    .loc "rt/convert.dss" 2
+    LOADK r0, -2.25
+    TOINT r1, r0
+    CALLN r1, 1, show_debug_message
+    .loc "rt/convert.dss" 3
+    LOADI r0, 7
+    TOINT r1, r0
+    CALLN r1, 1, show_debug_message
+    .loc "rt/convert.dss" 4
+    LOADK r0, 1.5
+    TOFIXED r1, r0
+    CALLN r1, 1, show_debug_message
+    .loc "rt/convert.dss" 5
+    LOADI r0, 3
+    TOFIXED r1, r0
+    LOADK r2, 0.5
+    ADD r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "rt/convert.dss" 6
+    LOADK r0, 600000
+    TOFIXED r1, r0
+    CALLN r1, 1, show_debug_message
+    RET r0, 0
+.end

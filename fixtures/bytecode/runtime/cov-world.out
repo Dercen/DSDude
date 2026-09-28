@@ -1,0 +1,45 @@
+DSD|READY|0.1.0|f1d376bb
+DSD|LOG|bbox 34 45 45 54
+DSD|LOG|room 256x192 at 60
+DSD|LOG|true
+DSD|LOG|1
+DSD|LOG|true
+DSD|LOG|3
+DSD|LOG|true
+DSD|LOG|4
+DSD|LOG|false
+DSD|LOG|-2
+DSD|LOG|-1 true 0
+DSD|LOG|34
+DSD|LOG|true
+DSD|LOG|true
+DSD|LOG|false
+DSD|LOG|2
+DSD|LOG|200
+DSD|LOG|true
+DSD|LOG|100
+DSD|LOG|200
+DSD|LOG|100
+DSD|LOG|7
+DSD|LOG|true
+DSD|LOG|true
+DSD|LOG|false
+DSD|LOG|2 -2 2.83 45
+DSD|LOG|3 4 5 306.87
+DSD|LOG|0 0
+DSD|LOG|room start 0 two=false
+DSD|MEM|inst=5/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0,predecode=3/256
+DSD|LOG|room start 1 two=true
+DSD|MEM|inst=2/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0,predecode=3/256
+DSD|LOG|pad held true
+DSD|LOG|pad released at 3
+DSD|LOG|a released at 4
+DSD|LOG|pad held false
+DSD|LOG|pad released at 5
+DSD|LOG|room start 6 two=false
+DSD|MEM|inst=1/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0,predecode=3/256
+DSD|LOG|room start 7 two=true
+DSD|MEM|inst=2/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0,predecode=3/256
+DSD|LOG|room start 8 two=false
+DSD|MEM|inst=1/512,arena=0/512,heapfree=0,snd=0/768,objvram_top=0/128,objvram_bot=0/128,pal16_top=0/16,pal256_top=0/16,pal16_bot=0/16,pal256_bot=0/16,cstack=0/0,predecode=3/256
+DSD|ERR|R542|obj_walker|Step|objects/obj_walker/step.dss|4|room_goto_next: there is no room after rm_three

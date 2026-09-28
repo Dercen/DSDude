@@ -1,0 +1,2 @@
+draw_clear(c_navy);
+draw_self();

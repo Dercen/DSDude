@@ -1,0 +1,9 @@
+// On the bottom screen at (20, 20): its box is x 14-25, y 15-24. The stylus touches (20, 20) on frame 2 and
+// (100, 100) on frame 4 (cov-world.keys). The pad steps before obj_walker (creation order), so it sees the
+// global.t of the previous frame: frame f reads t = f.
+if (touch_check()) {
+    show_debug_message("pad held " + string(touch_in_instance())); // true on frame 2, false on frame 4
+}
+if (touch_released()) {
+    show_debug_message("pad released at " + string(global.t)); // frames 3 and 5
+}

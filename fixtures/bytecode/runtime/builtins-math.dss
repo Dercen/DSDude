@@ -1,0 +1,25 @@
+// builtins-math: the number builtins no other fixture reached (coverage, 2026-09-26). The expected line is beside
+// each call, worked out from contracts/language.md (ceil returns an int; fractions print with 2 decimals, half away
+// from zero; GameMaker's frac keeps the sign) rather than read back from the runtime. The seeded draws were checked
+// against an independent xorshift32 (shifts 13/17/5, rejection-sampled bounds) in JavaScript.
+show_debug_message(ceil(1.25));              // 2
+show_debug_message(ceil(-1.25));             // -1
+show_debug_message(ceil(3));                 // 3
+show_debug_message(frac(2.75));              // 0.75
+show_debug_message(frac(-2.75));             // -0.75
+show_debug_message(frac(5));                 // 0
+show_debug_message(sign(-4));                // -1
+show_debug_message(sign(0));                 // 0
+show_debug_message(sign(2.5));               // 1
+show_debug_message(lerp(0, 10, 0.25));       // 2.5
+show_debug_message(lerp(10, 20, 1.5));       // 25
+show_debug_message(lerp(4, 4, 0.3));         // 4
+show_debug_message(point_distance(0, 0, 3, 4));   // 5
+show_debug_message(point_distance(1, 1, -2, -3)); // 5
+show_debug_message(point_distance(0, 0, 1, 1));   // 1.41
+// Seed 7 (the header): the draws, in order.
+show_debug_message(random(10));
+show_debug_message(random(-2));
+show_debug_message(random(0));               // 0: no draw
+show_debug_message(random_range(5, 6));
+show_debug_message(random_range(6, 5));      // lo + random(-1): in (5, 6]

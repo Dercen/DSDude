@@ -1,0 +1,6 @@
+# cov-world: a and the stylus at (20,20) on frame 2; the stylus at (100,100) on frame 4
+0 -
+2 a+T20,20
+3 -
+4 T100,100
+5 -

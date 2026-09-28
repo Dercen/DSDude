@@ -1,0 +1,2 @@
+// rm_one at t 0, rm_two at t 1, rm_three at t 6, rm_two at t 7, rm_three at t 8.
+show_debug_message("room start " + string(global.t) + " two=" + string(room == rm_two));

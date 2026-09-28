@@ -1,0 +1,7 @@
+DSD|READY|0.1.0|f1d376bb
+DSD|LOG|2
+DSD|LOG|-3
+DSD|LOG|7
+DSD|LOG|1.5
+DSD|LOG|3.5
+DSD|ERR|R521||__main|rt/convert.dss|6|A number with a fraction got too big (past +-524287.99)

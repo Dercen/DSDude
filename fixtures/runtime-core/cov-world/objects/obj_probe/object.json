@@ -1,0 +1,7 @@
+{
+  "sprite": "spr_box",
+  "parent": null,
+  "visible": true,
+  "depth": 3,
+  "screen": "top"
+}

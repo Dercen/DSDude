@@ -1,0 +1,420 @@
+.dsda 0.1
+.seed 3
+.global t
+.asset sprite spr_box "gfx/spr_box.grf" 1 origin=8,8 size=16,16 bbox=2,3,13,12
+
+.func obj_pad__step 0 2
+    .loc "objects/obj_pad/step.dss" 4
+    CALLN r0, 0, touch_check
+    JMPF r0, L0
+    .loc "objects/obj_pad/step.dss" 5
+    LOADK r0, "pad held "
+    CALLN r1, 0, touch_in_instance
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+  L0:
+    .loc "objects/obj_pad/step.dss" 7
+    CALLN r0, 0, touch_released
+    JMPF r0, L1
+    .loc "objects/obj_pad/step.dss" 8
+    LOADK r0, "pad released at "
+    GETGLOB r1, t
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+  L1:
+    RET r0, 0
+.end
+
+.func obj_pad__draw 0 1
+    .loc "objects/obj_pad/draw.dss" 1
+    LOADI r0, 15
+    CALLN r0, 1, draw_clear
+    .loc "objects/obj_pad/draw.dss" 2
+    CALLN r0, 0, draw_self
+    RET r0, 0
+.end
+
+.func obj_probe__create 0 4
+    .loc "objects/obj_probe/create.dss" 4
+    LOADK r1, "bbox "
+    GETBI r2, bbox_left
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, bbox_top
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, bbox_right
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, bbox_bottom
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 5
+    LOADK r1, "room "
+    GETBI r2, room_width
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, "x"
+    CONCAT r1, r1, r2
+    GETBI r2, room_height
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " at "
+    CONCAT r1, r1, r2
+    GETBI r2, room_speed
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 6
+    GETBI r1, sprite_index
+    LOADK r2, @spr_box
+    EQ r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 7
+    GETBI r1, image_number
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 8
+    GETBI r1, visible
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 9
+    GETBI r1, depth
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 10
+    GETBI r1, screen
+    LOADI r2, 0
+    EQ r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 11
+    LOADI r1, 0
+    LOADI r2, 4
+    SETBIX r2, alarm, r1
+    .loc "objects/obj_probe/create.dss" 12
+    LOADI r2, 0
+    GETBIX r1, alarm, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 13
+    LOADB r1, false
+    SETBI r1, visible
+    .loc "objects/obj_probe/create.dss" 14
+    GETBI r1, visible
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 15
+    LOADI r1, -2
+    SETBI r1, depth
+    .loc "objects/obj_probe/create.dss" 16
+    GETBI r1, depth
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 18
+    LOADI r1, -1
+    SETBI r1, sprite_index
+    .loc "objects/obj_probe/create.dss" 19
+    GETBI r1, sprite_index
+    CALLN r1, 1, string
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, bbox_left
+    GETBI r3, x
+    EQ r2, r2, r3
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, image_number
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 20
+    LOADK r1, @spr_box
+    SETBI r1, sprite_index
+    .loc "objects/obj_probe/create.dss" 21
+    GETBI r1, bbox_left
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 22
+    LOADI r1, 1
+    SETBI r1, screen
+    .loc "objects/obj_probe/create.dss" 23
+    GETBI r1, screen
+    LOADI r2, 1
+    EQ r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 24
+    LOADI r1, 0
+    SETBI r1, screen
+    .loc "objects/obj_probe/create.dss" 26
+    LOADK r1, @obj_mark
+    CALLN r1, 1, instance_exists
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 27
+    LOADK r1, @obj_pad
+    CALLN r1, 1, instance_exists
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 28
+    LOADK r1, @obj_mark
+    CALLN r1, 1, instance_number
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 29
+    LOADK r1, @obj_mark
+    LOADI r2, 1
+    CALLN r1, 2, instance_find
+    MOV r0, r1
+    .loc "objects/obj_probe/create.dss" 30
+    GETBIO r1, r0, x
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 31
+    LOADK r1, @obj_mark
+    LOADI r2, 5
+    CALLN r1, 2, instance_find
+    LOADI r2, -4
+    EQ r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 32
+    LOADI r1, 0
+    LOADI r2, 0
+    LOADK r3, @obj_mark
+    CALLN r1, 3, instance_nearest
+    MOV r0, r1
+    .loc "objects/obj_probe/create.dss" 33
+    GETBIO r1, r0, x
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 34
+    LOADI r1, 190
+    LOADI r2, 140
+    LOADK r3, @obj_mark
+    CALLN r1, 3, instance_nearest
+    MOV r0, r1
+    .loc "objects/obj_probe/create.dss" 35
+    GETBIO r1, r0, x
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 36
+    LOADI r1, 150
+    LOADI r2, 100
+    LOADK r3, @obj_mark
+    CALLN r1, 3, instance_nearest
+    MOV r0, r1
+    .loc "objects/obj_probe/create.dss" 37
+    GETBIO r1, r0, x
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 38
+    LOADI r1, 7
+    SETBIO r1, r0, depth
+    .loc "objects/obj_probe/create.dss" 39
+    GETBIO r1, r0, depth
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 41
+    GETBI r1, x
+    GETBI r2, y
+    CALLN r1, 2, place_free
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 42
+    LOADI r1, 48
+    LOADI r2, 50
+    CALLN r1, 2, place_free
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 43
+    LOADI r1, 49
+    LOADI r2, 50
+    CALLN r1, 2, place_free
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 45
+    LOADI r1, 0
+    LOADI r2, 2
+    CALLN r1, 2, motion_add
+    .loc "objects/obj_probe/create.dss" 46
+    LOADI r1, 90
+    LOADI r2, 2
+    CALLN r1, 2, motion_add
+    .loc "objects/obj_probe/create.dss" 47
+    GETBI r1, hspeed
+    CALLN r1, 1, string
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, vspeed
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, speed
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, direction
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 48
+    GETBI r1, x
+    ADDI r1, r1, 30
+    GETBI r2, y
+    ADDI r2, r2, 40
+    LOADI r3, 5
+    CALLN r1, 3, move_towards_point
+    .loc "objects/obj_probe/create.dss" 49
+    GETBI r1, hspeed
+    CALLN r1, 1, string
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, vspeed
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, speed
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, direction
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    .loc "objects/obj_probe/create.dss" 50
+    LOADI r1, 0
+    SETBI r1, speed
+    .loc "objects/obj_probe/create.dss" 51
+    GETBI r1, hspeed
+    CALLN r1, 1, string
+    LOADK r2, " "
+    CONCAT r1, r1, r2
+    GETBI r2, vspeed
+    CALLN r2, 1, string
+    CONCAT r1, r1, r2
+    CALLN r1, 1, show_debug_message
+    RET r0, 0
+.end
+
+.func obj_walker__step 0 2
+    .loc "objects/obj_walker/step.dss" 2
+    GETGLOB r0, t
+    ADDI r0, r0, 1
+    SETGLOB r0, t
+    .loc "objects/obj_walker/step.dss" 3
+    GETGLOB r0, t
+    LOADI r1, 1
+    CMPJII r0, r1, 1
+    JMP L0
+    GETGLOB r0, t
+    LOADI r1, 6
+    CMPJII r0, r1, 1
+    JMP L0
+    GETGLOB r0, t
+    LOADI r1, 8
+    CMPJII r0, r1, 1
+    JMP L0
+    GETGLOB r0, t
+    LOADI r1, 9
+    CMPJII r0, r1, 0
+    JMP L1
+  L0:
+    .loc "objects/obj_walker/step.dss" 4
+    CALLN r0, 0, room_goto_next
+  L1:
+    .loc "objects/obj_walker/step.dss" 6
+    GETGLOB r0, t
+    LOADI r1, 7
+    CMPJII r0, r1, 0
+    JMP L2
+    .loc "objects/obj_walker/step.dss" 7
+    CALLN r0, 0, room_goto_previous
+  L2:
+    .loc "objects/obj_walker/step.dss" 9
+    LOADI r0, 0
+    CALLN r0, 1, button_released
+    JMPF r0, L3
+    .loc "objects/obj_walker/step.dss" 10
+    LOADK r0, "a released at "
+    GETGLOB r1, t
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+  L3:
+    RET r0, 0
+.end
+
+.func obj_walker__game_start 0 1
+    .loc "objects/obj_walker/game_start.dss" 1
+    LOADI r0, 0
+    SETGLOB r0, t
+    RET r0, 0
+.end
+
+.func obj_walker__room_start 0 3
+    .loc "objects/obj_walker/room_start.dss" 2
+    LOADK r0, "room start "
+    GETGLOB r1, t
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    LOADK r1, " two="
+    CONCAT r0, r0, r1
+    GETBI r1, room
+    LOADK r2, @rm_two
+    EQ r1, r1, r2
+    CALLN r1, 1, string
+    CONCAT r0, r0, r1
+    CALLN r0, 1, show_debug_message
+    RET r0, 0
+.end
+
+.object obj_mark sprite=- parent=- visible=0 screen=top depth=0
+.end
+
+.object obj_pad sprite=spr_box parent=- visible=1 screen=bottom depth=0
+    .event step obj_pad__step
+    .event draw obj_pad__draw
+.end
+
+.object obj_probe sprite=spr_box parent=- visible=1 screen=top depth=3
+    .event create obj_probe__create
+.end
+
+.object obj_walker sprite=- parent=- visible=0 screen=top depth=0
+    .event step obj_walker__step
+    .event game_start obj_walker__game_start
+    .event room_start obj_walker__room_start
+.end
+
+.object obj_wall sprite=spr_box parent=- visible=1 screen=top depth=0
+.end
+
+.room rm_one 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_wall 60 50 top -
+    .instance obj_mark 100 50 top -
+    .instance obj_mark 200 150 top -
+    .instance obj_probe 40 50 top -
+    .instance obj_walker 0 0 top -
+    .set top spr_box -
+    .set bottom - -
+    .sounds -
+.end
+
+.room rm_two 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_pad 20 20 bottom -
+    .instance obj_walker 0 0 top -
+    .set top - -
+    .set bottom spr_box -
+    .sounds -
+.end
+
+.room rm_three 256 192
+    .screen top - 0 0
+    .screen bottom - 0 0
+    .instance obj_walker 0 0 top -
+    .set top - -
+    .set bottom - -
+    .sounds -
+.end
+
+.first rm_one

@@ -10,6 +10,7 @@
 #include "collision.h"
 #include "drawlist.h"
 #include "engine.h"
+#include "errors.h"
 #include "fixed.h"
 #include "font8x8.h"
 #include "game.h"
@@ -28,6 +29,7 @@
 #define CONFORMANCE_FRAMES 100 // upper bound for the room-game conformance programs (they exit sooner)
 #define HALT_FRAMES 3 // halt-create/halt-user end in their first frame; more would show they did not
 #define STRESS_FRAMES 180 // v4-03-stress: three DSD|STAT periods
+#define COV_WORLD_FRAMES 12 // cov-world stops with R542 on frame 8 (no room after the last); more shows it did not
 #define DSDB_ABI_OFFSET 8 // the ABI hash in a DSDB header (contracts/dsdb.md, header word 2)
 #define DSDB_ABI_BYTES 4
 #define FNV_OFFSET 0x811C9DC5u // FNV-1a 32 offset basis
@@ -243,6 +245,15 @@ static const ProgramCase CASES[] = {
      DSD_GAME_FAILED, 0, NULL},
     {"fixtures/bytecode/runtime/err-watchdog.dsdb", "fixtures/bytecode/runtime/err-watchdog.out", false,
      DSD_GAME_FAILED, 0, NULL},
+    // Runtime coverage (2026-09-26): builtins and built-in variables no other fixture reached. builtins-math and
+    // cov-world are compiled from DSS by gen_dss.mjs (sources in runtime/ and fixtures/runtime-core/cov-world);
+    // convert is hand-assembled (the compiler does not emit TOINT/TOFIXED yet).
+    {"fixtures/bytecode/runtime/builtins-math.dsdb", "fixtures/bytecode/runtime/builtins-math.out", false,
+     DSD_GAME_EXITED, 0, NULL},
+    {"fixtures/bytecode/runtime/convert.dsdb", "fixtures/bytecode/runtime/convert.out", false, DSD_GAME_FAILED, 0,
+     NULL},
+    {"fixtures/bytecode/runtime/cov-world.dsdb", "fixtures/bytecode/runtime/cov-world.out", false, DSD_GAME_FAILED,
+     COV_WORLD_FRAMES, "fixtures/bytecode/runtime/cov-world.keys"},
 };
 
 static void test_cases(void) {
@@ -728,6 +739,61 @@ static void test_int_specialised(void) {
     }
 }
 
+// ---- Built-in variable errors and direction wrapping (bivars.c), on a booted cov-world --------------------------
+
+#define COV_WORLD_DSDB "fixtures/bytecode/runtime/cov-world.dsdb"
+#define ALARM_COUNT 8            // alarm[0..7] (builtins.json arrayLength)
+#define DEG(d) ((int32_t)(d) * DSD_FX_ONE) // whole degrees in Q20.12
+
+// The pool index of the first live instance of the object named `name`, or DSD_NO_INST.
+static uint32_t find_instance(const char *name) {
+    const DsdVm *vm = dsd_game_vm();
+    for (uint32_t i = 0; i < DSD_C13_INSTANCES_MAX; i++) {
+        if (!dsd_inst_live(i)) continue;
+        uint32_t len;
+        const char *obj = dsd_prog_str(vm->prog, vm->world->objects[dsd_inst_at(i)->object].name_str, &len);
+        if (strcmp(obj, name) == 0) return i;
+    }
+    return DSD_NO_INST;
+}
+
+// Checks that the last call raised `code` with exactly `message`.
+static void check_error(bool ok, int32_t code, const char *message, int line) {
+    dsd_test_check(!ok, __FILE__, line, "the call failed");
+    dsd_test_check_i64(dsd_game_vm()->err_code, code, __FILE__, line, "error code");
+    dsd_test_check_str(dsd_game_vm()->err_msg, message, __FILE__, line, "error message");
+}
+
+static void test_bivar_paths(void) {
+    // Room one is loaded after boot (no frame run): the probe exists and nothing has failed yet.
+    CHECK_EQ(run_frames(COV_WORLD_DSDB, 0, NULL), DSD_GAME_RUNNING);
+    uint32_t probe = find_instance("obj_probe");
+    if (!CHECK(probe != DSD_NO_INST)) return;
+    DsdValue v;
+    check_error(dsd_bivar_set(probe, DSD_BV_room_speed, 0, dsd_int(30)), DSD_R_READ_ONLY,
+                "room_speed can't be changed", __LINE__);
+    check_error(dsd_bivar_set(probe, DSD_BV_screen, 0, dsd_int(7)), DSD_R_BAD_ARGUMENT,
+                "screen needs SCREEN_TOP or SCREEN_BOTTOM, but got a number", __LINE__);
+    check_error(dsd_bivar_set(probe, DSD_BV_sprite_index, 0, dsd_bool(true)), DSD_R_BAD_ARGUMENT,
+                "sprite_index needs a sprite, but got true or false", __LINE__);
+    check_error(dsd_bivar_set(probe, DSD_BV_depth, 0, dsd_undef()), DSD_R_BAD_ARGUMENT,
+                "depth needs a number, but got undefined", __LINE__);
+    check_error(dsd_bivar_get(probe, DSD_BV_alarm, ALARM_COUNT, &v), DSD_R_INDEX_RANGE,
+                "Position 8 is outside alarm (it has 8 items)", __LINE__);
+    check_error(dsd_bivar_set(probe, DSD_BV_alarm, -1, dsd_int(1)), DSD_R_INDEX_RANGE,
+                "Position -1 is outside alarm (it has 8 items)", __LINE__);
+    check_error(dsd_bivar_get(DSD_VM_NO_INST, DSD_BV_x, 0, &v), DSD_R_NO_INSTANCE,
+                "x needs an instance, and there is none here", __LINE__);
+    // direction is kept in [0, 360): -90 reads 270, 450 reads 90, 360 reads 0.
+    static const int32_t set_deg[] = {-90, 450, 360};
+    static const int32_t read_deg[] = {270, 90, 0};
+    for (size_t i = 0; i < sizeof set_deg / sizeof set_deg[0]; i++) {
+        CHECK(dsd_bivar_set(probe, DSD_BV_direction, 0, dsd_int(set_deg[i])));
+        CHECK(dsd_bivar_get(probe, DSD_BV_direction, 0, &v));
+        CHECK_EQ(v.payload, DEG(read_deg[i]));
+    }
+}
+
 // ---- Dispatch paths (M1 lever 1: pre-decoded cells, with the plain dispatch as the fallback) --------------------
 
 #define BENCH_DSDB "fixtures/bytecode/bench.dsdb"
@@ -775,6 +841,7 @@ static void program_tests(void) {
     test_release_flag();
     test_music_and_seed();
     test_int_specialised();
+    test_bivar_paths();
     test_mutations();
     test_flappy_deterministic();
     test_missing_file();
