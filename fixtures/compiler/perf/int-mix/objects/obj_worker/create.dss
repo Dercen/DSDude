@@ -1,0 +1,7 @@
+// Int state only: every store into these is a whole number, so the compiler proves them int (codegen/intproof.ts)
+// and their arithmetic uses ADDII/SUBII/MULII/CMPJII (the M1 gate depends on it).
+score = 0;
+lane = 1;
+timer = 0;
+cells = 0;
+global.frames = 0;

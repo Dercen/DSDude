@@ -1,0 +1,13 @@
+{
+  "formatVersion": 0,
+  "name": "int_mix",
+  "title": "Int mix",
+  "subtitle": "DSDude compiler benchmark",
+  "author": "DSDude",
+  "gamecode": "####",
+  "icon": "icon.png",
+  "firstRoom": "rm_bench",
+  "rooms": [
+    "rm_bench"
+  ]
+}
